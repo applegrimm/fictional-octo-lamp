@@ -9,7 +9,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
   <meta name="format-detection" content="telephone=no">
-  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
   <title>テイクアウト予約フォーム</title>
   
   <style>
@@ -745,10 +745,16 @@
       attachProductSelectListener();
       updatePickupDateControl();
     });
-    // 商品削除時にも制御を更新
-    document.getElementById('product-list-area').addEventListener('DOMNodeRemoved', function() {
-      setTimeout(updatePickupDateControl, 100);
+    // 商品削除時にも制御を更新（MutationObserverを使用）
+    const productListArea = document.getElementById('product-list-area');
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
+          setTimeout(updatePickupDateControl, 100);
+        }
+      });
     });
+    observer.observe(productListArea, { childList: true });
 
     // カスタムモーダルの「画面を閉じる」ボタン
     document.getElementById('modal-close-btn').onclick = function(){
