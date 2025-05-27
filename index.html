@@ -552,9 +552,9 @@
 
         if (result && result.success) {
           // 合計金額の表示
-          document.getElementById('result').innerHTML = '<span style="color:#27ae60;">予約完了しました！<br>合計金額：' + result.total + '円</span>';
+          document.getElementById('result').innerHTML = '<span style="color:#27ae60;">予約を受け付けました！<br>概算金額：' + result.total + '円<br><small>※正確な金額と処理結果は新しいタブでご確認ください</small></span>';
           // カスタムモーダル表示
-          document.getElementById('modal-message').innerHTML = '予約完了しました！<br>合計金額：' + result.total + '円';
+          document.getElementById('modal-message').innerHTML = '予約を受け付けました！<br>概算金額：' + result.total + '円<br><small>処理結果は新しいタブでご確認ください</small>';
           document.getElementById('custom-modal').style.display = 'flex';
           // フォームをリセットし、送信不可に
           document.getElementById('reserveForm').reset();
@@ -623,14 +623,20 @@
         form.submit();
         document.body.removeChild(form);
         
-        // 簡易的な成功レスポンス（実際のレスポンスは新しいタブで確認）
+        // 即座に成功レスポンスを返す（実際の処理はバックグラウンドで実行）
         setTimeout(() => {
+          // 簡易的な合計金額計算（商品価格が不明なので概算）
+          const estimatedTotal = data.items.reduce((sum, item) => {
+            // デフォルト価格を500円として計算
+            return sum + (500 * parseInt(item.qty));
+          }, 0);
+          
           resolve({ 
             success: true, 
-            total: data.items.reduce((sum, item) => sum + (500 * parseInt(item.qty)), 0),
-            message: '送信完了しました。新しいタブで結果を確認してください。'
+            total: estimatedTotal,
+            message: '予約を受け付けました。処理結果は新しいタブでご確認いただけます。'
           });
-        }, 1000);
+        }, 500); // 0.5秒後に成功として扱う
       });
     }
 
