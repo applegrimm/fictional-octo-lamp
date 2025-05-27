@@ -546,22 +546,8 @@
       console.log('送信先URL:', GAS_WEB_APP_URL);
 
       try {
-        // GASのWebアプリにPOSTリクエストを送信
-        const response = await fetch(GAS_WEB_APP_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(data)
-        });
-
-        console.log('レスポンス状態:', response.status, response.statusText);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-
-        const result = await response.json();
+        // iframe を使用してGASにリクエストを送信（CORS回避）
+        const result = await sendToGasViaIframe(data);
         console.log('レスポンス結果:', result);
 
         if (result.success) {
@@ -580,7 +566,7 @@
         } else {
           // サーバー側バリデーションエラー
           document.getElementById('result').textContent = 'エラー: ' + (result.errors ? result.errors.join('\n') : result.error);
-          document.getElementById('result').style.color = '#e74c3c'; // エラー時の色
+          document.getElementById('result').style.color = '#e74c3c';
           // フィールドごとのエラーメッセージを表示
           if(result.errors) {
               result.errors.forEach(err => {
@@ -590,7 +576,7 @@
                   else if (err.includes('店舗')) showError('store', err);
                   else if (err.includes('商品') || err.includes('数量')) showError('items', err);
                   else if (err.includes('受取希望日')) showError('pickup_date', err);
-                  else if (err.includes('受取希望時間')) showError('pickup_time', err); // 時間のエラー表示を追加
+                  else if (err.includes('受取希望時間')) showError('pickup_time', err);
               });
           }
         }
@@ -605,20 +591,60 @@
         submitBtn.style.background = '';
         
         // より詳細なエラーメッセージを表示
-        let errorMessage = '送信に失敗しました: ';
-        if (error.name === 'TypeError' && error.message.includes('fetch')) {
-          errorMessage += 'ネットワークエラーまたはCORS問題です。GASのデプロイ設定を確認してください。';
-        } else {
-          errorMessage += error.message;
-        }
+        let errorMessage = '送信に失敗しました: ' + error.message;
         
         document.getElementById('result').textContent = errorMessage;
         document.getElementById('result').style.color = '#e74c3c';
-        
-        // デバッグ用：GASのURLをテストするリンクを表示
-        document.getElementById('result').innerHTML += '<br><br><a href="' + GAS_WEB_APP_URL + '" target="_blank" style="color: #3498db;">GASのURLをテスト（新しいタブで開く）</a>';
       }
     });
+
+    // iframe を使用してGASにデータを送信する関数
+    function sendToGasViaIframe(data) {
+      return new Promise((resolve, reject) => {
+        // iframe を作成
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+
+        // メッセージリスナーを設定
+        const messageHandler = (event) => {
+          if (event.origin !== 'https://script.google.com') return;
+          
+          window.removeEventListener('message', messageHandler);
+          document.body.removeChild(iframe);
+          
+          resolve(event.data);
+        };
+        
+        window.addEventListener('message', messageHandler);
+
+        // タイムアウト設定
+        setTimeout(() => {
+          window.removeEventListener('message', messageHandler);
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
+          reject(new Error('リクエストがタイムアウトしました'));
+        }, 30000);
+
+        // フォームを作成してiframeに送信
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = GAS_WEB_APP_URL;
+        form.target = iframe.name = 'gas-iframe-' + Date.now();
+        
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = 'data';
+        input.value = JSON.stringify(data);
+        form.appendChild(input);
+        
+        iframe.name = form.target;
+        document.body.appendChild(form);
+        form.submit();
+        document.body.removeChild(form);
+      });
+    }
 
     // JSTの「今日」を取得する関数
     function getTodayJST() {
