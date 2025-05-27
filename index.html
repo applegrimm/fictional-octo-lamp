@@ -1,0 +1,740 @@
+<!--
+  @file index.html
+  @brief GitHub Pages用 テイクアウト予約フォーム
+  @details GASのdoPost APIと連携してGoogleバナーを表示せずに予約機能を提供
+-->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <title>テイクアウト予約フォーム</title>
+  
+  <style>
+  /* =============================
+    レスポンシブデザイン用CSS
+  ============================= */
+  html, body {
+    width: 100% !important;
+    min-width: 100% !important;
+    height: 100% !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-sizing: border-box !important;
+    font-family: 'Segoe UI', 'Meiryo', sans-serif;
+    background: #f7f7f7;
+    -webkit-text-size-adjust: 100%;
+  }
+  @media (max-width: 600px) {
+    html, body {
+      width: 100% !important;
+      min-width: 100% !important;
+      height: 100% !important;
+      min-height: 100vh !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      box-sizing: border-box !important;
+      background: #fff !important;
+      font-size: 16px !important;
+    }
+    .container {
+      width: 100% !important;
+      max-width: 100% !important;
+      margin: 0 !important;
+      padding: 16px 12px !important;
+      border-radius: 0 !important;
+      box-shadow: none !important;
+    }
+    h1 {
+      font-size: 1.6em !important;
+    }
+    input, select, textarea {
+      font-size: 16px !important;
+      height: auto !important;
+      padding: 12px 8px !important;
+      margin-top: 6px !important;
+    }
+    input[type="date"] {
+      min-height: 44px !important;
+    }
+    button {
+      padding: 14px !important;
+      font-size: 1.2em !important;
+      min-height: 50px !important;
+    }
+    .product-item {
+      flex-wrap: wrap;
+      margin-bottom: 16px !important;
+    }
+    .product-item select {
+      margin-bottom: 8px;
+      width: 100%;
+    }
+    .product-item input[type="number"] {
+      width: 80px !important;
+      height: 44px !important;
+    }
+    .remove-product-btn {
+      padding: 8px 12px !important;
+      height: 44px !important;
+    }
+    .add-product-btn {
+      padding: 12px !important;
+      margin-top: 12px !important;
+    }
+    form div {
+      margin-top: 20px !important;
+    }
+    form label {
+      font-size: 1.1em !important;
+    }
+    .product-desc {
+      width: 100% !important;
+      margin-top: 8px !important;
+    }
+    #custom-modal > div {
+      width: 90% !important;
+      max-width: 100% !important;
+      padding: 24px 16px !important;
+    }
+  }
+  .container {
+    max-width: 480px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 24px 16px;
+  }
+  h1 {
+    text-align: center;
+    font-size: 1.5em;
+    margin-bottom: 24px;
+  }
+  form div {
+    margin-top: 16px;
+  }
+  form label {
+    display: block;
+    font-weight: bold;
+    margin-bottom: 4px;
+  }
+  input, select, textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+    box-sizing: border-box;
+  }
+  input:invalid, select:invalid, textarea:invalid {
+    border-color: #e74c3c;
+  }
+  .error-message {
+    color: #e74c3c;
+    font-size: 0.95em;
+    margin-top: 2px;
+    display: block;
+  }
+  .required {
+    color: #e74c3c;
+    font-size: 0.95em;
+    margin-left: 4px;
+  }
+  button {
+    margin-top: 24px;
+    width: 100%;
+    padding: 12px;
+    background: #2ecc71;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  button:disabled {
+    background: #aaa;
+    cursor: not-allowed;
+  }
+  .success-message {
+    color: #27ae60;
+    text-align: center;
+    margin-top: 24px;
+    font-size: 1.1em;
+  }
+  /* 商品リストのスタイル */
+  .product-item {
+    display: flex;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+  .product-item select {
+    flex-grow: 1; /* 選択肢を広げる */
+    margin-right: 8px;
+  }
+  .product-item input[type="number"] {
+    width: 60px; /* 数量入力欄の幅 */
+    margin-right: 8px;
+  }
+  .remove-product-btn {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    padding: 4px 8px;
+    font-size: 0.9em;
+  }
+  .add-product-btn {
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: #3498db; /* 青系の色 */
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    font-size: 1em;
+    cursor: pointer;
+  }
+  /* 商品説明のスタイル */
+  .product-desc {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 4px;
+    margin-left: 8px;
+  }
+  /* カスタムモーダルのスタイル */
+  #custom-modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+  }
+  #custom-modal > div {
+    background: #fff;
+    padding: 32px 24px;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 400px;
+    width: 80%;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  #custom-modal h2 {
+    margin-top: 0;
+    color: #27ae60;
+  }
+  #custom-modal button {
+    margin-top: 16px;
+    padding: 12px 24px;
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+  }
+  #final-message {
+    display: none;
+    text-align: center;
+    font-size: 1.2em;
+    color: #27ae60;
+    margin-top: 40px;
+  }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>テイクアウト予約フォーム</h1>
+    
+    <form id="reserveForm">
+      <div>
+        <label for="name">お名前<span class="required">*</span></label>
+        <input type="text" id="name" name="name" required>
+        <span class="error-message" id="name-error"></span>
+      </div>
+      
+      <div>
+        <label for="phone">電話番号<span class="required">*</span></label>
+        <input type="tel" id="phone" name="phone" required>
+        <span class="error-message" id="phone-error"></span>
+      </div>
+      
+      <div>
+        <label for="email">メールアドレス<span class="required">*</span></label>
+        <input type="email" id="email" name="email" required>
+        <span class="error-message" id="email-error"></span>
+      </div>
+      
+      <div>
+        <label for="store">受取店舗<span class="required">*</span></label>
+        <select id="store" name="store" required>
+          <option value="">選択してください</option>
+        </select>
+        <span class="error-message" id="store-error"></span>
+      </div>
+      
+      <div>
+        <label>商品・数量<span class="required">*</span></label>
+        <div id="product-list-area">
+          <!-- 商品選択項目がここに動的に追加される -->
+        </div>
+        <button type="button" class="add-product-btn" onclick="addProductItem()">商品を追加</button>
+        <span class="error-message" id="items-error"></span>
+        <div id="product-date-note" style="font-size: 0.9em; color: #666; margin-top: 8px;">商品を選択してください。</div>
+      </div>
+      
+      <div>
+        <label for="pickup_date">受取希望日<span class="required">*</span></label>
+        <input type="date" id="pickup_date" name="pickup_date" required disabled>
+        <span class="error-message" id="pickup_date-error"></span>
+      </div>
+      
+      <div>
+        <label for="pickup_time">受取希望時間<span class="required">*</span></label>
+        <select id="pickup_time" name="pickup_time" required disabled>
+          <option value="">選択してください</option>
+          <option value="10:00">10:00</option>
+          <option value="10:30">10:30</option>
+          <option value="11:00">11:00</option>
+          <option value="11:30">11:30</option>
+          <option value="12:00">12:00</option>
+          <option value="12:30">12:30</option>
+          <option value="13:00">13:00</option>
+          <option value="13:30">13:30</option>
+          <option value="14:00">14:00</option>
+          <option value="14:30">14:30</option>
+          <option value="15:00">15:00</option>
+          <option value="15:30">15:30</option>
+          <option value="16:00">16:00</option>
+          <option value="16:30">16:30</option>
+          <option value="17:00">17:00</option>
+          <option value="17:30">17:30</option>
+          <option value="18:00">18:00</option>
+          <option value="18:30">18:30</option>
+          <option value="19:00">19:00</option>
+          <option value="19:30">19:30</option>
+          <option value="20:00">20:00</option>
+        </select>
+        <span class="error-message" id="pickup_time-error"></span>
+      </div>
+      
+      <div>
+        <label for="note">備考</label>
+        <textarea id="note" name="note" rows="3" placeholder="アレルギーやご要望などがあればご記入ください"></textarea>
+      </div>
+      
+      <button type="submit" id="submit-btn">予約する</button>
+    </form>
+    
+    <div id="result"></div>
+    <div id="close-btn-area"></div>
+  </div>
+
+  <!-- カスタムモーダル -->
+  <div id="custom-modal">
+    <div>
+      <h2>予約完了</h2>
+      <div id="modal-message"></div>
+      <button id="modal-close-btn">画面を閉じる</button>
+    </div>
+  </div>
+
+  <!-- 最終メッセージ -->
+  <div id="final-message"></div>
+
+  <script>
+    // GASのWebアプリURL（デプロイ後に実際のURLに変更してください）
+    const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwfHMfiFoEwyuUEol8KxfIVk9bL9w1O1IHQP4IxDMCnHoa-NT-AqA8ZDPAMlM2qwuipuA/exec';
+    
+    // 商品・店舗データを格納する変数
+    let allProducts = [];
+    let allStores = [];
+
+    // 初期化処理
+    window.addEventListener('DOMContentLoaded', function() {
+      loadProductsAndStores();
+      addProductItem(); // 初期商品項目を追加
+    });
+
+    // 商品・店舗データを読み込む
+    async function loadProductsAndStores() {
+      try {
+        // 商品データを読み込み
+        const productsResponse = await fetch('./products.json');
+        allProducts = await productsResponse.json();
+        
+        // 店舗データを読み込み
+        const storesResponse = await fetch('./stores.json');
+        allStores = await storesResponse.json();
+        
+        // 店舗選択肢を設定
+        const storeSelect = document.getElementById('store');
+        allStores.forEach(store => {
+          const option = document.createElement('option');
+          option.value = store.name;
+          option.textContent = store.name;
+          storeSelect.appendChild(option);
+        });
+        
+        // 商品選択肢を更新
+        updateProductSelects();
+        
+      } catch (error) {
+        console.error('データの読み込みに失敗しました:', error);
+        document.getElementById('result').textContent = 'データの読み込みに失敗しました。ページを再読み込みしてください。';
+        document.getElementById('result').style.color = '#e74c3c';
+      }
+    }
+
+    // 商品選択肢を更新
+    function updateProductSelects() {
+      const selects = document.querySelectorAll('.product-item select');
+      selects.forEach(select => {
+        // 現在の選択値を保持
+        const currentValue = select.value;
+        
+        // 選択肢をクリア
+        select.innerHTML = '<option value="">商品を選択</option>';
+        
+        // 商品を追加
+        allProducts.forEach(product => {
+          const option = document.createElement('option');
+          option.value = product.name;
+          option.textContent = `${product.name} (${product.price}円)`;
+          select.appendChild(option);
+        });
+        
+        // 選択値を復元
+        select.value = currentValue;
+      });
+    }
+
+    // 商品項目を追加
+    function addProductItem() {
+      const container = document.getElementById('product-list-area');
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'product-item';
+      
+      itemDiv.innerHTML = `
+        <select onchange="updateProductDescription(this); updatePickupDateControl();">
+          <option value="">商品を選択</option>
+        </select>
+        <input type="number" min="1" placeholder="数量" onchange="updatePickupDateControl();">
+        <button type="button" class="remove-product-btn" onclick="removeProductItem(this)">削除</button>
+        <div class="product-desc"></div>
+      `;
+      
+      container.appendChild(itemDiv);
+      
+      // 商品選択肢を設定
+      const select = itemDiv.querySelector('select');
+      allProducts.forEach(product => {
+        const option = document.createElement('option');
+        option.value = product.name;
+        option.textContent = `${product.name} (${product.price}円)`;
+        select.appendChild(option);
+      });
+    }
+
+    // 商品項目を削除
+    function removeProductItem(button) {
+      const container = document.getElementById('product-list-area');
+      if (container.children.length > 1) {
+        button.parentElement.remove();
+        updatePickupDateControl();
+      }
+    }
+
+    // 商品説明を更新
+    function updateProductDescription(select) {
+      const descDiv = select.parentElement.querySelector('.product-desc');
+      const selectedProduct = allProducts.find(p => p.name === select.value);
+      
+      if (selectedProduct && selectedProduct.description) {
+        descDiv.textContent = selectedProduct.description;
+      } else {
+        descDiv.textContent = '';
+      }
+    }
+
+    // 営業日計算関数
+    function getBusinessDate(startDate, businessDays) {
+      let date = new Date(startDate);
+      let count = 0;
+      
+      while (count < businessDays) {
+        date.setDate(date.getDate() + 1);
+        if (date.getDay() !== 0 && date.getDay() !== 6) {
+          count++;
+        }
+      }
+      
+      return date;
+    }
+
+    // エラーメッセージ表示
+    function showError(fieldName, message) {
+      const errorElement = document.getElementById(fieldName + '-error');
+      if (errorElement) {
+        errorElement.textContent = message;
+      }
+    }
+
+    // エラーメッセージクリア
+    function clearErrors() {
+      const errorElements = document.querySelectorAll('.error-message');
+      errorElements.forEach(el => el.textContent = '');
+    }
+
+    // フォーム送信処理
+    document.getElementById('reserveForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // エラーメッセージをクリア
+      clearErrors();
+      
+      // フォームデータを収集
+      const formData = new FormData(this);
+      const data = {
+        name: formData.get('name'),
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        store: formData.get('store'),
+        pickup_date: formData.get('pickup_date'),
+        pickup_time: formData.get('pickup_time'),
+        note: formData.get('note'),
+        items: []
+      };
+      
+      // 商品データを収集
+      const productItems = document.querySelectorAll('.product-item');
+      productItems.forEach(itemDiv => {
+        const select = itemDiv.querySelector('select');
+        const qtyInput = itemDiv.querySelector('input[type="number"]');
+        
+        if (select.value && qtyInput.value) {
+          data.items.push({
+            name: select.value,
+            qty: qtyInput.value
+          });
+        }
+      });
+      
+      // 結果表示エリアをクリア
+      document.getElementById('result').textContent = '';
+
+      // 送信中はボタン無効化
+      const submitBtn = document.getElementById('submit-btn');
+      submitBtn.disabled = true;
+      submitBtn.style.background = '#aaa';
+
+      try {
+        // GASのWebアプリにPOSTリクエストを送信
+        const response = await fetch(GAS_WEB_APP_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(data)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // 合計金額の表示
+          document.getElementById('result').innerHTML = '<span style="color:#27ae60;">予約完了しました！<br>合計金額：' + result.total + '円</span>';
+          // カスタムモーダル表示
+          document.getElementById('modal-message').innerHTML = '予約完了しました！<br>合計金額：' + result.total + '円';
+          document.getElementById('custom-modal').style.display = 'flex';
+          // フォームをリセットし、送信不可に
+          document.getElementById('reserveForm').reset();
+          document.getElementById('reserveForm').querySelectorAll('input, select, textarea, button').forEach(function(el){ el.disabled = true; });
+          // 商品項目をクリア
+          document.getElementById('product-list-area').innerHTML = '';
+          // 「画面を閉じる」ボタンはモーダル内に
+          document.getElementById('close-btn-area').innerHTML = '';
+        } else {
+          // サーバー側バリデーションエラー
+          document.getElementById('result').textContent = 'エラー: ' + (result.errors ? result.errors.join('\n') : result.error);
+          document.getElementById('result').style.color = '#e74c3c'; // エラー時の色
+          // フィールドごとのエラーメッセージを表示
+          if(result.errors) {
+              result.errors.forEach(err => {
+                  if (err.includes('お名前')) showError('name', err);
+                  else if (err.includes('電話番号')) showError('phone', err);
+                  else if (err.includes('メールアドレス')) showError('email', err);
+                  else if (err.includes('店舗')) showError('store', err);
+                  else if (err.includes('商品') || err.includes('数量')) showError('items', err);
+                  else if (err.includes('受取希望日')) showError('pickup_date', err);
+                  else if (err.includes('受取希望時間')) showError('pickup_time', err); // 時間のエラー表示を追加
+              });
+          }
+        }
+        // 完了時はボタン無効化のまま
+        submitBtn.disabled = false;
+        submitBtn.style.background = '';
+        
+      } catch (error) {
+        // エラー時はボタンを再度有効化
+        submitBtn.disabled = false;
+        submitBtn.style.background = '';
+        document.getElementById('result').textContent = '送信に失敗しました: ' + error.message;
+        document.getElementById('result').style.color = '#e74c3c'; // エラー時の色
+      }
+    });
+
+    // JSTの「今日」を取得する関数
+    function getTodayJST() {
+      const now = new Date();
+      // UTC→JST（+9時間）に変換
+      const jst = new Date(now.getTime() + (9 * 60 * 60 * 1000));
+      return new Date(jst.getFullYear(), jst.getMonth(), jst.getDate());
+    }
+
+    // 商品選択時に受取日・受取時間の有効化/無効化、最短受取日計算、注意書き表示
+    function updatePickupDateControl() {
+      const productItems = document.querySelectorAll('.product-item');
+      const dateInput = document.getElementById('pickup_date');
+      const timeSelect = document.getElementById('pickup_time');
+      const noteDiv = document.getElementById('product-date-note');
+      let selectedProducts = [];
+      let allSelected = true;
+      productItems.forEach(itemDiv => {
+        const select = itemDiv.querySelector('select');
+        const qtyInput = itemDiv.querySelector('input[type="number"]');
+        if (
+          select && select.value &&
+          qtyInput && qtyInput.value && !isNaN(qtyInput.value) &&
+          parseInt(qtyInput.value) >= 1 && Number.isInteger(Number(qtyInput.value))
+        ) {
+          const prod = allProducts.find(p => p.name === select.value);
+          if (prod) selectedProducts.push(prod);
+        } else {
+          allSelected = false;
+        }
+      });
+      if (selectedProducts.length === 0) {
+        dateInput.value = '';
+        dateInput.disabled = true;
+        dateInput.min = '';
+        dateInput.max = '';
+        timeSelect.value = '';
+        timeSelect.disabled = true;
+        noteDiv.innerHTML = '商品を選択してください。';
+        return;
+      }
+      // inputは必ず有効化
+      dateInput.disabled = false;
+      // 最も遅いminDays/minType/cutoffを持つ商品を探す
+      let minDate = null;
+      let minType = null;
+      let cutoff = null;
+      let now = new Date();
+      let today = getTodayJST();
+      let maxMinDate = null;
+      let cutoffMsg = '';
+      selectedProducts.forEach(prod => {
+        let prodMinDate;
+        if (prod.minType === 'business') {
+          prodMinDate = getBusinessDate(today, prod.minDays);
+        } else {
+          prodMinDate = new Date(today);
+          // 締切時刻考慮
+          if (prod.cutoff) {
+            const [h, m] = prod.cutoff.split(':').map(Number);
+            let cutoffDate = new Date(today);
+            cutoffDate.setHours(h, m, 0, 0);
+            if (now > cutoffDate) {
+              prodMinDate.setDate(prodMinDate.getDate() + prod.minDays + 1);
+              cutoffMsg = '※一部商品は本日の締切時刻を過ぎているため、翌日以降の受取となります。';
+            } else {
+              prodMinDate.setDate(prodMinDate.getDate() + prod.minDays);
+            }
+          } else {
+            prodMinDate.setDate(prodMinDate.getDate() + prod.minDays);
+          }
+        }
+        if (!maxMinDate || prodMinDate > maxMinDate) {
+          maxMinDate = prodMinDate;
+        }
+      });
+      // 最大30営業日後
+      let maxDate = getBusinessDate(today, 30);
+      dateInput.min = maxMinDate.toISOString().split('T')[0];
+      dateInput.max = maxDate.toISOString().split('T')[0];
+      // 受取希望日は常にmin日付にリセット
+      dateInput.value = dateInput.min;
+      // 受取日選択時のバリデーション
+      dateInput.addEventListener('change', function() {
+        const d = new Date(this.value);
+        if (!this.value || d.getDay() === 0 || d.getDay() === 6) {
+          showError('pickup_date', '受取希望日は土日以外を選択してください');
+          this.value = '';
+        } else {
+          showError('pickup_date', '');
+        }
+      });
+      // 受取日が選択されたら時間選択を有効化
+      if (dateInput.value) {
+        timeSelect.disabled = false;
+      } else {
+        timeSelect.disabled = true;
+      }
+      // 注意書き・説明文
+      if (selectedProducts.length > 1) {
+        noteDiv.innerHTML = '※複数の商品を同時にご注文いただく場合、すべての商品が揃う最も遅い受取日以降のみご指定いただけます。<br>商品ごとに異なる受取日をご希望の場合は、お手数ですがご注文を分けてご入力ください。' + (cutoffMsg ? '<br>' + cutoffMsg : '');
+      } else if (selectedProducts.length === 1) {
+        noteDiv.innerHTML = '' + (cutoffMsg ? '<br>' + cutoffMsg : '');
+      } else {
+        noteDiv.innerHTML = '商品を選択してください。';
+      }
+    }
+    // 商品選択欄のselectと数量inputにイベントリスナーを追加
+    function attachProductSelectListener() {
+      document.querySelectorAll('.product-item select').forEach(select => {
+        select.addEventListener('change', updatePickupDateControl);
+      });
+      document.querySelectorAll('.product-item input[type="number"]').forEach(input => {
+        input.addEventListener('input', updatePickupDateControl);
+      });
+    }
+    // 商品項目追加時にもリスナーを付与
+    const origAddProductItem = addProductItem;
+    addProductItem = function() {
+      origAddProductItem();
+      attachProductSelectListener();
+      updatePickupDateControl();
+    };
+    // 初期化時にもリスナー付与
+    window.addEventListener('DOMContentLoaded', function() {
+      attachProductSelectListener();
+      updatePickupDateControl();
+    });
+    // 商品削除時にも制御を更新
+    document.getElementById('product-list-area').addEventListener('DOMNodeRemoved', function() {
+      setTimeout(updatePickupDateControl, 100);
+    });
+
+    // カスタムモーダルの「画面を閉じる」ボタン
+    document.getElementById('modal-close-btn').onclick = function(){
+      document.getElementById('custom-modal').style.display = 'none';
+      document.getElementById('final-message').style.display = 'block';
+      document.getElementById('final-message').innerHTML = 'ご予約ありがとうございました。<br>この画面は閉じてください。';
+      // それ以上の操作ができないようにフォーム・ボタンを非表示
+      document.getElementById('reserveForm').style.display = 'none';
+      document.getElementById('close-btn-area').style.display = 'none';
+    };
+
+  </script>
+</body>
+</html>

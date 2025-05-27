@@ -1,0 +1,56 @@
+[
+  {
+    "id": "p1",
+    "name": "唐揚げ弁当",
+    "price": 650,
+    "minDays": 2,
+    "cutoff": null,
+    "minType": "business",
+    "description": "ご予約から2営業日後以降のお渡しとなります。ジューシーな唐揚げがたっぷり入った定番弁当です。"
+  },
+  {
+    "id": "p2",
+    "name": "焼き魚弁当",
+    "price": 700,
+    "minDays": 2,
+    "cutoff": null,
+    "minType": "business",
+    "description": "ご予約から2営業日後以降のお渡しとなります。旬の焼き魚と副菜が楽しめるヘルシー弁当。"
+  },
+  {
+    "id": "p3",
+    "name": "ハンバーグ弁当",
+    "price": 750,
+    "minDays": 3,
+    "cutoff": "15:00",
+    "minType": "business",
+    "description": "ご予約から3営業日後以降のお渡しとなります（15時締切）。手ごねハンバーグと特製ソースの人気メニュー。"
+  },
+  {
+    "id": "p4",
+    "name": "カレーライス",
+    "price": 600,
+    "minDays": 1,
+    "cutoff": null,
+    "minType": "calendar",
+    "description": "ご予約から翌日以降のお渡しとなります。スパイス香る自家製カレー。"
+  },
+  {
+    "id": "p5",
+    "name": "サラダセット",
+    "price": 500,
+    "minDays": 1,
+    "cutoff": null,
+    "minType": "calendar",
+    "description": "ご予約から翌日以降のお渡しとなります。新鮮野菜のサラダとドレッシングのセット。"
+  },
+  {
+    "id": "p6",
+    "name": "焼肉セット",
+    "price": 1200,
+    "minDays": 5,
+    "cutoff": null,
+    "minType": "business",
+    "description": "ご予約から5営業日後以降のお渡しとなります。特別な焼肉セットです。"
+  }
+]
