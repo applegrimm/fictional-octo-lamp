@@ -354,6 +354,9 @@
 
   <script>
     // GASのWebアプリURL（デプロイ後に実際のURLに変更してください）
+    // ⚠️ 重要: 新しいデプロイを作成した場合は、以下のURLを更新してください
+    // 手順: GAS → デプロイ → 新しいデプロイ → 生成されたURLをここに貼り付け
+    // 現在のURL（エラーが出る場合は新しいデプロイが必要）:
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwgeG189yH0YGt6gpqpYHoclCnZe4cbo8jARRaHCqjgxpiD_XW47taPqNFlQYDhfaYaCg/exec';
     
     // 商品・店舗データを格納する変数
@@ -546,7 +549,6 @@
         // GASのWebアプリにPOSTリクエストを送信
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
-          mode: 'cors', // CORS明示的に指定
           headers: {
             'Content-Type': 'application/json',
           },
