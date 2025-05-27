@@ -537,18 +537,30 @@
       const submitBtn = document.getElementById('submit-btn');
       submitBtn.disabled = true;
       submitBtn.style.background = '#aaa';
+      
+      // デバッグ情報を表示
+      console.log('送信データ:', data);
+      console.log('送信先URL:', GAS_WEB_APP_URL);
 
       try {
         // GASのWebアプリにPOSTリクエストを送信
         const response = await fetch(GAS_WEB_APP_URL, {
           method: 'POST',
+          mode: 'cors', // CORS明示的に指定
           headers: {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify(data)
         });
 
+        console.log('レスポンス状態:', response.status, response.statusText);
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
         const result = await response.json();
+        console.log('レスポンス結果:', result);
 
         if (result.success) {
           // 合計金額の表示
@@ -585,11 +597,24 @@
         submitBtn.style.background = '';
         
       } catch (error) {
+        console.error('送信エラー詳細:', error);
         // エラー時はボタンを再度有効化
         submitBtn.disabled = false;
         submitBtn.style.background = '';
-        document.getElementById('result').textContent = '送信に失敗しました: ' + error.message;
-        document.getElementById('result').style.color = '#e74c3c'; // エラー時の色
+        
+        // より詳細なエラーメッセージを表示
+        let errorMessage = '送信に失敗しました: ';
+        if (error.name === 'TypeError' && error.message.includes('fetch')) {
+          errorMessage += 'ネットワークエラーまたはCORS問題です。GASのデプロイ設定を確認してください。';
+        } else {
+          errorMessage += error.message;
+        }
+        
+        document.getElementById('result').textContent = errorMessage;
+        document.getElementById('result').style.color = '#e74c3c';
+        
+        // デバッグ用：GASのURLをテストするリンクを表示
+        document.getElementById('result').innerHTML += '<br><br><a href="' + GAS_WEB_APP_URL + '" target="_blank" style="color: #3498db;">GASのURLをテスト（新しいタブで開く）</a>';
       }
     });
 
