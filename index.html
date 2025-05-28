@@ -409,6 +409,10 @@
     window.addEventListener('DOMContentLoaded', function() {
       loadProductsAndStores();
       addProductItem(); // 初期商品項目を追加
+      
+      // 店舗選択と受取日選択のイベントリスナーを追加
+      document.getElementById('store').addEventListener('change', updatePickupTimeOptions);
+      document.getElementById('pickup_date').addEventListener('change', updatePickupTimeOptions);
     });
 
     // 商品・店舗データを読み込む
@@ -767,14 +771,22 @@
         if (!this.value || d.getDay() === 0 || d.getDay() === 6) {
           showError('pickup_date', '受取希望日は土日以外を選択してください');
           this.value = '';
+          // 日付がクリアされた場合は時間選択も無効化
+          const timeSelect = document.getElementById('pickup_time');
+          timeSelect.value = '';
+          timeSelect.disabled = true;
         } else {
           showError('pickup_date', '');
+          // 有効な日付が選択された場合は営業時間を更新
+          updatePickupTimeOptions();
         }
       });
       // 受取日が選択されたら時間選択を有効化
       if (dateInput.value) {
-        timeSelect.disabled = false;
+        // 店舗営業時間に基づいて受取時刻を更新
+        updatePickupTimeOptions();
       } else {
+        timeSelect.value = '';
         timeSelect.disabled = true;
       }
       // 注意書き・説明文
@@ -827,6 +839,167 @@
       document.getElementById('reserveForm').style.display = 'none';
       document.getElementById('close-btn-area').style.display = 'none';
     };
+
+    /**
+     * 店舗営業時間を取得してAPIから受取時刻選択肢を更新する
+     */
+    async function updatePickupTimeOptions() {
+      const storeSelect = document.getElementById('store');
+      const dateInput = document.getElementById('pickup_date');
+      const timeSelect = document.getElementById('pickup_time');
+      
+      // 店舗と日付が両方選択されている場合のみ処理
+      if (!storeSelect.value || !dateInput.value) {
+        // 選択されていない場合は時間選択を無効化
+        timeSelect.innerHTML = '<option value="">選択してください</option>';
+        timeSelect.disabled = true;
+        return;
+      }
+      
+      try {
+        // 選択された店舗の情報を取得
+        const selectedStore = allStores.find(store => store.name === storeSelect.value);
+        if (!selectedStore) {
+          console.error('選択された店舗が見つかりません');
+          return;
+        }
+        
+        // 選択された日付の曜日を取得
+        const selectedDate = new Date(dateInput.value);
+        const dayOfWeek = getDayOfWeekKey(selectedDate.getDay());
+        
+        // 店舗の営業時間を取得
+        const storeHours = selectedStore.hours[dayOfWeek];
+        
+        // 営業時間に基づいて時間スロットを生成
+        const timeSlots = generateTimeSlots(storeHours);
+        
+        // 時間選択肢を更新
+        updateTimeSelectOptions(timeSlots, storeHours);
+        
+      } catch (error) {
+        console.error('受取時刻の更新に失敗しました:', error);
+        timeSelect.innerHTML = '<option value="">時刻の取得に失敗しました</option>';
+        timeSelect.disabled = true;
+      }
+    }
+
+    /**
+     * 曜日番号を曜日キーに変換
+     * @param {number} dayNumber - 曜日番号（0=日曜日, 1=月曜日, ...）
+     * @return {string} 曜日キー（mon, tue, wed, thu, fri, sat, sun）
+     */
+    function getDayOfWeekKey(dayNumber) {
+      const dayKeys = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+      return dayKeys[dayNumber];
+    }
+
+    /**
+     * 営業時間に基づいて30分間隔の時間スロットを生成
+     * @param {Array|null} hours - 営業時間配列
+     * @return {Array<string>} 時間スロット配列
+     */
+    function generateTimeSlots(hours) {
+      if (!hours || hours === null) {
+        return [];
+      }
+      
+      const slots = [];
+      
+      // 営業時間が配列の配列の場合（複数の営業時間帯）
+      if (Array.isArray(hours[0])) {
+        hours.forEach(timeRange => {
+          const rangeSlots = generateTimeSlotsForRange(timeRange[0], timeRange[1]);
+          slots.push(...rangeSlots);
+        });
+      } else {
+        // 単一の営業時間帯の場合
+        const rangeSlots = generateTimeSlotsForRange(hours[0], hours[1]);
+        slots.push(...rangeSlots);
+      }
+      
+      return slots.sort(); // 時間順にソート
+    }
+
+    /**
+     * 開始時刻と終了時刻の間で30分間隔の時間スロットを生成
+     * @param {string} startTime - 開始時刻（HH:MM形式）
+     * @param {string} endTime - 終了時刻（HH:MM形式）
+     * @return {Array<string>} 時間スロット配列
+     */
+    function generateTimeSlotsForRange(startTime, endTime) {
+      const slots = [];
+      const [startHour, startMin] = startTime.split(':').map(Number);
+      const [endHour, endMin] = endTime.split(':').map(Number);
+      
+      let currentHour = startHour;
+      let currentMin = startMin;
+      
+      while (currentHour < endHour || (currentHour === endHour && currentMin < endMin)) {
+        const timeSlot = `${currentHour.toString().padStart(2, '0')}:${currentMin.toString().padStart(2, '0')}`;
+        slots.push(timeSlot);
+        
+        // 30分追加
+        currentMin += 30;
+        if (currentMin >= 60) {
+          currentMin = 0;
+          currentHour++;
+        }
+      }
+      
+      return slots;
+    }
+
+    /**
+     * 時間選択肢を更新
+     * @param {Array<string>} timeSlots - 時間スロット配列
+     * @param {Array|null} storeHours - 店舗営業時間
+     */
+    function updateTimeSelectOptions(timeSlots, storeHours) {
+      const timeSelect = document.getElementById('pickup_time');
+      const currentValue = timeSelect.value; // 現在の選択値を保持
+      
+      // 選択肢をクリア
+      timeSelect.innerHTML = '<option value="">選択してください</option>';
+      
+      if (!storeHours || storeHours === null) {
+        // 営業していない場合
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'この日は営業しておりません';
+        option.disabled = true;
+        timeSelect.appendChild(option);
+        timeSelect.disabled = true;
+        return;
+      }
+      
+      if (timeSlots.length === 0) {
+        // 時間スロットがない場合
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = '受取可能時間がありません';
+        option.disabled = true;
+        timeSelect.appendChild(option);
+        timeSelect.disabled = true;
+        return;
+      }
+      
+      // 時間スロットを選択肢として追加
+      timeSlots.forEach(slot => {
+        const option = document.createElement('option');
+        option.value = slot;
+        option.textContent = slot;
+        timeSelect.appendChild(option);
+      });
+      
+      // 時間選択を有効化
+      timeSelect.disabled = false;
+      
+      // 以前の選択値が有効な場合は復元
+      if (currentValue && timeSlots.includes(currentValue)) {
+        timeSelect.value = currentValue;
+      }
+    }
 
   </script>
 </body>
