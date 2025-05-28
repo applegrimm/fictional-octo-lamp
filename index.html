@@ -767,18 +767,15 @@
       dateInput.value = dateInput.min;
       // 受取日選択時のバリデーション
       dateInput.addEventListener('change', function() {
-        const d = new Date(this.value);
-        if (!this.value || d.getDay() === 0 || d.getDay() === 6) {
-          showError('pickup_date', '受取希望日は土日以外を選択してください');
-          this.value = '';
+        if (this.value) {
+          showError('pickup_date', '');
+          // 有効な日付が選択された場合は営業時間を更新
+          updatePickupTimeOptions();
+        } else {
           // 日付がクリアされた場合は時間選択も無効化
           const timeSelect = document.getElementById('pickup_time');
           timeSelect.value = '';
           timeSelect.disabled = true;
-        } else {
-          showError('pickup_date', '');
-          // 有効な日付が選択された場合は営業時間を更新
-          updatePickupTimeOptions();
         }
       });
       // 受取日が選択されたら時間選択を有効化
