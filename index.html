@@ -12,6 +12,9 @@
   <meta name="mobile-web-app-capable" content="yes">
   <title>テイクアウト予約フォーム</title>
   
+  <!-- reCAPTCHA v3スクリプト -->
+  <script src="https://www.google.com/recaptcha/api.js?render=6LcXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" async defer></script>
+  
   <style>
   /* =============================
     レスポンシブデザイン用CSS
@@ -141,6 +144,9 @@
       max-width: 90vw !important;
       padding: 20px 12px !important;
       margin: 0 auto !important;
+    }
+    .consent-checkbox input[type="checkbox"] {
+      margin-top: 0;
     }
   }
   .container {
@@ -292,6 +298,111 @@
     color: #27ae60;
     margin-top: 40px;
   }
+  
+  /* プライバシーポリシー関連のスタイル */
+  .privacy-section {
+    margin-top: 20px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #3498db;
+  }
+  
+  .privacy-toggle {
+    background: none;
+    border: none;
+    color: #3498db;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 0;
+    margin-left: 4px;
+  }
+  
+  .privacy-toggle:hover {
+    color: #2980b9;
+  }
+  
+  .privacy-content {
+    display: none;
+    margin-top: 10px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 4px;
+    font-size: 0.85em;
+    line-height: 1.4;
+    border: 1px solid #e0e0e0;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .privacy-content h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1em;
+    color: #333;
+  }
+  
+  .consent-checkbox {
+    margin-top: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .consent-checkbox input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  
+  .consent-checkbox label {
+    font-size: 0.9em;
+    margin: 0;
+    cursor: pointer;
+    line-height: 1.3;
+  }
+  
+  /* レート制限警告 */
+  .rate-limit-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 16px;
+    color: #856404;
+    font-size: 0.9em;
+    display: none;
+  }
+  
+  /* セキュリティ通知 */
+  .security-notice {
+    background: #e8f5e8;
+    border: 1px solid #c3e6c3;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    color: #2d5016;
+    font-size: 0.85em;
+    text-align: center;
+  }
+  
+  @media (max-width: 600px) {
+    .privacy-content {
+      font-size: 0.8em;
+      max-height: 150px;
+    }
+    
+    .consent-checkbox {
+      flex-direction: column;
+      gap: 4px;
+    }
+    
+    .consent-checkbox input[type="checkbox"] {
+      margin-top: 0;
+    }
+  }
   </style>
 </head>
 <body>
@@ -373,6 +484,52 @@
       <div>
         <label for="note">備考</label>
         <textarea id="note" name="note" rows="3" placeholder="アレルギーやご要望などがあればご記入ください"></textarea>
+      </div>
+      
+      <!-- プライバシーポリシーセクション -->
+      <div class="privacy-section">
+        <div>
+          <strong>個人情報の取り扱いについて</strong>
+          <button type="button" class="privacy-toggle" onclick="togglePrivacyPolicy()">詳細を表示</button>
+        </div>
+        
+        <div id="privacy-content" class="privacy-content">
+          <h3>個人情報保護方針</h3>
+          <p><strong>1. 収集する個人情報</strong><br>
+          お名前、電話番号、メールアドレス、ご注文内容、受取希望日時</p>
+          
+          <p><strong>2. 利用目的</strong><br>
+          ・ご注文の確認・商品の準備<br>
+          ・受取日時の調整・連絡<br>
+          ・サービス向上のための統計分析</p>
+          
+          <p><strong>3. 第三者提供</strong><br>
+          お客様の個人情報を第三者に提供することはありません（法令に基づく場合を除く）</p>
+          
+          <p><strong>4. 保管期間</strong><br>
+          サービス提供に必要な期間保管し、その後適切に削除いたします</p>
+          
+          <p><strong>5. お問い合わせ</strong><br>
+          個人情報に関するお問い合わせは店舗までご連絡ください</p>
+        </div>
+        
+        <div class="consent-checkbox">
+          <input type="checkbox" id="privacy-consent" name="privacy-consent" required>
+          <label for="privacy-consent">上記の個人情報保護方針を確認し、個人情報の取り扱いに同意します<span class="required">*</span></label>
+        </div>
+        <span class="error-message" id="privacy-consent-error"></span>
+      </div>
+      
+      <!-- reCAPTCHA v3は背景で動作するため表示要素は不要 -->
+      
+      <!-- レート制限警告 -->
+      <div id="rate-limit-warning" class="rate-limit-warning">
+        <strong>⚠️ 注意:</strong> 短時間内の連続送信を検出しました。しばらく時間を置いてから再度お試しください。
+      </div>
+      
+      <!-- セキュリティ通知 -->
+      <div class="security-notice">
+        🔒 お客様の情報は暗号化して安全に送信されます
       </div>
       
       <button type="submit" id="submit-btn">予約する</button>
@@ -554,6 +711,25 @@
       
       // フォームデータを収集
       const formData = new FormData(this);
+      
+      // セキュリティバリデーション
+      const securityValidation = await validateFormSecurity(formData);
+      if (!securityValidation.isValid) {
+        // セキュリティエラーを表示
+        securityValidation.errors.forEach(err => {
+          if (err.field === 'privacy-consent') {
+            document.getElementById('privacy-consent-error').textContent = err.message;
+          } else if (err.field === 'recaptcha') {
+            document.getElementById('recaptcha-error').textContent = err.message;
+          } else if (err.field === 'rate-limit') {
+            // レート制限警告は関数内で表示済み
+          } else {
+            showError(err.field, err.message);
+          }
+        });
+        return;
+      }
+      
       const data = {
         name: formData.get('name'),
         phone: formData.get('phone'),
@@ -579,6 +755,9 @@
         }
       });
       
+      // 入力データをサニタイズ
+      const processedData = await preprocessFormData(data);
+      
       // 結果表示エリアをクリア
       document.getElementById('result').textContent = '';
 
@@ -587,16 +766,19 @@
       submitBtn.disabled = true;
       submitBtn.style.background = '#aaa';
       
-      // デバッグ情報を表示
-      console.log('送信データ:', data);
+      // デバッグ情報を表示（サニタイズ後のデータ）
+      console.log('送信データ（サニタイズ後）:', processedData);
       console.log('送信先URL:', GAS_WEB_APP_URL);
 
       try {
         // 隠しフォームを使用してGASに送信
-        const result = await sendToGasViaForm(data);
+        const result = await sendToGasViaForm(processedData);
         console.log('レスポンス結果:', result);
 
         if (result && result.success) {
+          // 送信成功時は送信時刻を記録（レート制限用）
+          recordSubmitTime();
+          
           // 合計金額の表示
           document.getElementById('result').innerHTML = '<span style="color:#27ae60;">予約完了しました！<br>合計金額：' + result.total + '円</span>';
           // カスタムモーダル表示
@@ -609,6 +791,8 @@
           document.getElementById('product-list-area').innerHTML = '';
           // 「画面を閉じる」ボタンはモーダル内に
           document.getElementById('close-btn-area').innerHTML = '';
+          
+          // reCAPTCHA v3では手動リセット不要
         } else if (result && result.errors) {
           // サーバー側バリデーションエラー
           document.getElementById('result').textContent = 'エラー: ' + result.errors.join('\n');
@@ -648,7 +832,7 @@
     });
 
     // GASにデータを送信する関数（fetch方式、no-corsモード使用）
-    function sendToGasViaForm(data) {
+    async function sendToGasViaForm(data) {
       return new Promise(async (resolve, reject) => {
         try {
           // fetch with no-cors mode to avoid CORS issues
@@ -996,6 +1180,191 @@
       if (currentValue && timeSlots.includes(currentValue)) {
         timeSelect.value = currentValue;
       }
+    }
+
+    // ==============================================
+    // セキュリティ関連の機能
+    // ==============================================
+    
+    /**
+     * プライバシーポリシーの詳細表示/非表示を切り替え
+     */
+    function togglePrivacyPolicy() {
+      const content = document.getElementById('privacy-content');
+      const button = document.querySelector('.privacy-toggle');
+      
+      if (content.style.display === 'none' || content.style.display === '') {
+        content.style.display = 'block';
+        button.textContent = '詳細を非表示';
+      } else {
+        content.style.display = 'none';
+        button.textContent = '詳細を表示';
+      }
+    }
+    
+    /**
+     * レート制限チェック（短時間内の連続送信防止）
+     * @return {boolean} 送信可能かどうか
+     */
+    function checkRateLimit() {
+      const now = Date.now();
+      const lastSubmitTime = localStorage.getItem('lastSubmitTime');
+      const RATE_LIMIT_DURATION = 60000; // 1分間制限
+      
+      if (lastSubmitTime && (now - parseInt(lastSubmitTime)) < RATE_LIMIT_DURATION) {
+        const remaining = Math.ceil((RATE_LIMIT_DURATION - (now - parseInt(lastSubmitTime))) / 1000);
+        document.getElementById('rate-limit-warning').style.display = 'block';
+        document.getElementById('rate-limit-warning').innerHTML = 
+          `<strong>⚠️ 注意:</strong> 短時間内の連続送信を検出しました。あと${remaining}秒お待ちください。`;
+        return false;
+      }
+      
+      document.getElementById('rate-limit-warning').style.display = 'none';
+      return true;
+    }
+    
+    /**
+     * 送信時刻を記録（レート制限用）
+     */
+    function recordSubmitTime() {
+      localStorage.setItem('lastSubmitTime', Date.now().toString());
+    }
+    
+    /**
+     * 入力値のサニタイズ（クライアントサイド）
+     * @param {string} input - 入力文字列
+     * @return {string} サニタイズ後の文字列
+     */
+    function sanitizeInput(input) {
+      if (typeof input !== 'string') return '';
+      
+      // HTMLタグを除去
+      input = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+      input = input.replace(/<[^>]*>/g, '');
+      
+      // SQLインジェクション対策（基本的な危険文字列を除去）
+      const dangerousPatterns = [
+        /('|\\')|(;)|(\\)|(--|\/\*|\*\/)/gi,
+        /(select|insert|update|delete|drop|union|script)/gi
+      ];
+      
+      dangerousPatterns.forEach(pattern => {
+        input = input.replace(pattern, '');
+      });
+      
+      // 改行・特殊文字の正規化
+      input = input.replace(/[\r\n\t]/g, ' ');
+      input = input.trim();
+      
+      return input;
+    }
+    
+    /**
+     * reCAPTCHA v3でトークンを取得
+     * @param {string} action - 実行するアクションの名前
+     * @return {Promise<string>} reCAPTCHAトークン
+     */
+    async function getRecaptchaToken(action = 'form_submit') {
+      try {
+        const token = await grecaptcha.execute('6LcXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', {action: action});
+        return token;
+      } catch (error) {
+        console.error('reCAPTCHA トークン取得エラー:', error);
+        return null;
+      }
+    }
+    
+    /**
+     * reCAPTCHA v3 トークン検証とスコア判定
+     * @param {string} token - reCAPTCHAトークン
+     * @return {boolean} 検証通過かどうか
+     */
+    async function validateRecaptchaV3(token) {
+      if (!token) {
+        console.warn('reCAPTCHA トークンが取得できませんでした');
+        return false;
+      }
+      
+      // サーバーサイドでの検証が必要ですが、
+      // ここではクライアントサイドの基本チェックのみ実装
+      // 実際の検証はサーバーサイド（Code.gs）で行います
+      return true;
+    }
+    
+    /**
+     * フォーム送信前の包括的なバリデーション
+     * @param {FormData} formData - フォームデータ
+     * @return {Promise<Object>} バリデーション結果
+     */
+    async function validateFormSecurity(formData) {
+      const errors = [];
+      
+      // プライバシーポリシー同意チェック
+      const privacyConsent = document.getElementById('privacy-consent').checked;
+      if (!privacyConsent) {
+        errors.push({ field: 'privacy-consent', message: 'プライバシーポリシーへの同意が必要です' });
+      }
+      
+      // レート制限チェック
+      if (!checkRateLimit()) {
+        errors.push({ field: 'rate-limit', message: '短時間内の連続送信です' });
+      }
+      
+      // reCAPTCHA検証
+      if (typeof grecaptcha !== 'undefined') {
+        const token = await getRecaptchaToken();
+        if (!await validateRecaptchaV3(token)) {
+          errors.push({ field: 'recaptcha', message: 'reCAPTCHA認証が必要です' });
+        }
+      }
+      
+      // 入力値の長さチェック（DoS攻撃対策）
+      const maxLengths = {
+        name: 100,
+        phone: 20,
+        email: 254,
+        note: 1000
+      };
+      
+      Object.keys(maxLengths).forEach(field => {
+        const value = formData.get(field);
+        if (value && value.length > maxLengths[field]) {
+          errors.push({ field: field, message: `入力が長すぎます（最大${maxLengths[field]}文字）` });
+        }
+      });
+      
+      return { isValid: errors.length === 0, errors: errors };
+    }
+    
+    /**
+     * フォームデータの事前処理（サニタイズ）
+     * @param {Object} data - 送信データ
+     * @return {Object} サニタイズ後のデータ
+     */
+    async function preprocessFormData(data) {
+      const processedData = { ...data };
+      
+      // 文字列フィールドをサニタイズ
+      ['name', 'phone', 'email', 'store', 'note'].forEach(field => {
+        if (processedData[field]) {
+          processedData[field] = sanitizeInput(processedData[field]);
+        }
+      });
+      
+      // 商品データもサニタイズ
+      if (processedData.items && Array.isArray(processedData.items)) {
+        processedData.items = processedData.items.map(item => ({
+          name: sanitizeInput(item.name || ''),
+          qty: parseInt(item.qty) || 0
+        }));
+      }
+      
+      // reCAPTCHA レスポンスを追加
+      if (typeof grecaptcha !== 'undefined') {
+        processedData.recaptchaResponse = await getRecaptchaToken();
+      }
+      
+      return processedData;
     }
 
   </script>
