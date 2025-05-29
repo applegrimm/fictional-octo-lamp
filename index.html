@@ -13,7 +13,7 @@
   <title>テイクアウト予約フォーム</title>
   
   <!-- reCAPTCHA v3スクリプト -->
-  <script src="https://www.google.com/recaptcha/api.js?render=6LcXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX" async defer></script>
+  <script src="https://www.google.com/recaptcha/api.js?render=6Le2lk4rAAAAAJu2ojJxoexvlUILZn4oNyJvuHzd" async defer></script>
   
   <style>
   /* =============================
@@ -1266,7 +1266,7 @@
      */
     async function getRecaptchaToken(action = 'form_submit') {
       try {
-        const token = await grecaptcha.execute('6LcXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX', {action: action});
+        const token = await grecaptcha.execute('6Le2lk4rAAAAAJu2ojJxoexvlUILZn4oNyJvuHzd', {action: action});
         return token;
       } catch (error) {
         console.error('reCAPTCHA トークン取得エラー:', error);
