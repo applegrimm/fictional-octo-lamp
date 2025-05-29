@@ -568,7 +568,10 @@
       addProductItem(); // 初期商品項目を追加
       
       // 店舗選択と受取日選択のイベントリスナーを追加
-      document.getElementById('store').addEventListener('change', updatePickupTimeOptions);
+      document.getElementById('store').addEventListener('change', function() {
+        updatePickupDateControl(); // 日付制御を更新
+        updatePickupTimeOptions(); // 時間選択を更新
+      });
       document.getElementById('pickup_date').addEventListener('change', updatePickupTimeOptions);
     });
 
@@ -947,21 +950,25 @@
       let maxDate = getBusinessDate(today, 30);
       dateInput.min = maxMinDate.toISOString().split('T')[0];
       dateInput.max = maxDate.toISOString().split('T')[0];
-      // 受取希望日は常にmin日付にリセット
-      dateInput.value = dateInput.min;
-      // 受取日選択時のバリデーション
-      dateInput.addEventListener('change', function() {
-        if (this.value) {
-          showError('pickup_date', '');
-          // 有効な日付が選択された場合は営業時間を更新
-          updatePickupTimeOptions();
+      
+      // 選択可能な最初の営業日を設定
+      const storeSelect = document.getElementById('store');
+      if (storeSelect.value) {
+        const validDate = findNextValidDate(maxMinDate, storeSelect.value);
+        if (validDate) {
+          dateInput.value = validDate.toISOString().split('T')[0];
         } else {
-          // 日付がクリアされた場合は時間選択も無効化
-          const timeSelect = document.getElementById('pickup_time');
-          timeSelect.value = '';
-          timeSelect.disabled = true;
+          dateInput.value = '';
         }
-      });
+      } else {
+        // 店舗未選択の場合は最小日付を設定
+        dateInput.value = dateInput.min;
+      }
+      
+      // 受取日選択時のバリデーション（休業日チェック追加）
+      dateInput.removeEventListener('change', validatePickupDate); // 重複回避
+      dateInput.addEventListener('change', validatePickupDate);
+      
       // 受取日が選択されたら時間選択を有効化
       if (dateInput.value) {
         // 店舗営業時間に基づいて受取時刻を更新
@@ -979,52 +986,119 @@
         noteDiv.innerHTML = '商品を選択してください。';
       }
     }
-    // 商品選択欄のselectと数量inputにイベントリスナーを追加
-    function attachProductSelectListener() {
-      document.querySelectorAll('.product-item select').forEach(select => {
-        select.addEventListener('change', updatePickupDateControl);
-      });
-      document.querySelectorAll('.product-item input[type="number"]').forEach(input => {
-        input.addEventListener('input', updatePickupDateControl);
-      });
-    }
-    // 商品項目追加時にもリスナーを付与
-    const origAddProductItem = addProductItem;
-    addProductItem = function() {
-      origAddProductItem();
-      attachProductSelectListener();
-      updatePickupDateControl();
-    };
-    // 初期化時にもリスナー付与
-    window.addEventListener('DOMContentLoaded', function() {
-      attachProductSelectListener();
-      updatePickupDateControl();
-    });
-    // 商品削除時にも制御を更新（MutationObserverを使用）
-    const productListArea = document.getElementById('product-list-area');
-    const observer = new MutationObserver(function(mutations) {
-      mutations.forEach(function(mutation) {
-        if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
-          setTimeout(updatePickupDateControl, 100);
-        }
-      });
-    });
-    observer.observe(productListArea, { childList: true });
-
-    // カスタムモーダルの「画面を閉じる」ボタン
-    document.getElementById('modal-close-btn').onclick = function(){
-      document.getElementById('custom-modal').style.display = 'none';
-      document.getElementById('final-message').style.display = 'block';
-      document.getElementById('final-message').innerHTML = 'ご予約ありがとうございました。<br>この画面は閉じてください。';
-      // それ以上の操作ができないようにフォーム・ボタンを非表示
-      document.getElementById('reserveForm').style.display = 'none';
-      document.getElementById('close-btn-area').style.display = 'none';
-    };
 
     /**
-     * 店舗営業時間を取得してAPIから受取時刻選択肢を更新する
+     * 休業日チェックを含む受取日バリデーション
      */
-    async function updatePickupTimeOptions() {
+    function validatePickupDate() {
+      const dateInput = document.getElementById('pickup_date');
+      const storeSelect = document.getElementById('store');
+      const timeSelect = document.getElementById('pickup_time');
+      
+      if (!dateInput.value) {
+        timeSelect.value = '';
+        timeSelect.disabled = true;
+        showError('pickup_date', '');
+        return;
+      }
+      
+      if (!storeSelect.value) {
+        showError('pickup_date', '店舗を先に選択してください');
+        dateInput.value = '';
+        timeSelect.value = '';
+        timeSelect.disabled = true;
+        return;
+      }
+      
+      // 選択された店舗情報を取得
+      const selectedStore = allStores.find(store => store.name === storeSelect.value);
+      if (!selectedStore) {
+        showError('pickup_date', '店舗情報の取得に失敗しました');
+        dateInput.value = '';
+        timeSelect.value = '';
+        timeSelect.disabled = true;
+        return;
+      }
+      
+      // 選択された日付の曜日をチェック
+      const selectedDate = new Date(dateInput.value);
+      const dayOfWeek = getDayOfWeekKey(selectedDate.getDay());
+      const storeHours = selectedStore.hours[dayOfWeek];
+      
+      // 休業日の場合
+      if (!storeHours || storeHours === null) {
+        const dayNames = {
+          'mon': '月曜日',
+          'tue': '火曜日', 
+          'wed': '水曜日',
+          'thu': '木曜日',
+          'fri': '金曜日',
+          'sat': '土曜日',
+          'sun': '日曜日'
+        };
+        showError('pickup_date', `${dayNames[dayOfWeek]}は休業日です。他の営業日をお選びください。`);
+        
+        // 次の営業日を提案
+        const nextValidDate = findNextValidDate(selectedDate, storeSelect.value);
+        if (nextValidDate) {
+          dateInput.value = nextValidDate.toISOString().split('T')[0];
+          // エラーメッセージをクリアして時間選択を更新
+          setTimeout(() => {
+            showError('pickup_date', '');
+            updatePickupTimeOptions();
+          }, 2000); // 2秒後にメッセージを消して次の営業日に設定
+        } else {
+          dateInput.value = '';
+          timeSelect.value = '';
+          timeSelect.disabled = true;
+        }
+        return;
+      }
+      
+      // 営業日の場合はエラーをクリアして時間選択を更新
+      showError('pickup_date', '');
+      updatePickupTimeOptions();
+    }
+
+    /**
+     * 指定日以降の次の営業日を検索
+     * @param {Date} startDate - 検索開始日
+     * @param {string} storeName - 店舗名
+     * @return {Date|null} 次の営業日（見つからない場合はnull）
+     */
+    function findNextValidDate(startDate, storeName) {
+      const selectedStore = allStores.find(store => store.name === storeName);
+      if (!selectedStore) return null;
+      
+      const maxAttempts = 14; // 最大2週間先まで検索
+      let currentDate = new Date(startDate);
+      
+      for (let i = 0; i < maxAttempts; i++) {
+        const dayOfWeek = getDayOfWeekKey(currentDate.getDay());
+        const storeHours = selectedStore.hours[dayOfWeek];
+        
+        // 営業日かつ最小日付以降の場合
+        if (storeHours && storeHours !== null) {
+          const dateInput = document.getElementById('pickup_date');
+          const minDate = new Date(dateInput.min);
+          const maxDate = new Date(dateInput.max);
+          
+          if (currentDate >= minDate && currentDate <= maxDate) {
+            return currentDate;
+          }
+        }
+        
+        // 次の日へ
+        currentDate.setDate(currentDate.getDate() + 1);
+      }
+      
+      return null; // 営業日が見つからない場合
+    }
+
+    /**
+     * 店舗営業時間に基づいて受取時刻選択肢を更新する
+     */
+    function updatePickupTimeOptions() {
       const storeSelect = document.getElementById('store');
       const dateInput = document.getElementById('pickup_date');
       const timeSelect = document.getElementById('pickup_time');
@@ -1366,6 +1440,48 @@
       
       return processedData;
     }
+
+    // 商品選択欄のselectと数量inputにイベントリスナーを追加
+    function attachProductSelectListener() {
+      document.querySelectorAll('.product-item select').forEach(select => {
+        select.addEventListener('change', updatePickupDateControl);
+      });
+      document.querySelectorAll('.product-item input[type="number"]').forEach(input => {
+        input.addEventListener('input', updatePickupDateControl);
+      });
+    }
+    // 商品項目追加時にもリスナーを付与
+    const origAddProductItem = addProductItem;
+    addProductItem = function() {
+      origAddProductItem();
+      attachProductSelectListener();
+      updatePickupDateControl();
+    };
+    // 初期化時にもリスナー付与
+    window.addEventListener('DOMContentLoaded', function() {
+      attachProductSelectListener();
+      updatePickupDateControl();
+    });
+    // 商品削除時にも制御を更新（MutationObserverを使用）
+    const productListArea = document.getElementById('product-list-area');
+    const observer = new MutationObserver(function(mutations) {
+      mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
+          setTimeout(updatePickupDateControl, 100);
+        }
+      });
+    });
+    observer.observe(productListArea, { childList: true });
+
+    // カスタムモーダルの「画面を閉じる」ボタン
+    document.getElementById('modal-close-btn').onclick = function(){
+      document.getElementById('custom-modal').style.display = 'none';
+      document.getElementById('final-message').style.display = 'block';
+      document.getElementById('final-message').innerHTML = 'ご予約ありがとうございました。<br>この画面は閉じてください。';
+      // それ以上の操作ができないようにフォーム・ボタンを非表示
+      document.getElementById('reserveForm').style.display = 'none';
+      document.getElementById('close-btn-area').style.display = 'none';
+    };
 
   </script>
 </body>
