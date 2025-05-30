@@ -445,11 +445,27 @@
       .controls-row { 
         flex-direction: column; 
         align-items: stretch; 
-        gap: 12px;
+        gap: 16px; /* 行間を広げる */
+      }
+      
+      .checkbox {
+        justify-content: flex-start;
       }
       
       .memo-area { 
-        min-width: auto; 
+        min-width: auto;
+        width: 100%;
+      }
+      
+      .memo-input {
+        flex: 1;
+        min-width: 0; /* flex要素の最小幅を0に */
+      }
+      
+      .save-btn {
+        min-width: 100px; /* 最小幅を確保 */
+        white-space: nowrap; /* 文字の改行を防ぐ */
+        flex-shrink: 0; /* 縮小を防ぐ */
       }
       
       .card-header { 
@@ -479,6 +495,21 @@
       
       .btn {
         justify-content: center;
+      }
+      
+      .save-btn {
+        font-size: 1.0em;
+        padding: 10px 16px;
+        min-width: 80px;
+      }
+      
+      /* 極小画面ではボタンテキストを短縮 */
+      .save-btn-text {
+        display: none;
+      }
+      
+      .save-btn::after {
+        content: "💾";
       }
     }
   </style>
@@ -806,7 +837,7 @@
                 <input type="text" class="memo-input" id="memo-${group.orderId}" 
                        value="${escapeHtml(customer.memo || '')}" placeholder="スタッフメモを入力..." maxlength="200">
                 <button class="save-btn" onclick="updateReservation('${group.items[0].rowId}', null, document.getElementById('memo-${group.orderId}').value)">
-                  📝 メモ保存
+                  📝 <span class="save-btn-text">メモ保存</span>
                 </button>
               </div>
             </div>
@@ -863,7 +894,12 @@
         if (originalButton) {
           originalButton.disabled = true;
           if (memo !== null) {
-            originalButton.textContent = '更新中...';
+            const textSpan = originalButton.querySelector('.save-btn-text');
+            if (textSpan) {
+              textSpan.textContent = '更新中...';
+            } else {
+              originalButton.innerHTML = '📝 更新中...';
+            }
           }
         }
 
@@ -897,7 +933,12 @@
             if (originalButton) {
               originalButton.disabled = false;
               if (memo !== null) {
-                originalButton.textContent = '📝 メモ保存';
+                const textSpan = originalButton.querySelector('.save-btn-text');
+                if (textSpan) {
+                  textSpan.textContent = 'メモ保存';
+                } else {
+                  originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
+                }
               }
             }
             
@@ -946,7 +987,12 @@
           if (originalButton) {
             originalButton.disabled = false;
             if (memo !== null) {
-              originalButton.textContent = '📝 メモ保存';
+              const textSpan = originalButton.querySelector('.save-btn-text');
+              if (textSpan) {
+                textSpan.textContent = 'メモ保存';
+              } else {
+                originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
+              }
             }
           }
           
@@ -974,7 +1020,12 @@
             if (originalButton) {
               originalButton.disabled = false;
               if (memo !== null) {
-                originalButton.textContent = '📝 メモ保存';
+                const textSpan = originalButton.querySelector('.save-btn-text');
+                if (textSpan) {
+                  textSpan.textContent = 'メモ保存';
+                } else {
+                  originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
+                }
               }
             }
             
@@ -993,7 +1044,12 @@
         if (originalButton) {
           originalButton.disabled = false;
           if (memo !== null) {
-            originalButton.textContent = '📝 メモ保存';
+            const textSpan = originalButton.querySelector('.save-btn-text');
+            if (textSpan) {
+              textSpan.textContent = 'メモ保存';
+            } else {
+              originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
+            }
           }
         }
         
