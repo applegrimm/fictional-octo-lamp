@@ -353,8 +353,9 @@
     .memo-area {
       display: flex;
       align-items: center;
+      gap: 12px;
       flex: 1;
-      min-width: 200px;
+      min-width: 250px;
     }
     
     .memo-input {
@@ -798,15 +799,15 @@
                 <input type="checkbox" id="check-${group.orderId}" ${isCompleted ? 'checked' : ''} 
                        onchange="console.log('チェックボックス値:', this.checked); updateReservation('${group.items[0].rowId}', this.checked, null)">
                 <label for="check-${group.orderId}">受渡完了</label>
+                <span class="auto-save-message" id="save-msg-${group.orderId}" style="display: none; color: #27ae60; font-size: 0.9em; margin-left: 8px;">自動保存中...</span>
               </div>
-              
-              <button class="save-btn" onclick="updateReservation('${group.items[0].rowId}', null, document.getElementById('memo-${group.orderId}').value)">
-                📝 メモ保存
-              </button>
               
               <div class="memo-area">
                 <input type="text" class="memo-input" id="memo-${group.orderId}" 
                        value="${escapeHtml(customer.memo || '')}" placeholder="スタッフメモを入力..." maxlength="200">
+                <button class="save-btn" onclick="updateReservation('${group.items[0].rowId}', null, document.getElementById('memo-${group.orderId}').value)">
+                  📝 メモ保存
+                </button>
               </div>
             </div>
           </div>
@@ -842,8 +843,19 @@
       
       // ボタンの参照を取得
       let originalButton = null;
+      let autoSaveMessage = null;
+      
       if (event && event.target) {
         originalButton = event.target;
+        
+        // チェックボックスの場合は自動保存メッセージを表示
+        if (checked !== null && event.target.type === 'checkbox') {
+          const orderId = event.target.id.replace('check-', '');
+          autoSaveMessage = document.getElementById(`save-msg-${orderId}`);
+          if (autoSaveMessage) {
+            autoSaveMessage.style.display = 'inline';
+          }
+        }
       }
       
       try {
@@ -888,6 +900,13 @@
                 originalButton.textContent = '📝 メモ保存';
               }
             }
+            
+            // 自動保存メッセージを非表示
+            if (autoSaveMessage) {
+              setTimeout(() => {
+                autoSaveMessage.style.display = 'none';
+              }, 1000); // 1秒後に非表示
+            }
           }
         };
         
@@ -930,6 +949,11 @@
               originalButton.textContent = '📝 メモ保存';
             }
           }
+          
+          // 自動保存メッセージを非表示
+          if (autoSaveMessage) {
+            autoSaveMessage.style.display = 'none';
+          }
         };
         
         script.onload = function() {
@@ -953,6 +977,11 @@
                 originalButton.textContent = '📝 メモ保存';
               }
             }
+            
+            // 自動保存メッセージを非表示
+            if (autoSaveMessage) {
+              autoSaveMessage.style.display = 'none';
+            }
           }
         }, 10000);
         
@@ -966,6 +995,11 @@
           if (memo !== null) {
             originalButton.textContent = '📝 メモ保存';
           }
+        }
+        
+        // 自動保存メッセージを非表示
+        if (autoSaveMessage) {
+          autoSaveMessage.style.display = 'none';
         }
       }
     }
