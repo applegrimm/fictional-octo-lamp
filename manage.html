@@ -555,11 +555,17 @@
 
     // ページ読み込み時の初期化
     window.addEventListener('DOMContentLoaded', function() {
+      console.log('=== 管理画面読み込み開始 ===');
+      
       // URLパラメータからshopを取得
       const urlParams = new URLSearchParams(window.location.search);
       SHOP_SECRET = urlParams.get('shop');
       
+      console.log('Shop Secret:', SHOP_SECRET);
+      console.log('GAS API URL:', GAS_API_URL);
+      
       if (!SHOP_SECRET) {
+        console.log('Shop Secretが見つかりません');
         showAuthError();
         return;
       }
@@ -567,7 +573,8 @@
       // メイン画面を表示
       document.getElementById('main-content').style.display = 'block';
       
-      // 予約一覧を読み込み
+      // 予約一覧を読み込み（JSONP方式）
+      console.log('予約データ読み込み開始（JSONP方式）');
       loadReservations();
     });
 
@@ -577,25 +584,34 @@
       document.getElementById('main-content').style.display = 'none';
     }
 
-    // 予約一覧を読み込み（JSONP方式・CORS回避）
-    async function loadReservations() {
+    // 予約一覧を読み込み（完全JSONP版・CORSエラー0%保証）
+    function loadReservations() {
+      console.log('=== loadReservations開始 ===');
       showLoading(true);
       hideError();
 
       try {
-        // JSONP方式でCORSを回避
-        const callbackName = 'jsonpCallback' + Date.now();
-        const script = document.createElement('script');
+        // JSONP方式：スクリプトタグでCORSを完全回避
+        const callbackName = 'reservationCallback' + Date.now();
+        console.log('JSONP Callback名:', callbackName);
         
-        // JSONP用のコールバック関数を定義
+        // 既存のスクリプトタグを削除（クリーンアップ）
+        const existingScripts = document.querySelectorAll('script[data-jsonp="true"]');
+        existingScripts.forEach(script => script.remove());
+        
+        // グローバルコールバック関数を定義
         window[callbackName] = function(data) {
+          console.log('=== JSONP Response受信 ===', data);
+          
           try {
-            if (data.success) {
-              allReservations = data.data;
+            if (data && data.success) {
+              console.log('予約データ取得成功:', data.data.length + '件');
+              allReservations = data.data || [];
               
               // 店舗名を設定
               if (data.storeName) {
                 document.getElementById('store-name').textContent = data.storeName + ' - 予約管理画面';
+                console.log('店舗名設定:', data.storeName);
               }
               
               // 統計情報を更新
@@ -603,41 +619,84 @@
               
               // 予約一覧を表示
               displayReservations(allReservations);
+              
             } else {
-              if (data.error && data.error.includes('アクセス権限')) {
+              console.error('APIエラー:', data);
+              if (data && data.error && data.error.includes('アクセス権限')) {
                 showAuthError();
               } else {
-                showError(data.error || '予約データの読み込みに失敗しました');
+                showError(data ? data.error : '予約データの読み込みに失敗しました');
               }
             }
           } catch (error) {
             console.error('データ処理エラー:', error);
-            showError('データの処理中にエラーが発生しました');
+            showError('データの処理中にエラーが発生しました: ' + error.message);
           } finally {
-            // スクリプトタグとコールバック関数をクリーンアップ
-            document.head.removeChild(script);
-            delete window[callbackName];
+            // クリーンアップ
+            cleanupJSONP(callbackName);
             showLoading(false);
           }
         };
         
-        // JSONPリクエストURL
-        const jsonpUrl = `${GAS_API_URL}?action=getReservations&shop=${SHOP_SECRET}&callback=${callbackName}`;
+        // JSONPリクエストURL作成
+        const jsonpUrl = `${GAS_API_URL}?action=getReservations&shop=${encodeURIComponent(SHOP_SECRET)}&callback=${callbackName}&_t=${Date.now()}`;
+        console.log('JSONP URL:', jsonpUrl);
+        
+        // スクリプトタグを作成
+        const script = document.createElement('script');
         script.src = jsonpUrl;
-        script.onerror = function() {
-          showError('ネットワークエラーが発生しました。しばらく待ってから再試行してください。');
-          document.head.removeChild(script);
-          delete window[callbackName];
+        script.setAttribute('data-jsonp', 'true');
+        script.setAttribute('data-callback', callbackName);
+        
+        // エラーハンドリング
+        script.onerror = function(error) {
+          console.error('JSONP読み込みエラー:', error);
+          showError('ネットワークエラーが発生しました。GASのURLまたはデプロイを確認してください。');
+          cleanupJSONP(callbackName);
           showLoading(false);
+        };
+        
+        script.onload = function() {
+          console.log('JSONPスクリプト読み込み完了');
         };
         
         // スクリプトタグを追加してリクエスト実行
         document.head.appendChild(script);
         
+        // タイムアウト設定（10秒）
+        setTimeout(() => {
+          if (window[callbackName]) {
+            console.warn('JSONP タイムアウト');
+            showError('リクエストがタイムアウトしました。再度お試しください。');
+            cleanupJSONP(callbackName);
+            showLoading(false);
+          }
+        }, 10000);
+        
       } catch (error) {
-        console.error('読み込みエラー:', error);
-        showError('予約データの読み込み中にエラーが発生しました');
+        console.error('JSONP初期化エラー:', error);
+        showError('予約データの読み込み初期化に失敗しました: ' + error.message);
         showLoading(false);
+      }
+    }
+
+    // JSONP クリーンアップ関数
+    function cleanupJSONP(callbackName) {
+      try {
+        // スクリプトタグを削除
+        const script = document.querySelector(`script[data-callback="${callbackName}"]`);
+        if (script && script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+        
+        // グローバルコールバック関数を削除
+        if (window[callbackName]) {
+          delete window[callbackName];
+        }
+        
+        console.log('JSONP クリーンアップ完了:', callbackName);
+      } catch (error) {
+        console.warn('JSONP クリーンアップエラー:', error);
       }
     }
 
