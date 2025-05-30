@@ -333,13 +333,19 @@
     .checkbox {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 12px;
       font-weight: 500;
     }
     
     .checkbox input[type="checkbox"] {
-      width: 18px;
-      height: 18px;
+      width: 27px;
+      height: 27px;
+      cursor: pointer;
+      transform: scale(1.0);
+    }
+    
+    .checkbox label {
+      font-size: 1.1em;
       cursor: pointer;
     }
     
@@ -353,11 +359,12 @@
     
     .memo-input {
       flex: 1;
-      padding: 8px 12px;
+      padding: 12px 16px;
       border: 1px solid #ced4da;
-      border-radius: 6px;
-      font-size: 0.9em;
+      border-radius: 8px;
+      font-size: 1.0em;
       transition: border-color 0.2s ease;
+      min-height: 48px;
     }
     
     .memo-input:focus {
@@ -370,15 +377,16 @@
       background: #f39c12;
       color: white;
       border: none;
-      padding: 8px 16px;
-      border-radius: 6px;
+      padding: 12px 24px;
+      border-radius: 8px;
       cursor: pointer;
-      font-size: 0.9em;
+      font-size: 1.1em;
       font-weight: 500;
       transition: all 0.2s ease;
       display: flex;
       align-items: center;
-      gap: 4px;
+      gap: 6px;
+      min-height: 48px;
     }
     
     .save-btn:hover {
