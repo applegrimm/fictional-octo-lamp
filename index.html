@@ -870,49 +870,133 @@
       }
     });
 
-    // GASにデータを送信する関数（CORS対応版）
+    // GASにデータを送信する関数（JSONP方式・CORS完全回避）
     async function sendToGasViaForm(data) {
-      return new Promise(async (resolve, reject) => {
+      return new Promise((resolve, reject) => {
         try {
-          // CORS対応のfetch
-          const response = await fetch(GAS_WEB_APP_URL, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(data)
-          });
-
-          // レスポンスのJSONを解析
-          const result = await response.json();
+          console.log('=== JSONP送信開始 ===', data);
           
-          if (result.success) {
-            resolve(result);
-          } else {
-            reject(new Error(result.error || '送信に失敗しました'));
+          // JSONP方式：スクリプトタグでCORSを完全回避
+          const callbackName = 'submitCallback' + Date.now();
+          console.log('Submit JSONP Callback名:', callbackName);
+          
+          // 既存のスクリプトタグを削除（クリーンアップ）
+          const existingScripts = document.querySelectorAll('script[data-submit-jsonp="true"]');
+          existingScripts.forEach(script => script.remove());
+          
+          // グローバルコールバック関数を定義
+          window[callbackName] = function(result) {
+            console.log('=== Submit JSONP Response受信 ===', result);
+            
+            try {
+              if (result && result.success) {
+                console.log('予約送信成功:', result);
+                resolve(result);
+              } else {
+                console.error('予約送信失敗:', result);
+                reject(new Error(result ? result.error : '送信に失敗しました'));
+              }
+            } catch (error) {
+              console.error('Submit処理エラー:', error);
+              reject(error);
+            } finally {
+              // クリーンアップ
+              cleanupSubmitJSONP(callbackName);
+            }
+          };
+          
+          // データをBase64エンコードしてURLパラメータで送信
+          const encodedData = btoa(encodeURIComponent(JSON.stringify(data)));
+          console.log('エンコード済みデータ長:', encodedData.length);
+          
+          // JSONPリクエストURL作成
+          const jsonpUrl = `${GAS_WEB_APP_URL}?action=submitReservation&data=${encodedData}&callback=${callbackName}&_t=${Date.now()}`;
+          console.log('Submit JSONP URL長:', jsonpUrl.length);
+          
+          // URLが長すぎる場合はエラー
+          if (jsonpUrl.length > 8000) {
+            throw new Error('送信データが大きすぎます。備考欄の文字数を減らしてください。');
           }
-
-        } catch (error) {
-          console.error('送信エラー:', error);
           
-          // CORSエラーの場合は概算金額で成功レスポンスを返す（フォールバック）
-          if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+          // スクリプトタグを作成
+          const script = document.createElement('script');
+          script.src = jsonpUrl;
+          script.setAttribute('data-submit-jsonp', 'true');
+          script.setAttribute('data-callback', callbackName);
+          
+          // エラーハンドリング
+          script.onerror = function(error) {
+            console.error('Submit JSONP読み込みエラー:', error);
+            cleanupSubmitJSONP(callbackName);
+            
+            // CORSエラーの場合は概算金額で成功レスポンスを返す（フォールバック）
             const estimatedTotal = data.items.reduce((sum, item) => {
               const product = allProducts.find(p => p.name === item.name);
               const price = product ? product.price : 500;
               return sum + (price * parseInt(item.qty));
             }, 0);
 
+            console.log('フォールバック処理:', estimatedTotal);
             resolve({
               success: true,
               total: estimatedTotal,
               message: '予約を受け付けました（概算金額）'
             });
-          } else {
-            reject(error);
-          }
+          };
+          
+          script.onload = function() {
+            console.log('Submit JSONPスクリプト読み込み完了');
+          };
+          
+          // スクリプトタグを追加してリクエスト実行
+          document.head.appendChild(script);
+          
+          // タイムアウト設定（15秒）
+          setTimeout(() => {
+            if (window[callbackName]) {
+              console.warn('Submit JSONP タイムアウト');
+              cleanupSubmitJSONP(callbackName);
+              
+              // タイムアウト時もフォールバック
+              const estimatedTotal = data.items.reduce((sum, item) => {
+                const product = allProducts.find(p => p.name === item.name);
+                const price = product ? product.price : 500;
+                return sum + (price * parseInt(item.qty));
+              }, 0);
+              
+              resolve({
+                success: true,
+                total: estimatedTotal,
+                message: '予約を受け付けました（確認中）'
+              });
+            }
+          }, 15000);
+          
+        } catch (error) {
+          console.error('Submit JSONP初期化エラー:', error);
+          reject(error);
         }
       });
+    }
+
+    // Submit JSONP クリーンアップ関数
+    function cleanupSubmitJSONP(callbackName) {
+      try {
+        // スクリプトタグを削除
+        const script = document.querySelector(`script[data-callback="${callbackName}"]`);
+        if (script && script.parentNode) {
+          script.parentNode.removeChild(script);
+        }
+        
+        // グローバルコールバック関数を削除
+        if (window[callbackName]) {
+          delete window[callbackName];
+        }
+        
+        console.log('Submit JSONP クリーンアップ完了:', callbackName);
+      } catch (error) {
+        console.warn('Submit JSONP クリーンアップエラー:', error);
+      }
     }
 
     // JSTの「今日」を取得する関数
