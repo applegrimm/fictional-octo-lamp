@@ -740,7 +740,7 @@
           <div class="reservation-card ${isCompleted ? 'completed' : 'pending'}" data-filter="${isCompleted ? 'completed' : 'pending'}">
             <div class="card-header">
               <div class="pickup-info">
-                📅 ${customer.pickupDate} ${customer.pickupTime}
+                📅 ${formatPickupDateTime(customer.pickupDate, customer.pickupTime)}
               </div>
               <div class="status ${isCompleted ? 'completed' : 'pending'}">
                 ${isCompleted ? '完了' : '未完了'}
@@ -1030,6 +1030,33 @@
       const div = document.createElement('div');
       div.textContent = text;
       return div.innerHTML;
+    }
+
+    // 日時を読みやすい日本語形式にフォーマット
+    function formatPickupDateTime(dateStr, timeStr) {
+      try {
+        // 日付を解析
+        const date = new Date(dateStr);
+        const year = date.getFullYear();
+        const month = date.getMonth() + 1;
+        const day = date.getDate();
+        
+        // 曜日を取得
+        const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+        const dayOfWeek = dayNames[date.getDay()];
+        
+        // 時刻をフォーマット（HH:MM形式に統一）
+        let formattedTime = timeStr;
+        if (timeStr && timeStr.length === 5) {
+          // すでにHH:MM形式の場合はそのまま使用
+          formattedTime = timeStr;
+        }
+        
+        return `${year}年${month}月${day}日（${dayOfWeek}）${formattedTime}`;
+      } catch (error) {
+        console.warn('日時フォーマットエラー:', error);
+        return `${dateStr} ${timeStr}`;
+      }
     }
 
     // 初期フィルターを設定
