@@ -544,7 +544,9 @@
   </div>
 
   <script>
+    // GitHub Pages URL: https://applegrimm.github.io/fictional-octo-lamp/
     // GASのWebアプリURL（実際のURLに変更してください）
+    // ⚠️ 重要: 新しいデプロイを作成した場合は、以下のURLを更新してください
     const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwgeG189yH0YGt6gpqpYHoclCnZe4cbo8jARRaHCqjgxpiD_XW47taPqNFlQYDhfaYaCg/exec';
     
     let SHOP_SECRET = '';
@@ -741,6 +743,12 @@
 
     // 予約データを更新
     async function updateReservation(rowId, checked, memo) {
+      // ボタンの参照を取得
+      let originalButton = null;
+      if (event && event.target) {
+        originalButton = event.target;
+      }
+      
       try {
         const updateData = {
           action: 'updateReservation',
@@ -751,10 +759,11 @@
         };
 
         // ローディング表示（簡易版）
-        const originalButton = event ? event.target : null;
         if (originalButton) {
           originalButton.disabled = true;
-          originalButton.textContent = '更新中...';
+          if (memo !== null) {
+            originalButton.textContent = '更新中...';
+          }
         }
 
         const response = await fetch(GAS_API_URL, {
