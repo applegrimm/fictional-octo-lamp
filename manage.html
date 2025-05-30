@@ -868,7 +868,7 @@
       });
     }
 
-    // 予約データを更新（JSONP方式・CORS完全回避）
+    // 予約データを更新（JSONP方式・CORS完全回避・同一注文ID一括更新対応）
     function updateReservation(rowId, checked, memo) {
       console.log('=== updateReservation開始 ===', {rowId, checked, memo});
       
@@ -890,6 +890,161 @@
       }
       
       try {
+        // チェックボックス更新の場合は、同一注文IDの全行を更新
+        if (checked !== null) {
+          // 現在の行から注文IDを取得
+          const currentReservation = allReservations.find(r => r.rowId === parseInt(rowId));
+          if (currentReservation) {
+            // 同一注文IDの全行を更新
+            const sameOrderRows = allReservations
+              .filter(r => r.orderId === currentReservation.orderId)
+              .map(r => r.rowId);
+            
+            console.log('同一注文ID行一括更新:', {orderId: currentReservation.orderId, rows: sameOrderRows});
+            
+            // 各行を順次更新
+            updateMultipleRows(sameOrderRows, checked, memo);
+            return;
+          }
+        }
+        
+        // メモ更新の場合は単一行のみ更新（従来通り）
+        updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage);
+        
+      } catch (error) {
+        console.error('Update初期化エラー:', error);
+        showError('更新処理の初期化に失敗しました: ' + error.message);
+        
+        // ボタンを元に戻す
+        if (originalButton) {
+          originalButton.disabled = false;
+          if (memo !== null) {
+            const textSpan = originalButton.querySelector('.save-btn-text');
+            if (textSpan) {
+              textSpan.textContent = 'メモ保存';
+            } else {
+              originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
+            }
+          }
+        }
+        
+        // 自動保存メッセージを非表示
+        if (autoSaveMessage) {
+          autoSaveMessage.style.display = 'none';
+        }
+      }
+    }
+
+    // 複数行を順次更新する関数
+    function updateMultipleRows(rowIds, checked, memo) {
+      let completedCount = 0;
+      let totalCount = rowIds.length;
+      let hasError = false;
+
+      console.log('複数行更新開始:', {rowIds, checked, memo, totalCount});
+
+      rowIds.forEach((rowId, index) => {
+        setTimeout(() => {
+          updateSingleRowInternal(rowId, checked, memo, (success) => {
+            completedCount++;
+            if (!success) hasError = true;
+
+            console.log('行更新完了:', {rowId, success, completedCount, totalCount});
+
+            // 全行の更新が完了した場合
+            if (completedCount >= totalCount) {
+              if (hasError) {
+                showError('一部の更新に失敗しました');
+              } else {
+                console.log('全行更新完了');
+              }
+              // 全て完了後にリロード
+              setTimeout(() => {
+                loadReservations();
+              }, 500);
+            }
+          });
+        }, index * 200); // 200ms間隔で順次実行
+      });
+    }
+
+    // 単一行更新の内部関数
+    function updateSingleRowInternal(rowId, checked, memo, callback) {
+      try {
+        const callbackName = 'updateCallback' + Date.now() + '_' + rowId;
+        console.log('単一行更新開始:', {rowId, callbackName});
+
+        // グローバルコールバック関数を定義
+        window[callbackName] = function(result) {
+          console.log('=== 単一行Response受信 ===', {rowId, result});
+          
+          try {
+            const success = result && result.success;
+            if (success) {
+              console.log('単一行更新成功:', rowId);
+            } else {
+              console.error('単一行更新失敗:', {rowId, result});
+            }
+            if (callback) callback(success);
+          } catch (error) {
+            console.error('単一行処理エラー:', error);
+            if (callback) callback(false);
+          } finally {
+            cleanupJSONP(callbackName);
+          }
+        };
+
+        // JSONP URLを作成
+        const params = new URLSearchParams({
+          action: 'updateReservation',
+          shop: SHOP_SECRET,
+          rowId: parseInt(rowId),
+          callback: callbackName,
+          _t: Date.now()
+        });
+
+        if (checked !== null && checked !== undefined) {
+          params.append('checked', checked ? '1' : '0');
+        }
+        if (memo !== null && memo !== undefined) {
+          params.append('memo', memo);
+        }
+
+        const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
+        console.log('単一行JSONP URL:', jsonpUrl);
+
+        // スクリプトタグを作成・実行
+        const script = document.createElement('script');
+        script.src = jsonpUrl;
+        script.setAttribute('data-jsonp', 'true');
+        script.setAttribute('data-callback', callbackName);
+
+        script.onerror = function(error) {
+          console.error('単一行JSONP読み込みエラー:', {rowId, error});
+          if (callback) callback(false);
+          cleanupJSONP(callbackName);
+        };
+
+        document.head.appendChild(script);
+
+        // タイムアウト設定
+        setTimeout(() => {
+          if (window[callbackName]) {
+            console.warn('単一行JSONP タイムアウト:', rowId);
+            if (callback) callback(false);
+            cleanupJSONP(callbackName);
+          }
+        }, 5000);
+
+      } catch (error) {
+        console.error('単一行更新初期化エラー:', error);
+        if (callback) callback(false);
+      }
+    }
+
+    // 単一行更新関数（UI付き）
+    function updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage) {
+      try {
         // ローディング表示
         if (originalButton) {
           originalButton.disabled = true;
@@ -903,27 +1058,26 @@
           }
         }
 
-        // JSONP方式でデータ更新
-        const callbackName = 'updateCallback' + Date.now();
-        console.log('Update JSONP Callback名:', callbackName);
-        
+        const callbackName = 'updateCallback' + Date.now() + '_single';
+        console.log('単一行UI更新開始:', {rowId, callbackName});
+
         // グローバルコールバック関数を定義
         window[callbackName] = function(result) {
-          console.log('=== Update Response受信 ===', result);
+          console.log('=== 単一行UI Response受信 ===', {rowId, result});
           
           try {
             if (result && result.success) {
-              console.log('更新成功');
+              console.log('単一行UI更新成功:', rowId);
               // 更新成功時に再読み込み
               setTimeout(() => {
                 loadReservations();
               }, 500);
             } else {
-              console.error('更新失敗:', result);
+              console.error('単一行UI更新失敗:', {rowId, result});
               showError(result ? result.error : '更新に失敗しました');
             }
           } catch (error) {
-            console.error('Update処理エラー:', error);
+            console.error('単一行UI処理エラー:', error);
             showError('更新処理中にエラーが発生しました: ' + error.message);
           } finally {
             // クリーンアップ
@@ -946,12 +1100,12 @@
             if (autoSaveMessage) {
               setTimeout(() => {
                 autoSaveMessage.style.display = 'none';
-              }, 1000); // 1秒後に非表示
+              }, 1000);
             }
           }
         };
-        
-        // JSONP URLを作成（GETパラメータで更新データを送信）
+
+        // JSONP URLを作成
         const params = new URLSearchParams({
           action: 'updateReservation',
           shop: SHOP_SECRET,
@@ -959,27 +1113,25 @@
           callback: callbackName,
           _t: Date.now()
         });
-        
-        // checkedとmemoは値がある場合のみ追加
+
         if (checked !== null && checked !== undefined) {
           params.append('checked', checked ? '1' : '0');
         }
         if (memo !== null && memo !== undefined) {
           params.append('memo', memo);
         }
-        
+
         const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
-        console.log('Update JSONP URL:', jsonpUrl);
-        
-        // スクリプトタグを作成
+        console.log('単一行UI JSONP URL:', jsonpUrl);
+
+        // スクリプトタグを作成・実行
         const script = document.createElement('script');
         script.src = jsonpUrl;
         script.setAttribute('data-jsonp', 'true');
         script.setAttribute('data-callback', callbackName);
-        
-        // エラーハンドリング
+
         script.onerror = function(error) {
-          console.error('Update JSONP読み込みエラー:', error);
+          console.error('単一行UI JSONP読み込みエラー:', {rowId, error});
           showError('ネットワークエラーが発生しました');
           cleanupJSONP(callbackName);
           
@@ -1001,18 +1153,17 @@
             autoSaveMessage.style.display = 'none';
           }
         };
-        
+
         script.onload = function() {
-          console.log('Update JSONPスクリプト読み込み完了');
+          console.log('単一行UI JSONPスクリプト読み込み完了');
         };
-        
-        // スクリプトタグを追加してリクエスト実行
+
         document.head.appendChild(script);
-        
-        // タイムアウト設定（10秒）
+
+        // タイムアウト設定
         setTimeout(() => {
           if (window[callbackName]) {
-            console.warn('Update JSONP タイムアウト');
+            console.warn('単一行UI JSONP タイムアウト:', rowId);
             showError('更新リクエストがタイムアウトしました');
             cleanupJSONP(callbackName);
             
@@ -1035,9 +1186,9 @@
             }
           }
         }, 10000);
-        
+
       } catch (error) {
-        console.error('Update JSONP初期化エラー:', error);
+        console.error('単一行UI更新初期化エラー:', error);
         showError('更新処理の初期化に失敗しました: ' + error.message);
         
         // ボタンを元に戻す
