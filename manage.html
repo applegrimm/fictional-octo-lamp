@@ -1045,16 +1045,31 @@
         const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
         const dayOfWeek = dayNames[date.getDay()];
         
-        // 時刻をフォーマット（HH:MM形式に統一）
-        let formattedTime = timeStr;
-        if (timeStr && timeStr.length === 5) {
-          // すでにHH:MM形式の場合はそのまま使用
-          formattedTime = timeStr;
+        // 時刻を解析・フォーマット
+        let formattedTime = '';
+        
+        if (timeStr) {
+          // ISO形式の場合（例：1899-12-30T03:30:00.000Z）
+          if (timeStr.includes('T') && timeStr.includes('Z')) {
+            const timeDate = new Date(timeStr);
+            const hours = timeDate.getHours().toString().padStart(2, '0');
+            const minutes = timeDate.getMinutes().toString().padStart(2, '0');
+            formattedTime = `${hours}:${minutes}`;
+          }
+          // すでにHH:MM形式の場合
+          else if (timeStr.match(/^\d{1,2}:\d{2}$/)) {
+            formattedTime = timeStr;
+          }
+          // その他の形式の場合は文字列をそのまま使用
+          else {
+            formattedTime = timeStr;
+          }
         }
         
-        return `${year}年${month}月${day}日（${dayOfWeek}）${formattedTime}`;
+        return `${year}年${month}月${day}日（${dayOfWeek}） ${formattedTime}`;
+        
       } catch (error) {
-        console.warn('日時フォーマットエラー:', error);
+        console.warn('日時フォーマットエラー:', error, {dateStr, timeStr});
         return `${dateStr} ${timeStr}`;
       }
     }
