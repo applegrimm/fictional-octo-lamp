@@ -827,8 +827,10 @@
       });
     }
 
-    // 予約データを更新
-    async function updateReservation(rowId, checked, memo) {
+    // 予約データを更新（JSONP方式・CORS完全回避）
+    function updateReservation(rowId, checked, memo) {
+      console.log('=== updateReservation開始 ===', {rowId, checked, memo});
+      
       // ボタンの参照を取得
       let originalButton = null;
       if (event && event.target) {
@@ -836,15 +838,7 @@
       }
       
       try {
-        const updateData = {
-          action: 'updateReservation',
-          shop: SHOP_SECRET,
-          rowId: parseInt(rowId),
-          checked: checked,
-          memo: memo
-        };
-
-        // ローディング表示（簡易版）
+        // ローディング表示
         if (originalButton) {
           originalButton.disabled = true;
           if (memo !== null) {
@@ -852,28 +846,111 @@
           }
         }
 
-        const response = await fetch(GAS_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(updateData)
+        // JSONP方式でデータ更新
+        const callbackName = 'updateCallback' + Date.now();
+        console.log('Update JSONP Callback名:', callbackName);
+        
+        // グローバルコールバック関数を定義
+        window[callbackName] = function(result) {
+          console.log('=== Update Response受信 ===', result);
+          
+          try {
+            if (result && result.success) {
+              console.log('更新成功');
+              // 更新成功時に再読み込み
+              setTimeout(() => {
+                loadReservations();
+              }, 500);
+            } else {
+              console.error('更新失敗:', result);
+              showError(result ? result.error : '更新に失敗しました');
+            }
+          } catch (error) {
+            console.error('Update処理エラー:', error);
+            showError('更新処理中にエラーが発生しました: ' + error.message);
+          } finally {
+            // クリーンアップ
+            cleanupJSONP(callbackName);
+            
+            // ボタンを元に戻す
+            if (originalButton) {
+              originalButton.disabled = false;
+              if (memo !== null) {
+                originalButton.textContent = '💾 保存';
+              }
+            }
+          }
+        };
+        
+        // JSONP URLを作成（GETパラメータで更新データを送信）
+        const params = new URLSearchParams({
+          action: 'updateReservation',
+          shop: SHOP_SECRET,
+          rowId: parseInt(rowId),
+          callback: callbackName,
+          _t: Date.now()
         });
-
-        const result = await response.json();
-
-        if (result.success) {
-          // 更新成功時に再読み込み
-          setTimeout(() => {
-            loadReservations();
-          }, 500);
-        } else {
-          showError(result.error || '更新に失敗しました');
+        
+        // checkedとmemoは値がある場合のみ追加
+        if (checked !== null && checked !== undefined) {
+          params.append('checked', checked ? '1' : '0');
         }
+        if (memo !== null && memo !== undefined) {
+          params.append('memo', memo);
+        }
+        
+        const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
+        console.log('Update JSONP URL:', jsonpUrl);
+        
+        // スクリプトタグを作成
+        const script = document.createElement('script');
+        script.src = jsonpUrl;
+        script.setAttribute('data-jsonp', 'true');
+        script.setAttribute('data-callback', callbackName);
+        
+        // エラーハンドリング
+        script.onerror = function(error) {
+          console.error('Update JSONP読み込みエラー:', error);
+          showError('ネットワークエラーが発生しました');
+          cleanupJSONP(callbackName);
+          
+          // ボタンを元に戻す
+          if (originalButton) {
+            originalButton.disabled = false;
+            if (memo !== null) {
+              originalButton.textContent = '💾 保存';
+            }
+          }
+        };
+        
+        script.onload = function() {
+          console.log('Update JSONPスクリプト読み込み完了');
+        };
+        
+        // スクリプトタグを追加してリクエスト実行
+        document.head.appendChild(script);
+        
+        // タイムアウト設定（10秒）
+        setTimeout(() => {
+          if (window[callbackName]) {
+            console.warn('Update JSONP タイムアウト');
+            showError('更新リクエストがタイムアウトしました');
+            cleanupJSONP(callbackName);
+            
+            // ボタンを元に戻す
+            if (originalButton) {
+              originalButton.disabled = false;
+              if (memo !== null) {
+                originalButton.textContent = '💾 保存';
+              }
+            }
+          }
+        }, 10000);
+        
       } catch (error) {
-        console.error('更新エラー:', error);
-        showError('ネットワークエラーが発生しました');
-      } finally {
+        console.error('Update JSONP初期化エラー:', error);
+        showError('更新処理の初期化に失敗しました: ' + error.message);
+        
         // ボタンを元に戻す
         if (originalButton) {
           originalButton.disabled = false;
