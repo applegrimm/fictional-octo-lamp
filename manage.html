@@ -577,39 +577,66 @@
       document.getElementById('main-content').style.display = 'none';
     }
 
-    // 予約一覧を読み込み
+    // 予約一覧を読み込み（JSONP方式・CORS回避）
     async function loadReservations() {
       showLoading(true);
       hideError();
 
       try {
-        const response = await fetch(`${GAS_API_URL}?action=getReservations&shop=${SHOP_SECRET}`);
-        const data = await response.json();
-
-        if (data.success) {
-          allReservations = data.data;
-          
-          // 店舗名を設定
-          if (data.storeName) {
-            document.getElementById('store-name').textContent = data.storeName + ' - 予約管理画面';
+        // JSONP方式でCORSを回避
+        const callbackName = 'jsonpCallback' + Date.now();
+        const script = document.createElement('script');
+        
+        // JSONP用のコールバック関数を定義
+        window[callbackName] = function(data) {
+          try {
+            if (data.success) {
+              allReservations = data.data;
+              
+              // 店舗名を設定
+              if (data.storeName) {
+                document.getElementById('store-name').textContent = data.storeName + ' - 予約管理画面';
+              }
+              
+              // 統計情報を更新
+              updateStats(allReservations);
+              
+              // 予約一覧を表示
+              displayReservations(allReservations);
+            } else {
+              if (data.error && data.error.includes('アクセス権限')) {
+                showAuthError();
+              } else {
+                showError(data.error || '予約データの読み込みに失敗しました');
+              }
+            }
+          } catch (error) {
+            console.error('データ処理エラー:', error);
+            showError('データの処理中にエラーが発生しました');
+          } finally {
+            // スクリプトタグとコールバック関数をクリーンアップ
+            document.head.removeChild(script);
+            delete window[callbackName];
+            showLoading(false);
           }
-          
-          // 統計情報を更新
-          updateStats(allReservations);
-          
-          // 予約一覧を表示
-          displayReservations(allReservations);
-        } else {
-          if (data.error && data.error.includes('アクセス権限')) {
-            showAuthError();
-          } else {
-            showError(data.error || '予約データの読み込みに失敗しました');
-          }
-        }
+        };
+        
+        // JSONPリクエストURL
+        const jsonpUrl = `${GAS_API_URL}?action=getReservations&shop=${SHOP_SECRET}&callback=${callbackName}`;
+        script.src = jsonpUrl;
+        script.onerror = function() {
+          showError('ネットワークエラーが発生しました。しばらく待ってから再試行してください。');
+          document.head.removeChild(script);
+          delete window[callbackName];
+          showLoading(false);
+        };
+        
+        // スクリプトタグを追加してリクエスト実行
+        document.head.appendChild(script);
+        
       } catch (error) {
         console.error('読み込みエラー:', error);
-        showError('ネットワークエラーが発生しました。しばらく待ってから再試行してください。');
-      } finally {
+        showError('予約データの読み込み中にエラーが発生しました');
         showLoading(false);
       }
     }
