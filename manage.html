@@ -1,0 +1,869 @@
+<!--
+  @file manage.html
+  @brief 店舗管理画面 - テイクアウト予約管理システム
+  @details シークレットURLによる店舗認証、予約一覧表示、受渡済みチェック、メモ機能
+  @version 1.0
+-->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>店舗管理画面 - テイクアウト予約管理</title>
+  <style>
+    * { 
+      box-sizing: border-box; 
+    }
+    
+    body {
+      font-family: 'Segoe UI', 'Meiryo', sans-serif;
+      margin: 0;
+      padding: 16px;
+      background-color: #f5f5f5;
+      line-height: 1.5;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #2c3e50, #34495e);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      text-align: center;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .header h1 {
+      margin: 0 0 8px 0;
+      font-size: 1.6em;
+      font-weight: 600;
+    }
+    
+    .header .subtitle {
+      font-size: 0.9em;
+      opacity: 0.9;
+    }
+    
+    .auth-error {
+      background: #e74c3c;
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      margin: 40px auto;
+      max-width: 500px;
+    }
+    
+    .auth-error h2 {
+      margin: 0 0 12px 0;
+    }
+    
+    .controls {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    
+    .btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      padding: 12px 20px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 1em;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .btn:hover {
+      background: #2980b9;
+      transform: translateY(-1px);
+    }
+    
+    .btn.refresh {
+      background: #27ae60;
+    }
+    
+    .btn.refresh:hover {
+      background: #229954;
+    }
+    
+    .btn.active {
+      background: #e67e22;
+    }
+    
+    .btn.active:hover {
+      background: #d35400;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+      background: white;
+      border-radius: 8px;
+      margin: 20px 0;
+    }
+    
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    
+    .error {
+      background: #e74c3c;
+      color: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .no-data {
+      text-align: center;
+      padding: 60px 20px;
+      color: #666;
+      background: white;
+      border-radius: 12px;
+      margin: 20px 0;
+    }
+    
+    .no-data h3 {
+      margin: 0 0 12px 0;
+      color: #555;
+    }
+    
+    .reservation-list {
+      display: grid;
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    
+    .reservation-card {
+      background: white;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+      position: relative;
+      transition: all 0.2s ease;
+      border: 1px solid #e1e8ed;
+    }
+    
+    .reservation-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.15);
+    }
+    
+    .reservation-card.completed {
+      background: linear-gradient(135deg, #e8f5e8, #f0f8f0);
+      border-left: 6px solid #27ae60;
+    }
+    
+    .reservation-card.pending {
+      border-left: 6px solid #f39c12;
+    }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .pickup-info {
+      font-weight: 600;
+      font-size: 1.2em;
+      color: #2c3e50;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .status {
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 0.85em;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .status.pending {
+      background: #fff3cd;
+      color: #856404;
+      border: 1px solid #ffeaa7;
+    }
+    
+    .status.completed {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+    }
+    
+    .customer-info {
+      margin: 16px 0;
+      padding: 16px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border: 1px solid #e9ecef;
+    }
+    
+    .customer-info .row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 8px;
+      gap: 8px;
+    }
+    
+    .customer-info .row:last-child {
+      margin-bottom: 0;
+    }
+    
+    .customer-info .icon {
+      width: 20px;
+      text-align: center;
+    }
+    
+    .phone-link {
+      color: #3498db;
+      text-decoration: none;
+      font-weight: 600;
+      padding: 4px 8px;
+      border-radius: 4px;
+      transition: all 0.2s ease;
+    }
+    
+    .phone-link:hover {
+      background: #3498db;
+      color: white;
+    }
+    
+    .products {
+      background: #f1f3f4;
+      padding: 16px;
+      border-radius: 8px;
+      margin: 16px 0;
+      border: 1px solid #dee2e6;
+    }
+    
+    .products .title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #495057;
+    }
+    
+    .product-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 0;
+      border-bottom: 1px solid #e9ecef;
+    }
+    
+    .product-item:last-child {
+      border-bottom: none;
+    }
+    
+    .product-name {
+      font-weight: 500;
+    }
+    
+    .product-price {
+      color: #666;
+      font-weight: 600;
+    }
+    
+    .total {
+      font-weight: 700;
+      font-size: 1.3em;
+      color: #e74c3c;
+      text-align: right;
+      margin: 16px 0;
+      padding: 12px;
+      background: #fff5f5;
+      border-radius: 8px;
+      border: 1px solid #f8d7da;
+    }
+    
+    .note {
+      margin: 16px 0;
+      padding: 12px;
+      background: #e9ecef;
+      border-radius: 8px;
+      color: #495057;
+      border-left: 4px solid #6c757d;
+    }
+    
+    .note .title {
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    
+    .controls-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: 20px;
+      padding-top: 16px;
+      border-top: 1px solid #e9ecef;
+      flex-wrap: wrap;
+    }
+    
+    .checkbox {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 500;
+    }
+    
+    .checkbox input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+    
+    .memo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 250px;
+    }
+    
+    .memo-input {
+      flex: 1;
+      padding: 8px 12px;
+      border: 1px solid #ced4da;
+      border-radius: 6px;
+      font-size: 0.9em;
+      transition: border-color 0.2s ease;
+    }
+    
+    .memo-input:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+    }
+    
+    .save-btn {
+      background: #f39c12;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9em;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .save-btn:hover {
+      background: #e67e22;
+      transform: translateY(-1px);
+    }
+    
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 16px 24px;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      min-width: 120px;
+    }
+    
+    .stat-number {
+      font-size: 1.8em;
+      font-weight: 700;
+      color: #2c3e50;
+    }
+    
+    .stat-label {
+      font-size: 0.9em;
+      color: #666;
+      margin-top: 4px;
+    }
+    
+    /* レスポンシブデザイン */
+    @media (max-width: 768px) {
+      body { 
+        padding: 12px; 
+      }
+      
+      .header { 
+        padding: 16px; 
+      }
+      
+      .header h1 { 
+        font-size: 1.3em; 
+      }
+      
+      .reservation-card { 
+        padding: 16px; 
+      }
+      
+      .controls-row { 
+        flex-direction: column; 
+        align-items: stretch; 
+        gap: 12px;
+      }
+      
+      .memo-area { 
+        min-width: auto; 
+      }
+      
+      .card-header { 
+        flex-direction: column; 
+        align-items: flex-start;
+      }
+      
+      .customer-info .row {
+        flex-wrap: wrap;
+      }
+      
+      .stats {
+        gap: 12px;
+      }
+      
+      .stat-card {
+        min-width: 100px;
+        padding: 12px 16px;
+      }
+    }
+    
+    @media (max-width: 480px) {
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .btn {
+        justify-content: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- 認証エラー表示エリア -->
+  <div id="auth-error" class="auth-error" style="display: none;">
+    <h2>🔒 アクセス権限エラー</h2>
+    <p>このページにアクセスする権限がありません。</p>
+    <p>正しい管理画面URLからアクセスしてください。</p>
+  </div>
+
+  <!-- メイン画面 -->
+  <div id="main-content" style="display: none;">
+    <div class="header">
+      <h1 id="store-name">店舗管理画面</h1>
+      <div class="subtitle">本日以降の予約一覧</div>
+    </div>
+    
+    <!-- 統計情報 -->
+    <div class="stats" id="stats">
+      <div class="stat-card">
+        <div class="stat-number" id="total-count">0</div>
+        <div class="stat-label">総予約数</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="pending-count">0</div>
+        <div class="stat-label">未完了</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="completed-count">0</div>
+        <div class="stat-label">完了済み</div>
+      </div>
+    </div>
+    
+    <!-- コントロールボタン -->
+    <div class="controls">
+      <button class="btn refresh" onclick="loadReservations()">
+        🔄 更新
+      </button>
+      <button class="btn" id="filter-all" onclick="filterReservations('all')">
+        📋 全て表示
+      </button>
+      <button class="btn" id="filter-pending" onclick="filterReservations('pending')">
+        ⏳ 未完了のみ
+      </button>
+      <button class="btn" id="filter-completed" onclick="filterReservations('completed')">
+        ✅ 完了済みのみ
+      </button>
+    </div>
+    
+    <!-- エラーメッセージ -->
+    <div id="error-message" class="error" style="display: none;">
+      <span>⚠️</span>
+      <span id="error-text"></span>
+    </div>
+    
+    <!-- ローディング -->
+    <div id="loading" class="loading">
+      <div class="loading-spinner"></div>
+      <div>予約データを読み込み中...</div>
+    </div>
+    
+    <!-- 予約一覧 -->
+    <div id="reservation-list" class="reservation-list" style="display: none;"></div>
+    
+    <!-- データなし -->
+    <div id="no-data" class="no-data" style="display: none;">
+      <h3>📋 予約データがありません</h3>
+      <p>本日以降の予約はまだありません。</p>
+    </div>
+  </div>
+
+  <script>
+    // GASのWebアプリURL（実際のURLに変更してください）
+    const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwgeG189yH0YGt6gpqpYHoclCnZe4cbo8jARRaHCqjgxpiD_XW47taPqNFlQYDhfaYaCg/exec';
+    
+    let SHOP_SECRET = '';
+    let allReservations = [];
+    let currentFilter = 'all';
+
+    // ページ読み込み時の初期化
+    window.addEventListener('DOMContentLoaded', function() {
+      // URLパラメータからshopを取得
+      const urlParams = new URLSearchParams(window.location.search);
+      SHOP_SECRET = urlParams.get('shop');
+      
+      if (!SHOP_SECRET) {
+        showAuthError();
+        return;
+      }
+      
+      // メイン画面を表示
+      document.getElementById('main-content').style.display = 'block';
+      
+      // 予約一覧を読み込み
+      loadReservations();
+    });
+
+    // 認証エラー表示
+    function showAuthError() {
+      document.getElementById('auth-error').style.display = 'block';
+      document.getElementById('main-content').style.display = 'none';
+    }
+
+    // 予約一覧を読み込み
+    async function loadReservations() {
+      showLoading(true);
+      hideError();
+
+      try {
+        const response = await fetch(`${GAS_API_URL}?action=getReservations&shop=${SHOP_SECRET}`);
+        const data = await response.json();
+
+        if (data.success) {
+          allReservations = data.data;
+          
+          // 店舗名を設定
+          if (data.storeName) {
+            document.getElementById('store-name').textContent = data.storeName + ' - 予約管理画面';
+          }
+          
+          // 統計情報を更新
+          updateStats(allReservations);
+          
+          // 予約一覧を表示
+          displayReservations(allReservations);
+        } else {
+          if (data.error && data.error.includes('アクセス権限')) {
+            showAuthError();
+          } else {
+            showError(data.error || '予約データの読み込みに失敗しました');
+          }
+        }
+      } catch (error) {
+        console.error('読み込みエラー:', error);
+        showError('ネットワークエラーが発生しました。しばらく待ってから再試行してください。');
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // 統計情報を更新
+    function updateStats(reservations) {
+      const grouped = groupByOrderId(reservations);
+      const totalCount = grouped.length;
+      const completedCount = grouped.filter(group => 
+        group.items.every(item => item.isCompleted)
+      ).length;
+      const pendingCount = totalCount - completedCount;
+
+      document.getElementById('total-count').textContent = totalCount;
+      document.getElementById('pending-count').textContent = pendingCount;
+      document.getElementById('completed-count').textContent = completedCount;
+    }
+
+    // 予約一覧を表示
+    function displayReservations(reservations) {
+      const listContainer = document.getElementById('reservation-list');
+      const noDataContainer = document.getElementById('no-data');
+
+      if (reservations.length === 0) {
+        listContainer.style.display = 'none';
+        noDataContainer.style.display = 'block';
+        return;
+      }
+
+      listContainer.style.display = 'grid';
+      noDataContainer.style.display = 'none';
+
+      // 注文IDごとにグループ化
+      const groupedReservations = groupByOrderId(reservations);
+
+      listContainer.innerHTML = groupedReservations.map(group => {
+        const isCompleted = group.items.every(item => item.isCompleted);
+        const totalAmount = group.items[0].total;
+        const customer = group.items[0];
+
+        return `
+          <div class="reservation-card ${isCompleted ? 'completed' : 'pending'}" data-filter="${isCompleted ? 'completed' : 'pending'}">
+            <div class="card-header">
+              <div class="pickup-info">
+                📅 ${customer.pickupDate} ${customer.pickupTime}
+              </div>
+              <div class="status ${isCompleted ? 'completed' : 'pending'}">
+                ${isCompleted ? '完了' : '未完了'}
+              </div>
+            </div>
+            
+            <div class="customer-info">
+              <div class="row">
+                <span class="icon">👤</span>
+                <strong>${escapeHtml(customer.customerName)}</strong>
+              </div>
+              <div class="row">
+                <span class="icon">📞</span>
+                <a href="tel:${customer.phone}" class="phone-link">${customer.phone}</a>
+              </div>
+              <div class="row">
+                <span class="icon">📧</span>
+                <span>${escapeHtml(customer.email)}</span>
+              </div>
+              <div class="row">
+                <span class="icon">🆔</span>
+                <span>${escapeHtml(customer.orderId)}</span>
+              </div>
+            </div>
+            
+            <div class="products">
+              <div class="title">📦 注文内容</div>
+              ${group.items.map(item => `
+                <div class="product-item">
+                  <span class="product-name">${escapeHtml(item.productName)} × ${item.quantity}</span>
+                  <span class="product-price">${item.subtotal}円</span>
+                </div>
+              `).join('')}
+            </div>
+            
+            <div class="total">💰 合計金額: ${totalAmount}円</div>
+            
+            ${customer.note ? `
+              <div class="note">
+                <div class="title">📝 お客様からの備考</div>
+                <div>${escapeHtml(customer.note)}</div>
+              </div>
+            ` : ''}
+            
+            <div class="controls-row">
+              <div class="checkbox">
+                <input type="checkbox" id="check-${group.orderId}" ${isCompleted ? 'checked' : ''} 
+                       onchange="updateReservation('${group.items[0].rowId}', this.checked, null)">
+                <label for="check-${group.orderId}">受渡完了</label>
+              </div>
+              
+              <div class="memo-area">
+                <input type="text" class="memo-input" id="memo-${group.orderId}" 
+                       value="${escapeHtml(customer.memo || '')}" placeholder="スタッフメモを入力..." maxlength="200">
+                <button class="save-btn" onclick="updateReservation('${group.items[0].rowId}', null, document.getElementById('memo-${group.orderId}').value)">
+                  💾 保存
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 注文IDでグループ化
+    function groupByOrderId(reservations) {
+      const groups = {};
+      
+      reservations.forEach(reservation => {
+        const orderId = reservation.orderId;
+        if (!groups[orderId]) {
+          groups[orderId] = {
+            orderId: orderId,
+            items: []
+          };
+        }
+        groups[orderId].items.push(reservation);
+      });
+      
+      return Object.values(groups).sort((a, b) => {
+        const dateA = new Date(a.items[0].pickupDate + ' ' + a.items[0].pickupTime);
+        const dateB = new Date(b.items[0].pickupDate + ' ' + b.items[0].pickupTime);
+        return dateA - dateB;
+      });
+    }
+
+    // 予約データを更新
+    async function updateReservation(rowId, checked, memo) {
+      try {
+        const updateData = {
+          action: 'updateReservation',
+          shop: SHOP_SECRET,
+          rowId: parseInt(rowId),
+          checked: checked,
+          memo: memo
+        };
+
+        // ローディング表示（簡易版）
+        const originalButton = event ? event.target : null;
+        if (originalButton) {
+          originalButton.disabled = true;
+          originalButton.textContent = '更新中...';
+        }
+
+        const response = await fetch(GAS_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(updateData)
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+          // 更新成功時に再読み込み
+          setTimeout(() => {
+            loadReservations();
+          }, 500);
+        } else {
+          showError(result.error || '更新に失敗しました');
+        }
+      } catch (error) {
+        console.error('更新エラー:', error);
+        showError('ネットワークエラーが発生しました');
+      } finally {
+        // ボタンを元に戻す
+        if (originalButton) {
+          originalButton.disabled = false;
+          if (memo !== null) {
+            originalButton.textContent = '💾 保存';
+          }
+        }
+      }
+    }
+
+    // フィルタリング
+    function filterReservations(filter) {
+      currentFilter = filter;
+      
+      // ボタンのアクティブ状態を更新
+      document.querySelectorAll('.controls .btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      document.getElementById(`filter-${filter}`).classList.add('active');
+      
+      // カードの表示/非表示を切り替え
+      const cards = document.querySelectorAll('.reservation-card');
+      let visibleCount = 0;
+      
+      cards.forEach(card => {
+        const cardFilter = card.getAttribute('data-filter');
+        if (filter === 'all' || cardFilter === filter) {
+          card.style.display = 'block';
+          visibleCount++;
+        } else {
+          card.style.display = 'none';
+        }
+      });
+      
+      // 表示する予約がない場合
+      const listContainer = document.getElementById('reservation-list');
+      const noDataContainer = document.getElementById('no-data');
+      
+      if (visibleCount === 0 && allReservations.length > 0) {
+        listContainer.style.display = 'none';
+        noDataContainer.style.display = 'block';
+        noDataContainer.innerHTML = `
+          <h3>📋 表示する予約がありません</h3>
+          <p>「${filter === 'pending' ? '未完了' : '完了済み'}」の予約はありません。</p>
+        `;
+      } else if (visibleCount > 0) {
+        listContainer.style.display = 'grid';
+        noDataContainer.style.display = 'none';
+      }
+    }
+
+    // ローディング表示制御
+    function showLoading(show) {
+      document.getElementById('loading').style.display = show ? 'block' : 'none';
+    }
+
+    // エラー表示制御
+    function showError(message) {
+      const errorDiv = document.getElementById('error-message');
+      const errorText = document.getElementById('error-text');
+      errorText.textContent = message;
+      errorDiv.style.display = 'flex';
+      
+      // 5秒後に自動で非表示
+      setTimeout(() => {
+        hideError();
+      }, 5000);
+    }
+
+    function hideError() {
+      document.getElementById('error-message').style.display = 'none';
+    }
+
+    // HTMLエスケープ関数
+    function escapeHtml(text) {
+      if (!text) return '';
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // 初期フィルターを設定
+    setTimeout(() => {
+      document.getElementById('filter-all').classList.add('active');
+    }, 100);
+  </script>
+</body>
+</html> 
