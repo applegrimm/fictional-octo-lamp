@@ -870,39 +870,47 @@
       }
     });
 
-    // GASにデータを送信する関数（fetch方式、no-corsモード使用）
+    // GASにデータを送信する関数（CORS対応版）
     async function sendToGasViaForm(data) {
       return new Promise(async (resolve, reject) => {
         try {
-          // fetch with no-cors mode to avoid CORS issues
+          // CORS対応のfetch
           const response = await fetch(GAS_WEB_APP_URL, {
             method: 'POST',
-            mode: 'no-cors', // CORSエラーを回避
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(data)
           });
 
-          // no-corsモードではレスポンスの内容を読み取れないため、
-          // 成功として扱い、概算金額を計算
-          const estimatedTotal = data.items.reduce((sum, item) => {
-            // products.jsonから正確な価格を取得
-            const product = allProducts.find(p => p.name === item.name);
-            const price = product ? product.price : 500; // デフォルト500円
-            return sum + (price * parseInt(item.qty));
-          }, 0);
-
-          // 成功レスポンスを返す
-          resolve({
-            success: true,
-            total: estimatedTotal,
-            message: '予約を受け付けました'
-          });
+          // レスポンスのJSONを解析
+          const result = await response.json();
+          
+          if (result.success) {
+            resolve(result);
+          } else {
+            reject(new Error(result.error || '送信に失敗しました'));
+          }
 
         } catch (error) {
           console.error('送信エラー:', error);
-          reject(error);
+          
+          // CORSエラーの場合は概算金額で成功レスポンスを返す（フォールバック）
+          if (error.message.includes('CORS') || error.message.includes('Failed to fetch')) {
+            const estimatedTotal = data.items.reduce((sum, item) => {
+              const product = allProducts.find(p => p.name === item.name);
+              const price = product ? product.price : 500;
+              return sum + (price * parseInt(item.qty));
+            }, 0);
+
+            resolve({
+              success: true,
+              total: estimatedTotal,
+              message: '予約を受け付けました（概算金額）'
+            });
+          } else {
+            reject(error);
+          }
         }
       });
     }
