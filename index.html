@@ -1013,8 +1013,49 @@
           };
           
           // データをBase64エンコードしてURLパラメータで送信
-          const encodedData = btoa(encodeURIComponent(JSON.stringify(data)));
+          const jsonString = JSON.stringify(data);
+          console.log('=== エンコード前データ詳細 ===');
+          console.log('JSON文字列長:', jsonString.length);
+          console.log('JSON文字列（最初の200文字）:', jsonString.substring(0, 200));
+          console.log('JSON文字列（最後の100文字）:', jsonString.substring(jsonString.length - 100));
+          console.log('================================');
+          
+          const encodedData = btoa(encodeURIComponent(jsonString));
           console.log('エンコード済みデータ長:', encodedData.length);
+          console.log('エンコード済みデータ（最初の100文字）:', encodedData.substring(0, 100));
+          
+          // デコードテスト（検証用）
+          try {
+            const testDecoded = decodeURIComponent(atob(encodedData));
+            console.log('=== ローカルデコードテスト ===');
+            console.log('デコード成功');
+            console.log('デコード結果長:', testDecoded.length);
+            console.log('デコード結果（最初の200文字）:', testDecoded.substring(0, 200));
+            console.log('元のJSONと一致:', testDecoded === jsonString);
+            console.log('===========================');
+          } catch (localDecodeError) {
+            console.error('ローカルデコードテストエラー:', localDecodeError);
+          }
+          
+          // 代替エンコード方法も試行（Base64が失敗する場合の備え）
+          let alternativeData = null;
+          try {
+            // URL SafeなBase64エンコード
+            const urlSafeBase64 = btoa(encodeURIComponent(jsonString))
+              .replace(/\+/g, '-')
+              .replace(/\//g, '_')
+              .replace(/=/g, '');
+            console.log('URL Safe Base64エンコード:', urlSafeBase64.substring(0, 100));
+            
+            // 直接URLエンコード（短い場合のみ）
+            if (jsonString.length < 1000) {
+              const directUrlEncoded = encodeURIComponent(jsonString);
+              console.log('直接URLエンコード長:', directUrlEncoded.length);
+              alternativeData = { method: 'direct', data: directUrlEncoded };
+            }
+          } catch (altError) {
+            console.warn('代替エンコード失敗:', altError);
+          }
           
           // JSONPリクエストURL作成
           const jsonpUrl = `${GAS_WEB_APP_URL}?action=submitReservation&data=${encodedData}&callback=${callbackName}&_t=${Date.now()}`;
