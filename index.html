@@ -621,12 +621,43 @@
           errorDiv.innerHTML = `
             <strong>⚠️ 接続警告:</strong> サーバーとの接続に問題があります。<br>
             エラー: ${testResult.error}<br>
-            予約送信時にエラーが発生する可能性があります。
+            予約送信時にエラーが発生する可能性があります。<br>
+            <small>※管理者の方: GASの新しいデプロイが必要な可能性があります</small>
           `;
           
           document.querySelector('.container').insertBefore(errorDiv, document.getElementById('reserveForm'));
         } else {
-          console.log('GAS接続テスト成功');
+          console.log('GAS接続テスト成功:', testResult.result);
+          
+          // 成功時も情報表示（開発用）
+          if (testResult.result && testResult.result.message) {
+            console.log('✅ ' + testResult.result.message);
+            console.log('📊 サーバーステータス:', testResult.result.status);
+            
+            // デバッグ情報を表示（本番環境では非表示にする）
+            const debugDiv = document.createElement('div');
+            debugDiv.style.cssText = `
+              background: #e8f5e8;
+              border: 1px solid #c3e6c3;
+              border-radius: 4px;
+              padding: 8px 12px;
+              margin: 8px 0;
+              color: #2d5016;
+              font-size: 0.8em;
+              text-align: center;
+              display: none;
+            `;
+            debugDiv.innerHTML = `
+               ✅ サーバー接続正常 - ${testResult.result.status}
+            `;
+            
+            // デバッグモードの場合のみ表示（URLパラメータでdebug=1がある場合）
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('debug') === '1') {
+              debugDiv.style.display = 'block';
+              document.querySelector('.container').insertBefore(debugDiv, document.getElementById('reserveForm'));
+            }
+          }
         }
       }, 2000); // 2秒待ってからテスト実行
       
