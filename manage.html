@@ -201,12 +201,13 @@
     }
     
     .status {
-      padding: 6px 12px;
-      border-radius: 20px;
-      font-size: 0.85em;
-      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 25px;
+      font-size: 1.0em;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 1px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     
     .status.pending {
@@ -352,9 +353,8 @@
     .memo-area {
       display: flex;
       align-items: center;
-      gap: 12px;
       flex: 1;
-      min-width: 250px;
+      min-width: 200px;
     }
     
     .memo-input {
@@ -800,12 +800,13 @@
                 <label for="check-${group.orderId}">受渡完了</label>
               </div>
               
+              <button class="save-btn" onclick="updateReservation('${group.items[0].rowId}', null, document.getElementById('memo-${group.orderId}').value)">
+                📝 メモ保存
+              </button>
+              
               <div class="memo-area">
                 <input type="text" class="memo-input" id="memo-${group.orderId}" 
                        value="${escapeHtml(customer.memo || '')}" placeholder="スタッフメモを入力..." maxlength="200">
-                <button class="save-btn" onclick="updateReservation('${group.items[0].rowId}', null, document.getElementById('memo-${group.orderId}').value)">
-                  💾 保存
-                </button>
               </div>
             </div>
           </div>
@@ -884,7 +885,7 @@
             if (originalButton) {
               originalButton.disabled = false;
               if (memo !== null) {
-                originalButton.textContent = '💾 保存';
+                originalButton.textContent = '📝 メモ保存';
               }
             }
           }
@@ -926,7 +927,7 @@
           if (originalButton) {
             originalButton.disabled = false;
             if (memo !== null) {
-              originalButton.textContent = '💾 保存';
+              originalButton.textContent = '📝 メモ保存';
             }
           }
         };
@@ -949,7 +950,7 @@
             if (originalButton) {
               originalButton.disabled = false;
               if (memo !== null) {
-                originalButton.textContent = '💾 保存';
+                originalButton.textContent = '📝 メモ保存';
               }
             }
           }
@@ -963,7 +964,7 @@
         if (originalButton) {
           originalButton.disabled = false;
           if (memo !== null) {
-            originalButton.textContent = '💾 保存';
+            originalButton.textContent = '📝 メモ保存';
           }
         }
       }
