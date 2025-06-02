@@ -18,13 +18,13 @@ const STRIPE_CONFIG = {
   ALLOW_PROMOTION_CODES: false,
   BILLING_ADDRESS_COLLECTION: 'auto',
   
-  // 🌐 リダイレクトURL（現在のページのドメインを自動取得）
+  // 🌐 リダイレクトURL（GitHub Pages用の正しいURL）
   get SUCCESS_URL() {
-    return window.location.origin + '/success.html?session_id={CHECKOUT_SESSION_ID}&data={RESERVATION_DATA}';
+    return 'https://applegrimm.github.io/fictional-octo-lamp/success.html?session_id={CHECKOUT_SESSION_ID}&data={RESERVATION_DATA}';
   },
   
   get CANCEL_URL() {
-    return window.location.origin + '/cancel.html?error={ERROR_MESSAGE}';
+    return 'https://applegrimm.github.io/fictional-octo-lamp/cancel.html?error={ERROR_MESSAGE}';
   },
   
   // 📱 モバイル対応
