@@ -12,4 +12,21 @@ title: "テイクアウト予約フォーム"
 description: "安全なテイクアウト注文システム"
 
 # HTTPS強制（GitHub Pages設定）
-enforce_ssl: true 
+enforce_ssl: true
+
+# Jekyll設定
+highlighter: rouge
+kramdown:
+  input: GFM
+  hard_wrap: false
+
+# プラグイン（GitHub Pages標準サポート）
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+
+# 除外ファイル
+exclude:
+  - README.md
+  - "*.gs"
+  - "*.txt" 
