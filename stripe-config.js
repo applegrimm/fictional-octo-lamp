@@ -86,12 +86,12 @@ function buildCheckoutData(orderData) {
   }];
   
   // 予約データをBase64エンコード（success.htmlで復元用）
-  const encodedReservationData = btoa(encodeURIComponent(JSON.stringify(orderData)));
+  // 注意：URLが長すぎるとStripeで切り詰められるため、session_idのみで処理
   
-  // success_urlを構築
-  const successUrl = `https://applegrimm.github.io/fictional-octo-lamp/success.html?session_id={CHECKOUT_SESSION_ID}&data=${encodedReservationData}`;
+  // success_urlを簡素化（session_idのみ）
+  const successUrl = `https://applegrimm.github.io/fictional-octo-lamp/success.html?session_id={CHECKOUT_SESSION_ID}`;
   console.log('構築されたsuccess_url:', successUrl);
-  console.log('エンコードされた予約データ長:', encodedReservationData.length);
+  console.log('予約データはmetadataに格納します');
   
   return {
     payment_method_types: ['card'],
@@ -101,14 +101,17 @@ function buildCheckoutData(orderData) {
     cancel_url: STRIPE_CONFIG.CANCEL_URL.replace('{ERROR_MESSAGE}', encodeURIComponent('決済がキャンセルされました')),
     customer_email: orderData.email,
     
-    // 追加のメタデータ
+    // 追加のメタデータ（予約データをすべてここに格納）
     metadata: {
       customer_name: orderData.name,
       customer_phone: orderData.phone,
+      customer_email: orderData.email,
       pickup_store: orderData.store,
       pickup_date: orderData.pickup_date,
       pickup_time: orderData.pickup_time,
+      pickup_note: orderData.note || '',
       order_summary: generateOrderSummary(orderData),
+      order_items: JSON.stringify(orderData.items), // 商品情報もJSONで格納
       total_amount: totalAmount.toString()
     },
     
