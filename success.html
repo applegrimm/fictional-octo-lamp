@@ -12,6 +12,7 @@
   <meta name="mobile-web-app-capable" content="yes">
   <!-- セキュリティ強化メタタグ -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <!-- HTTPS リダイレクト強制 -->
   <script>
@@ -190,7 +191,7 @@
     
     <div id="payment-details" class="payment-info" style="display: none;">
       <h3>決済情報</h3>
-      <p><strong>決済ID:</strong> <span id="session-id">-</span></p>
+      <p><strong>決済ID:</strong> <span id="session-id" style="font-family: monospace; word-break: break-all; font-size: 0.9em;">-</span></p>
       <p><strong>決済金額:</strong> <span id="payment-amount">-</span></p>
       <p><strong>決済日時:</strong> <span id="payment-date">-</span></p>
     </div>
@@ -211,14 +212,16 @@
       </p>
     </div>
     
-    <div id="error-details" class="error-message" style="display: none;">
-      <h3>⚠️ 予約処理エラー</h3>
-      <p>決済は完了しましたが、予約情報の登録でエラーが発生しました。</p>
-      <p id="error-message-detail">-</p>
-      <p style="margin-top: 16px;">
-        <strong>対処方法：</strong><br>
-        決済ID <span id="error-session-id">-</span> を控えて、
-        直接店舗にお電話でご連絡ください。
+    <div id="error-details" class="error-content" style="display: none;">
+      <div class="error-icon">❌</div>
+      <h2>エラーが発生しました</h2>
+      <p id="error-message-detail">予約の処理中にエラーが発生しました。</p>
+      <p>
+        決済ID <span id="error-session-id" style="font-family: monospace; word-break: break-all; font-size: 0.9em;">-</span> を控えて、
+        お手数ですが店舗までお問い合わせください。
+      </p>
+      <p style="color: #666; font-size: 0.9em;">
+        ※決済は完了していますので、重複して決済を行わないでください。
       </p>
     </div>
     
@@ -364,12 +367,65 @@
      * 決済情報を表示
      */
     function displayPaymentInfo(sessionId, paymentData) {
-      document.getElementById('session-id').textContent = sessionId;
+      console.log('=== 決済情報表示デバッグ ===');
+      console.log('sessionId:', sessionId);
+      console.log('paymentData:', paymentData);
+      console.log('paymentData.total_amount:', paymentData.total_amount);
+      console.log('paymentData.metadata:', paymentData.metadata);
       
-      // 合計金額を表示
-      const totalAmount = paymentData.total_amount || paymentData.metadata?.total_amount;
-      if (totalAmount) {
-        document.getElementById('payment-amount').textContent = parseInt(totalAmount).toLocaleString() + '円';
+      // セッションIDを短縮版で表示
+      const shortSessionId = sessionId.length > 20 ? sessionId.substring(sessionId.length - 16) : sessionId;
+      document.getElementById('session-id').textContent = shortSessionId;
+      
+      // 合計金額を表示（複数のソースから取得を試行）
+      let totalAmount = 0;
+      let amountSource = 'unknown';
+      
+      // 1. paymentData.total_amountから取得
+      if (paymentData.total_amount && paymentData.total_amount !== 'unknown') {
+        totalAmount = parseInt(paymentData.total_amount);
+        amountSource = 'paymentData.total_amount';
+        console.log('金額ソース1 (paymentData.total_amount):', totalAmount);
+      }
+      // 2. metadataから取得
+      else if (paymentData.metadata && paymentData.metadata.total_amount) {
+        totalAmount = parseInt(paymentData.metadata.total_amount);
+        amountSource = 'metadata.total_amount';
+        console.log('金額ソース2 (metadata.total_amount):', totalAmount);
+      }
+      // 3. フォールバック：URLパラメータから取得
+      else {
+        const urlParams = new URLSearchParams(window.location.search);
+        const dataParam = urlParams.get('data');
+        console.log('URLパラメータdata:', dataParam);
+        
+        if (dataParam) {
+          try {
+            const reservationData = JSON.parse(decodeURIComponent(atob(dataParam)));
+            console.log('URLから復元した予約データ:', reservationData);
+            
+            if (reservationData.items) {
+              totalAmount = reservationData.items.reduce((sum, item) => {
+                const itemTotal = parseInt(item.price) * parseInt(item.qty);
+                console.log(`商品計算: ${item.name} - ${item.price}円 × ${item.qty}個 = ${itemTotal}円`);
+                return sum + itemTotal;
+              }, 0);
+              amountSource = 'URL_parameter_calculation';
+              console.log('金額ソース3 (URL計算):', totalAmount);
+            }
+          } catch (error) {
+            console.warn('URLパラメータからの金額取得失敗:', error);
+          }
+        }
+      }
+      
+      console.log('最終決定金額:', totalAmount, 'ソース:', amountSource);
+      console.log('=== デバッグ情報終了 ===');
+      
+      if (totalAmount > 0) {
+        document.getElementById('payment-amount').textContent = totalAmount.toLocaleString() + '円';
+      } else {
+        document.getElementById('payment-amount').textContent = '金額情報取得中...';
       }
       
       document.getElementById('payment-date').textContent = new Date().toLocaleString('ja-JP');
@@ -487,7 +543,9 @@
       document.getElementById('error-message-detail').textContent = message;
       
       if (sessionId) {
-        document.getElementById('error-session-id').textContent = sessionId;
+        // セッションIDを短縮版で表示
+        const shortSessionId = sessionId.length > 20 ? sessionId.substring(sessionId.length - 16) : sessionId;
+        document.getElementById('error-session-id').textContent = shortSessionId;
       }
       
       document.getElementById('error-details').style.display = 'block';
