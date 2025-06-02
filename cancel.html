@@ -1,0 +1,279 @@
+<!--
+  @file cancel.html
+  @brief Stripe決済キャンセルページ
+  @details 決済がキャンセルされた場合の案内ページ
+-->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <!-- セキュリティ強化メタタグ -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <!-- HTTPS リダイレクト強制 -->
+  <script>
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      location.replace('https:' + window.location.href.substring(window.location.protocol.length));
+    }
+  </script>
+  <title>決済キャンセル - テイクアウト予約フォーム</title>
+  
+  <style>
+  /* =============================
+    レスポンシブデザイン用CSS
+  ============================= */
+  * {
+    box-sizing: border-box !important;
+  }
+  html {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: 'Segoe UI', 'Meiryo', sans-serif;
+    background: #f7f7f7;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden !important;
+  }
+  
+  .container {
+    max-width: 480px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 32px 24px;
+    text-align: center;
+  }
+  
+  .cancel-icon {
+    font-size: 4em;
+    color: #e74c3c;
+    margin-bottom: 16px;
+  }
+  
+  h1 {
+    color: #e74c3c;
+    font-size: 1.8em;
+    margin-bottom: 24px;
+  }
+  
+  .cancel-info {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 16px;
+    margin: 24px 0;
+    text-align: left;
+    color: #856404;
+  }
+  
+  .cancel-info h3 {
+    margin-top: 0;
+    color: #856404;
+    font-size: 1.1em;
+  }
+  
+  .cancel-info p {
+    margin: 8px 0;
+    font-size: 0.9em;
+    line-height: 1.4;
+  }
+  
+  .action-buttons {
+    margin-top: 32px;
+  }
+  
+  .btn {
+    display: inline-block;
+    padding: 12px 24px;
+    margin: 8px;
+    border: none;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  
+  .btn-primary {
+    background: #3498db;
+    color: #fff;
+  }
+  
+  .btn-primary:hover {
+    background: #2980b9;
+  }
+  
+  .btn-secondary {
+    background: #95a5a6;
+    color: #fff;
+  }
+  
+  .btn-secondary:hover {
+    background: #7f8c8d;
+  }
+  
+  .help-info {
+    background: #f8f9fa;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
+    padding: 16px;
+    margin: 24px 0;
+    text-align: left;
+    font-size: 0.9em;
+  }
+  
+  .help-info h4 {
+    margin-top: 0;
+    color: #495057;
+  }
+  
+  .help-info ul {
+    margin: 8px 0;
+    padding-left: 20px;
+  }
+  
+  .help-info li {
+    margin: 4px 0;
+    line-height: 1.3;
+  }
+  
+  @media (max-width: 600px) {
+    .container {
+      margin: 20px auto;
+      padding: 24px 16px;
+      border-radius: 0;
+      min-height: calc(100vh - 40px);
+    }
+    
+    h1 {
+      font-size: 1.5em;
+    }
+    
+    .btn {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+    }
+  }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="cancel-icon">❌</div>
+    <h1>決済がキャンセルされました</h1>
+    
+    <div class="cancel-info">
+      <h3>📄 決済処理について</h3>
+      <p>
+        決済がキャンセルされたため、予約は完了していません。<br>
+        お客様のクレジットカードには課金されていませんので、ご安心ください。
+      </p>
+      
+      <p>
+        <strong>再度ご予約をご希望の場合は、</strong><br>
+        下記のボタンから予約フォームに戻り、もう一度お手続きをお願いいたします。
+      </p>
+    </div>
+    
+    <div class="help-info">
+      <h4>🔧 決済でお困りの場合</h4>
+      <p>以下の点をご確認ください：</p>
+      <ul>
+        <li>クレジットカードの有効期限・残高をご確認ください</li>
+        <li>カード情報（番号・セキュリティコード）が正しく入力されているかご確認ください</li>
+        <li>ご利用のカードがオンライン決済に対応しているかご確認ください</li>
+        <li>ブラウザの設定でJavaScriptが有効になっているかご確認ください</li>
+      </ul>
+      
+      <p style="margin-top: 16px;">
+        <strong>それでも解決しない場合は、</strong><br>
+        通常の予約フォーム（決済なし）をご利用いただくか、
+        直接店舗にお電話でご予約ください。
+      </p>
+    </div>
+    
+    <div class="action-buttons">
+      <a href="index.html" class="btn btn-primary">予約フォームに戻る</a>
+      <button onclick="window.close()" class="btn btn-secondary">画面を閉じる</button>
+    </div>
+    
+    <!-- 自動で元のフォームに戻る機能（オプション） -->
+    <div style="margin-top: 24px; font-size: 0.8em; color: #666;">
+      <p>
+        <span id="countdown">10</span>秒後に自動的に予約フォームに戻ります。
+        <button onclick="clearAutoRedirect()" style="background: none; border: none; color: #3498db; cursor: pointer; text-decoration: underline;">停止</button>
+      </p>
+    </div>
+  </div>
+
+  <script>
+    let countdownTimer;
+    let countdownSeconds = 10;
+    
+    // カウントダウン開始
+    function startCountdown() {
+      countdownTimer = setInterval(() => {
+        countdownSeconds--;
+        document.getElementById('countdown').textContent = countdownSeconds;
+        
+        if (countdownSeconds <= 0) {
+          clearInterval(countdownTimer);
+          window.location.href = 'index.html';
+        }
+      }, 1000);
+    }
+    
+    // カウントダウン停止
+    function clearAutoRedirect() {
+      clearInterval(countdownTimer);
+      document.querySelector('#countdown').parentElement.style.display = 'none';
+    }
+    
+    // ページ読み込み時にカウントダウン開始
+    window.addEventListener('DOMContentLoaded', function() {
+      // URLパラメータから情報を取得（あれば表示）
+      const urlParams = new URLSearchParams(window.location.search);
+      const errorMessage = urlParams.get('error');
+      
+      if (errorMessage) {
+        console.log('決済エラー詳細:', errorMessage);
+        
+        // エラー詳細があれば表示
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'cancel-info';
+        errorDiv.innerHTML = `
+          <h3>❗ エラー詳細</h3>
+          <p><strong>エラー内容:</strong> ${decodeURIComponent(errorMessage)}</p>
+        `;
+        
+        const firstInfo = document.querySelector('.cancel-info');
+        firstInfo.parentNode.insertBefore(errorDiv, firstInfo.nextSibling);
+      }
+      
+      // カウントダウン開始
+      startCountdown();
+    });
+    
+    // ページを離れる前のクリーンアップ
+    window.addEventListener('beforeunload', function() {
+      if (countdownTimer) {
+        clearInterval(countdownTimer);
+      }
+    });
+  </script>
+</body>
+</html> 
