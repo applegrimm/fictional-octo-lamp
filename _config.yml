@@ -1,0 +1,15 @@
+# GitHub Pages 設定
+# HTTPS通信の強制
+plugins:
+  - jekyll-redirect-from
+
+# セキュリティ設定
+strict_front_matter: true
+markdown: kramdown
+
+# サイト情報
+title: "テイクアウト予約フォーム"
+description: "安全なテイクアウト注文システム"
+
+# HTTPS強制（GitHub Pages設定）
+enforce_ssl: true 
