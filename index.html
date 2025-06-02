@@ -10,6 +10,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
   <meta name="format-detection" content="telephone=no">
   <meta name="mobile-web-app-capable" content="yes">
+  <!-- セキュリティ強化メタタグ -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta http-equiv="X-Frame-Options" content="DENY">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <!-- HTTPS リダイレクト強制 -->
+  <script>
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      location.replace('https:' + window.location.href.substring(window.location.protocol.length));
+    }
+  </script>
   <title>テイクアウト予約フォーム</title>
   
   <!-- reCAPTCHA v3スクリプト -->
@@ -518,9 +528,12 @@
           ・法令に基づく対応が必要な場合の利用</p>
           
           <p><strong>4. 個人情報の安全管理措置</strong><br>
-          ・SSL暗号化通信によるデータ送信の保護<br>
-          ・アクセス権限の制限・管理<br>
-          ・定期的なセキュリティ対策の見直し<br>
+          ・HTTPS暗号化通信によるデータ送信の保護（Google Apps Script連携部分）<br>
+          ・reCAPTCHA v3による自動送信・スパム対策<br>
+          ・入力データのサニタイズ処理（HTMLタグ・危険文字列の除去）<br>
+          ・レート制限機能による連続送信の防止<br>
+          ・入力文字数制限によるDoS攻撃対策<br>
+          ・Google Apps Scriptプラットフォームのセキュリティ機能を活用<br>
           ・従業員への個人情報保護に関する教育・指導</p>
           
           <p><strong>5. 第三者への提供</strong><br>
