@@ -66,34 +66,44 @@ function isTestMode() {
  * @return {Object} Stripe Checkout用のデータ
  */
 function buildCheckoutData(orderData) {
+  console.log('=== Checkout データ構築開始 ===');
+  console.log('入力 orderData:', orderData);
+  
   // 合計金額を計算
   const totalAmount = orderData.items.reduce((sum, item) => {
-    return sum + (item.price * item.qty);
+    const itemTotal = item.price * item.qty;
+    console.log(`商品: ${item.name} - ${item.price}円 × ${item.qty}個 = ${itemTotal}円`);
+    return sum + itemTotal;
   }, 0);
   
-  // 商品リストを作成（Stripe用）
-  const lineItems = [{
-    price_data: {
-      currency: STRIPE_CONFIG.CURRENCY,
-      product_data: {
-        name: `テイクアウト予約 - ${orderData.store}`,
-        description: generateOrderSummary(orderData),
-        images: [] // 商品画像があれば追加
+  console.log('計算された合計金額:', totalAmount);
+  
+  // Stripeに送る金額（セント単位）
+  const stripeAmountInCents = Math.round(totalAmount * 100);
+  console.log('Stripe金額（セント）:', stripeAmountInCents);
+  
+  // line_itemsを構築
+  const lineItems = [
+    {
+      price_data: {
+        currency: 'jpy',
+        product_data: {
+          name: generateOrderSummary(orderData),
+        },
+        unit_amount: stripeAmountInCents, // セント単位の金額
       },
-      unit_amount: totalAmount // 日本円なので100倍不要
-    },
-    quantity: 1
-  }];
+      quantity: 1,
+    }
+  ];
   
-  // 予約データをBase64エンコード（success.htmlで復元用）
-  // 注意：URLが長すぎるとStripeで切り詰められるため、session_idのみで処理
+  console.log('構築されたlineItems:', lineItems);
   
-  // success_urlを簡素化（session_idのみ）
-  const successUrl = `https://applegrimm.github.io/fictional-octo-lamp/success.html?session_id={CHECKOUT_SESSION_ID}`;
-  console.log('構築されたsuccess_url:', successUrl);
-  console.log('予約データはmetadataに格納します');
+  // successURLにデータを含める（Stripe URLの制限に注意）
+  const successUrl = STRIPE_CONFIG.SUCCESS_URL.replace('{CHECKOUT_SESSION_ID}', '{CHECKOUT_SESSION_ID}');
   
-  return {
+  console.log('successUrl:', successUrl);
+  
+  const checkoutData = {
     payment_method_types: ['card'],
     line_items: lineItems,
     mode: STRIPE_CONFIG.MODE,
@@ -112,7 +122,7 @@ function buildCheckoutData(orderData) {
       pickup_note: orderData.note || '',
       order_summary: generateOrderSummary(orderData),
       order_items: JSON.stringify(orderData.items), // 商品情報もJSONで格納
-      total_amount: totalAmount.toString()
+      total_amount: totalAmount.toString() // 円単位の文字列
     },
     
     // 請求先住所の収集
@@ -121,6 +131,12 @@ function buildCheckoutData(orderData) {
     // プロモーションコード
     allow_promotion_codes: STRIPE_CONFIG.ALLOW_PROMOTION_CODES
   };
+  
+  console.log('最終checkoutData:', checkoutData);
+  console.log('metadata.total_amount:', checkoutData.metadata.total_amount);
+  console.log('=== Checkout データ構築完了 ===');
+  
+  return checkoutData;
 }
 
 /**
