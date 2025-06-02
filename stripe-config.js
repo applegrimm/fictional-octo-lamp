@@ -2,7 +2,10 @@
  * @file stripe-config.js
  * @brief Stripe決済設定ファイル
  * @details Stripe Checkout機能の設定と制御を行う
+ * @version 2.1.0 - 金額100倍問題修正版 (2024/12/20)
  */
+
+console.log('🔧 stripe-config.js v2.1.0 読み込み開始 (金額100倍問題修正版)');
 
 // Stripe設定
 const STRIPE_CONFIG = {
@@ -83,6 +86,13 @@ function buildCheckoutData(orderData) {
   const stripeAmountForJPY = Math.round(totalAmount);
   console.log('Stripe金額（JPY）:', stripeAmountForJPY);
   
+  // デバッグ：送信前の最終チェック
+  console.log('=== 重要：最終金額チェック ===');
+  console.log('元の合計金額（円）:', totalAmount);
+  console.log('Stripeに送信する金額:', stripeAmountForJPY);
+  console.log('100倍チェック:', stripeAmountForJPY === totalAmount * 100 ? '❌ 100倍になっています！' : '✅ 正常です');
+  console.log('==============================');
+  
   // line_itemsを構築
   const lineItems = [
     {
@@ -98,6 +108,7 @@ function buildCheckoutData(orderData) {
   ];
   
   console.log('構築されたlineItems:', lineItems);
+  console.log('lineItems[0].price_data.unit_amount:', lineItems[0].price_data.unit_amount);
   
   // successURLにデータを含める（Stripe URLの制限に注意）
   const successUrl = STRIPE_CONFIG.SUCCESS_URL.replace('{CHECKOUT_SESSION_ID}', '{CHECKOUT_SESSION_ID}');
