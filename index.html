@@ -25,6 +25,9 @@
   <!-- reCAPTCHA v3スクリプト -->
   <script src="https://www.google.com/recaptcha/api.js?render=6Le2lk4rAAAAAJu2ojJxoexvlUILZn4oNyJvuHzd" async defer></script>
   
+  <!-- Stripe設定ファイル -->
+  <script src="stripe-config.js"></script>
+  
   <style>
   /* =============================
     レスポンシブデザイン用CSS
@@ -398,6 +401,105 @@
     text-align: center;
   }
   
+  /* 合計金額表示 */
+  .total-amount-section {
+    margin-top: 24px;
+    margin-bottom: 20px;
+  }
+  
+  .total-amount-display {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  
+  .total-amount-display h3 {
+    margin: 0 0 12px 0;
+    color: #495057;
+    font-size: 1.1em;
+  }
+  
+  .total-amount {
+    font-size: 2em;
+    font-weight: bold;
+    color: #2ecc71;
+    margin: 8px 0;
+  }
+  
+  .items-summary {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 8px;
+    line-height: 1.3;
+  }
+  
+  /* 予約ボタンエリア */
+  .reservation-buttons {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .normal-reservation-btn {
+    background: #2ecc71;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+    margin: 0;
+  }
+  
+  .normal-reservation-btn:hover {
+    background: #27ae60;
+  }
+  
+  .payment-reservation-btn {
+    background: #9b59b6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+    margin: 0;
+    position: relative;
+  }
+  
+  .payment-reservation-btn:hover {
+    background: #8e44ad;
+  }
+  
+  .payment-reservation-btn:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+  }
+  
+  .payment-reservation-btn::after {
+    content: "💳";
+    margin-left: 8px;
+  }
+  
+  /* テストモード表示 */
+  .test-mode-indicator {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin: 8px 0;
+    color: #856404;
+    font-size: 0.8em;
+    text-align: center;
+  }
+  
   @media (max-width: 600px) {
     .privacy-content {
       font-size: 0.8em;
@@ -590,7 +692,27 @@
         🔒 お客様の情報は暗号化して安全に送信されます
       </div>
       
-      <button type="submit" id="submit-btn">予約する</button>
+      <!-- 合計金額表示 -->
+      <div id="total-amount-section" class="total-amount-section" style="display: none;">
+        <div class="total-amount-display">
+          <h3>💰 合計金額</h3>
+          <div id="total-amount" class="total-amount">0円</div>
+          <div id="items-summary" class="items-summary"></div>
+        </div>
+      </div>
+      
+      <!-- 予約方法選択 -->
+      <div id="reservation-buttons" class="reservation-buttons">
+        <!-- 通常予約ボタン（既存） -->
+        <button type="submit" id="submit-btn" class="normal-reservation-btn">
+          📝 通常予約（店舗支払い）
+        </button>
+        
+        <!-- 事前決済ボタン（新規） -->
+        <button type="button" id="payment-btn" class="payment-reservation-btn" style="display: none;">
+          💳 事前決済で予約
+        </button>
+      </div>
     </form>
     
     <div id="result"></div>
@@ -1863,6 +1985,234 @@
       });
     }
 
+    // ========================================
+    // 合計金額計算とStripe決済機能
+    // ========================================
+    
+    /**
+     * 合計金額を計算して表示
+     */
+    function updateTotalAmount() {
+      const productItems = document.querySelectorAll('.product-item');
+      let totalAmount = 0;
+      let items = [];
+      let allValid = true;
+      
+      productItems.forEach(itemDiv => {
+        const select = itemDiv.querySelector('select');
+        const qtyInput = itemDiv.querySelector('input[type="number"]');
+        
+        if (select.value && qtyInput.value && qtyInput.value > 0) {
+          const product = allProducts.find(p => p.name === select.value);
+          if (product) {
+            const qty = parseInt(qtyInput.value);
+            const subtotal = product.price * qty;
+            totalAmount += subtotal;
+            
+            items.push({
+              name: product.name,
+              price: product.price,
+              qty: qty,
+              subtotal: subtotal
+            });
+          }
+        } else if (select.value || qtyInput.value) {
+          allValid = false;
+        }
+      });
+      
+      // 合計金額表示
+      const totalSection = document.getElementById('total-amount-section');
+      const totalDisplay = document.getElementById('total-amount');
+      const itemsSummary = document.getElementById('items-summary');
+      const paymentBtn = document.getElementById('payment-btn');
+      
+      if (items.length > 0) {
+        totalSection.style.display = 'block';
+        totalDisplay.textContent = totalAmount.toLocaleString() + '円';
+        
+        // 商品リスト表示
+        itemsSummary.innerHTML = items.map(item => 
+          `• ${item.name} × ${item.qty} = ${item.subtotal.toLocaleString()}円`
+        ).join('<br>');
+        
+        // 決済機能が有効で全ての項目が正しく入力されている場合のみ決済ボタンを表示
+        if (typeof isPaymentEnabled === 'function' && isPaymentEnabled() && allValid) {
+          paymentBtn.style.display = 'block';
+          
+          // テストモード表示
+          if (typeof isTestMode === 'function' && isTestMode()) {
+            // テストモード通知を表示
+            let testIndicator = document.getElementById('test-mode-indicator');
+            if (!testIndicator) {
+              testIndicator = document.createElement('div');
+              testIndicator.id = 'test-mode-indicator';
+              testIndicator.className = 'test-mode-indicator';
+              testIndicator.innerHTML = '⚠️ テストモード: 実際の課金は発生しません';
+              totalSection.appendChild(testIndicator);
+            }
+          }
+        } else {
+          paymentBtn.style.display = 'none';
+        }
+      } else {
+        totalSection.style.display = 'none';
+        paymentBtn.style.display = 'none';
+      }
+    }
+    
+    /**
+     * 商品情報を収集して予約データを作成
+     * @return {Object|null} 予約データまたはnull（無効な場合）
+     */
+    function collectReservationData() {
+      // フォームデータを収集
+      const formData = new FormData(document.getElementById('reserveForm'));
+      
+      const data = {
+        name: formData.get('name'),
+        phone: formData.get('phone'),
+        email: formData.get('email'),
+        store: formData.get('store'),
+        pickup_date: formData.get('pickup_date'),
+        pickup_time: formData.get('pickup_time'),
+        note: formData.get('note'),
+        items: []
+      };
+      
+      // 商品データを収集
+      const productItems = document.querySelectorAll('.product-item');
+      productItems.forEach(itemDiv => {
+        const select = itemDiv.querySelector('select');
+        const qtyInput = itemDiv.querySelector('input[type="number"]');
+        
+        if (select.value && qtyInput.value && qtyInput.value > 0) {
+          const product = allProducts.find(p => p.name === select.value);
+          if (product) {
+            data.items.push({
+              name: product.name,
+              price: product.price,
+              qty: parseInt(qtyInput.value)
+            });
+          }
+        }
+      });
+      
+      // バリデーション
+      if (!data.name || !data.phone || !data.email || !data.store || 
+          !data.pickup_date || !data.pickup_time || data.items.length === 0) {
+        return null;
+      }
+      
+      return data;
+    }
+    
+    /**
+     * 事前決済ボタンクリック処理
+     */
+    async function handlePaymentReservation() {
+      try {
+        console.log('事前決済予約開始');
+        
+        // フォームバリデーション
+        const form = document.getElementById('reserveForm');
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+        
+        // プライバシーポリシー同意チェック
+        const privacyConsent = document.getElementById('privacy-consent').checked;
+        if (!privacyConsent) {
+          alert('プライバシーポリシーへの同意が必要です。');
+          return;
+        }
+        
+        // 予約データを収集
+        const reservationData = collectReservationData();
+        if (!reservationData) {
+          alert('入力内容を確認してください。');
+          return;
+        }
+        
+        // ボタンを無効化
+        const paymentBtn = document.getElementById('payment-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        paymentBtn.disabled = true;
+        submitBtn.disabled = true;
+        paymentBtn.textContent = '決済処理中...';
+        
+        // Stripe Checkoutを開始
+        await startStripeCheckout(reservationData);
+        
+      } catch (error) {
+        console.error('事前決済エラー:', error);
+        alert('決済の開始に失敗しました: ' + error.message);
+        
+        // ボタンを再有効化
+        const paymentBtn = document.getElementById('payment-btn');
+        const submitBtn = document.getElementById('submit-btn');
+        paymentBtn.disabled = false;
+        submitBtn.disabled = false;
+        paymentBtn.textContent = '💳 事前決済で予約';
+      }
+    }
+    
+    // ========================================
+    // イベントリスナーの追加
+    // ========================================
+    
+    // DOMContentLoaded時の追加処理
+    document.addEventListener('DOMContentLoaded', function() {
+      // 決済ボタンのクリックイベント
+      document.getElementById('payment-btn').addEventListener('click', handlePaymentReservation);
+      
+      // 商品選択・数量変更時の合計金額更新
+      document.addEventListener('change', function(e) {
+        if (e.target.matches('.product-item select') || e.target.matches('.product-item input[type="number"]')) {
+          updateTotalAmount();
+        }
+      });
+      
+      // 商品追加・削除時の合計金額更新
+      const productListArea = document.getElementById('product-list-area');
+      const observer = new MutationObserver(function() {
+        setTimeout(updateTotalAmount, 100);
+      });
+      observer.observe(productListArea, { childList: true, subtree: true });
+      
+      // 初期表示時の合計金額更新
+      setTimeout(updateTotalAmount, 1000);
+    });
+    
+    // ========================================
+    // 既存の商品項目追加関数を拡張
+    // ========================================
+    
+    // 元のaddProductItem関数を保存
+    const originalAddProductItem = window.addProductItem;
+    
+    // 新しいaddProductItem関数（合計金額更新機能付き）
+    window.addProductItem = function() {
+      originalAddProductItem();
+      
+      // 新しく追加された要素にイベントリスナーを設定
+      const newItems = document.querySelectorAll('.product-item:last-child select, .product-item:last-child input[type="number"]');
+      newItems.forEach(element => {
+        element.addEventListener('change', updateTotalAmount);
+        element.addEventListener('input', updateTotalAmount);
+      });
+      
+      updateTotalAmount();
+    };
+    
+    // 元のremoveProductItem関数を保存・拡張
+    const originalRemoveProductItem = window.removeProductItem;
+    
+    window.removeProductItem = function(button) {
+      originalRemoveProductItem(button);
+      setTimeout(updateTotalAmount, 100);
+    };
   </script>
 </body>
 </html>
