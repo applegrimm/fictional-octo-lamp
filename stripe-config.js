@@ -78,9 +78,10 @@ function buildCheckoutData(orderData) {
   
   console.log('計算された合計金額:', totalAmount);
   
-  // Stripeに送る金額（セント単位）
-  const stripeAmountInCents = Math.round(totalAmount * 100);
-  console.log('Stripe金額（セント）:', stripeAmountInCents);
+  // 日本円（JPY）の場合はセント単位への変換は不要
+  // JPYは最小通貨単位が1円なので、そのまま使用する
+  const stripeAmountForJPY = Math.round(totalAmount);
+  console.log('Stripe金額（JPY）:', stripeAmountForJPY);
   
   // line_itemsを構築
   const lineItems = [
@@ -90,7 +91,7 @@ function buildCheckoutData(orderData) {
         product_data: {
           name: generateOrderSummary(orderData),
         },
-        unit_amount: stripeAmountInCents, // セント単位の金額
+        unit_amount: stripeAmountForJPY, // JPYの場合は円単位でそのまま
       },
       quantity: 1,
     }
