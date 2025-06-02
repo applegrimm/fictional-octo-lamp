@@ -88,11 +88,16 @@ function buildCheckoutData(orderData) {
   // 予約データをBase64エンコード（success.htmlで復元用）
   const encodedReservationData = btoa(encodeURIComponent(JSON.stringify(orderData)));
   
+  // success_urlを構築
+  const successUrl = `https://applegrimm.github.io/fictional-octo-lamp/success.html?session_id={CHECKOUT_SESSION_ID}&data=${encodedReservationData}`;
+  console.log('構築されたsuccess_url:', successUrl);
+  console.log('エンコードされた予約データ長:', encodedReservationData.length);
+  
   return {
     payment_method_types: ['card'],
     line_items: lineItems,
     mode: STRIPE_CONFIG.MODE,
-    success_url: STRIPE_CONFIG.SUCCESS_URL.replace('{RESERVATION_DATA}', encodedReservationData),
+    success_url: successUrl,
     cancel_url: STRIPE_CONFIG.CANCEL_URL.replace('{ERROR_MESSAGE}', encodeURIComponent('決済がキャンセルされました')),
     customer_email: orderData.email,
     
