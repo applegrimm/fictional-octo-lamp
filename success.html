@@ -233,12 +233,11 @@
     // GASのWebアプリURL（index.htmlと同じURL）
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwgeG189yH0YGt6gpqpYHoclCnZe4cbo8jARRaHCqjgxpiD_XW47taPqNFlQYDhfaYaCg/exec';
     
-    // URLパラメータから決済情報と予約データを取得
+    // URLパラメータから決済情報を取得
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session_id');
-    const reservationData = urlParams.get('data');
     
-    console.log('決済完了ページ読み込み:', { sessionId, reservationData });
+    console.log('決済完了ページ読み込み:', { sessionId });
     
     // ページ読み込み時に処理開始
     window.addEventListener('DOMContentLoaded', async function() {
@@ -247,26 +246,24 @@
         return;
       }
       
-      if (!reservationData) {
-        showError('予約データが取得できませんでした。');
-        return;
-      }
-      
       try {
-        // 予約データをデコード
-        const decodedData = decodeURIComponent(atob(reservationData));
-        const orderData = JSON.parse(decodedData);
+        // session_idを使ってGASから決済・予約情報を取得
+        const paymentInfo = await getPaymentInfoFromGas(sessionId);
         
-        console.log('予約データ復元:', orderData);
+        if (!paymentInfo || !paymentInfo.success) {
+          throw new Error(paymentInfo ? paymentInfo.error : '決済情報の取得に失敗しました');
+        }
+        
+        console.log('決済情報取得:', paymentInfo);
         
         // 決済情報を表示
-        displayPaymentInfo(sessionId, orderData);
+        displayPaymentInfo(sessionId, paymentInfo.data);
         
         // 予約情報を表示
-        displayReservationInfo(orderData);
+        displayReservationInfo(paymentInfo.data);
         
         // GASに予約情報を送信
-        await submitReservationToGas(sessionId, orderData);
+        await submitReservationToGas(sessionId, paymentInfo.data);
         
       } catch (error) {
         console.error('予約処理エラー:', error);
@@ -275,17 +272,107 @@
     });
     
     /**
+     * GASから決済情報を取得
+     */
+    async function getPaymentInfoFromGas(sessionId) {
+      try {
+        console.log('GASから決済情報取得開始:', sessionId);
+        
+        // JSONP方式でGASから情報を取得
+        const result = await fetchFromGasViaJsonp('getPaymentInfo', { sessionId });
+        
+        console.log('決済情報取得結果:', result);
+        return result;
+        
+      } catch (error) {
+        console.error('決済情報取得エラー:', error);
+        return { success: false, error: error.message };
+      }
+    }
+    
+    /**
+     * 汎用JSONP方式でGASにリクエスト送信
+     */
+    async function fetchFromGasViaJsonp(action, data) {
+      return new Promise((resolve, reject) => {
+        try {
+          const callbackName = 'gasCallback' + Date.now();
+          
+          // グローバルコールバック関数を定義
+          window[callbackName] = function(result) {
+            console.log('GAS応答受信:', result);
+            
+            try {
+              if (typeof result === 'string') {
+                result = JSON.parse(result);
+              }
+              resolve(result);
+            } catch (error) {
+              reject(new Error('応答の解析に失敗しました'));
+            } finally {
+              cleanup();
+            }
+          };
+          
+          // クリーンアップ関数
+          const cleanup = () => {
+            const script = document.querySelector(`script[data-callback="${callbackName}"]`);
+            if (script && script.parentNode) {
+              script.parentNode.removeChild(script);
+            }
+            if (window[callbackName]) {
+              delete window[callbackName];
+            }
+          };
+          
+          // データをエンコード
+          const jsonString = JSON.stringify(data);
+          const encodedData = btoa(encodeURIComponent(jsonString));
+          
+          // JSONPリクエストURL作成
+          const jsonpUrl = `${GAS_WEB_APP_URL}?action=${action}&data=${encodedData}&callback=${callbackName}&_t=${Date.now()}`;
+          
+          console.log(`${action} JSONP URL:`, jsonpUrl.substring(0, 200) + '...');
+          
+          // スクリプトタグを作成
+          const script = document.createElement('script');
+          script.src = jsonpUrl;
+          script.setAttribute('data-callback', callbackName);
+          
+          script.onerror = function(error) {
+            console.error(`${action} JSONP読み込みエラー:`, error);
+            cleanup();
+            reject(new Error('サーバーとの通信に失敗しました'));
+          };
+          
+          document.head.appendChild(script);
+          
+          // タイムアウト設定（15秒）
+          setTimeout(() => {
+            if (window[callbackName]) {
+              cleanup();
+              reject(new Error(`${action}の通信がタイムアウトしました`));
+            }
+          }, 15000);
+          
+        } catch (error) {
+          reject(error);
+        }
+      });
+    }
+    
+    /**
      * 決済情報を表示
      */
-    function displayPaymentInfo(sessionId, orderData) {
+    function displayPaymentInfo(sessionId, paymentData) {
       document.getElementById('session-id').textContent = sessionId;
       
-      // 合計金額を計算（products.jsonは使えないので、orderDataから計算）
-      const totalAmount = orderData.items.reduce((sum, item) => {
-        return sum + (item.price * item.qty);
-      }, 0);
+      // 合計金額を表示
+      const totalAmount = paymentData.total_amount || paymentData.metadata?.total_amount;
+      if (totalAmount) {
+        document.getElementById('payment-amount').textContent = parseInt(totalAmount).toLocaleString() + '円';
+      }
       
-      document.getElementById('payment-amount').textContent = totalAmount.toLocaleString() + '円';
       document.getElementById('payment-date').textContent = new Date().toLocaleString('ja-JP');
       document.getElementById('payment-details').style.display = 'block';
     }
@@ -293,25 +380,38 @@
     /**
      * 予約情報を表示
      */
-    function displayReservationInfo(orderData) {
-      document.getElementById('customer-name').textContent = orderData.name;
-      document.getElementById('pickup-store').textContent = orderData.store;
+    function displayReservationInfo(paymentData) {
+      const metadata = paymentData.metadata || paymentData;
+      
+      document.getElementById('customer-name').textContent = metadata.customer_name || '-';
+      document.getElementById('pickup-store').textContent = metadata.pickup_store || '-';
       document.getElementById('pickup-datetime').textContent = 
-        `${orderData.pickup_date} ${orderData.pickup_time}`;
+        `${metadata.pickup_date || '-'} ${metadata.pickup_time || '-'}`;
       
       // 注文商品リストを表示
       const itemsContainer = document.getElementById('order-items');
       itemsContainer.innerHTML = '';
       
-      orderData.items.forEach(item => {
-        const itemDiv = document.createElement('div');
-        itemDiv.style.cssText = 'margin: 4px 0; padding: 4px 0; border-bottom: 1px dotted #ccc;';
-        itemDiv.innerHTML = `
-          <span style="font-weight: bold;">${item.name}</span> × ${item.qty}個
-          <span style="float: right;">${(item.price * item.qty).toLocaleString()}円</span>
-        `;
-        itemsContainer.appendChild(itemDiv);
-      });
+      try {
+        const orderItems = metadata.order_items ? JSON.parse(metadata.order_items) : [];
+        
+        if (orderItems.length > 0) {
+          orderItems.forEach(item => {
+            const itemDiv = document.createElement('div');
+            itemDiv.style.cssText = 'margin: 4px 0; padding: 4px 0; border-bottom: 1px dotted #ccc;';
+            itemDiv.innerHTML = `
+              <span style="font-weight: bold;">${item.name}</span> × ${item.qty}個
+              <span style="float: right;">${(item.price * item.qty).toLocaleString()}円</span>
+            `;
+            itemsContainer.appendChild(itemDiv);
+          });
+        } else {
+          itemsContainer.innerHTML = '<div>注文情報が取得できませんでした</div>';
+        }
+      } catch (error) {
+        console.error('商品情報の解析エラー:', error);
+        itemsContainer.innerHTML = '<div>注文情報の表示エラー</div>';
+      }
       
       document.getElementById('reservation-details').style.display = 'block';
     }
@@ -356,75 +456,10 @@
     }
     
     /**
-     * JSONP方式でGASにデータ送信
+     * JSONP方式でGASにデータ送信（既存の関数を簡素化）
      */
     async function sendToGasViaJsonp(data) {
-      return new Promise((resolve, reject) => {
-        try {
-          const callbackName = 'paymentCallback' + Date.now();
-          
-          // グローバルコールバック関数を定義
-          window[callbackName] = function(result) {
-            console.log('GAS応答受信:', result);
-            
-            try {
-              if (typeof result === 'string') {
-                result = JSON.parse(result);
-              }
-              resolve(result);
-            } catch (error) {
-              reject(new Error('応答の解析に失敗しました'));
-            } finally {
-              // クリーンアップ
-              cleanup();
-            }
-          };
-          
-          // クリーンアップ関数
-          const cleanup = () => {
-            const script = document.querySelector(`script[data-callback="${callbackName}"]`);
-            if (script && script.parentNode) {
-              script.parentNode.removeChild(script);
-            }
-            if (window[callbackName]) {
-              delete window[callbackName];
-            }
-          };
-          
-          // データをエンコード
-          const jsonString = JSON.stringify(data);
-          const encodedData = btoa(encodeURIComponent(jsonString));
-          
-          // JSONPリクエストURL作成
-          const jsonpUrl = `${GAS_WEB_APP_URL}?action=submitPaymentReservation&data=${encodedData}&callback=${callbackName}&_t=${Date.now()}`;
-          
-          console.log('JSONP URL:', jsonpUrl.substring(0, 200) + '...');
-          
-          // スクリプトタグを作成
-          const script = document.createElement('script');
-          script.src = jsonpUrl;
-          script.setAttribute('data-callback', callbackName);
-          
-          script.onerror = function(error) {
-            console.error('JSONP読み込みエラー:', error);
-            cleanup();
-            reject(new Error('サーバーとの通信に失敗しました'));
-          };
-          
-          document.head.appendChild(script);
-          
-          // タイムアウト設定（15秒）
-          setTimeout(() => {
-            if (window[callbackName]) {
-              cleanup();
-              reject(new Error('サーバーとの通信がタイムアウトしました'));
-            }
-          }, 15000);
-          
-        } catch (error) {
-          reject(error);
-        }
-      });
+      return await fetchFromGasViaJsonp('submitPaymentReservation', data);
     }
     
     /**
