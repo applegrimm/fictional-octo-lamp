@@ -385,6 +385,7 @@
         totalAmount = parseInt(paymentData.total_amount);
         amountSource = 'paymentData.total_amount';
         console.log('金額ソース1 (paymentData.total_amount):', totalAmount);
+        console.log('元の文字列値:', paymentData.total_amount);
       }
       // 2. metadataから取得
       else if (paymentData.metadata && paymentData.metadata.total_amount) {
