@@ -12,7 +12,6 @@
   <meta name="mobile-web-app-capable" content="yes">
   <!-- セキュリティ強化メタタグ -->
   <meta http-equiv="X-Content-Type-Options" content="nosniff">
-  <meta http-equiv="X-Frame-Options" content="DENY">
   <meta name="referrer" content="strict-origin-when-cross-origin">
   <!-- HTTPS リダイレクト強制 -->
   <script>
@@ -419,16 +418,34 @@
     /**
      * GASに予約情報を送信
      */
-    async function submitReservationToGas(sessionId, orderData) {
+    async function submitReservationToGas(sessionId, paymentData) {
       try {
         console.log('GASに予約情報送信開始');
         
+        const metadata = paymentData.metadata || paymentData;
+        
+        // metadataから商品情報を復元
+        let items = [];
+        try {
+          items = metadata.order_items ? JSON.parse(metadata.order_items) : [];
+        } catch (error) {
+          console.error('商品情報の解析エラー:', error);
+          items = [];
+        }
+        
         // 決済済みフラグを追加
         const reservationData = {
-          ...orderData,
+          name: metadata.customer_name,
+          phone: metadata.customer_phone,
+          email: metadata.customer_email,
+          store: metadata.pickup_store,
+          pickup_date: metadata.pickup_date,
+          pickup_time: metadata.pickup_time,
+          note: metadata.pickup_note || '',
+          items: items,
           payment_status: 'completed',
           payment_session_id: sessionId,
-          payment_amount: orderData.items.reduce((sum, item) => sum + (item.price * item.qty), 0),
+          payment_amount: parseInt(metadata.total_amount) || 0,
           payment_date: new Date().toISOString()
         };
         
