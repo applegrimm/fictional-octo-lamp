@@ -789,25 +789,79 @@
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
-      return `${year}-${month}-${day}`;
+      const todayStr = `${year}-${month}-${day}`;
+      console.log('今日の日付:', todayStr);
+      return todayStr;
+    }
+
+    // 日付を正規化する関数（様々なフォーマットに対応）
+    function normalizeDateString(dateStr) {
+      if (!dateStr) return '';
+      
+      // 既にYYYY-MM-DD形式の場合
+      if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return dateStr;
+      }
+      
+      // YYYY/MM/DD形式の場合
+      if (/^\d{4}\/\d{2}\/\d{2}$/.test(dateStr)) {
+        return dateStr.replace(/\//g, '-');
+      }
+      
+      // MM/DD/YYYY形式の場合
+      if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+        const parts = dateStr.split('/');
+        return `${parts[2]}-${parts[0]}-${parts[1]}`;
+      }
+      
+      // その他の形式の場合はDateオブジェクトを経由して変換
+      try {
+        const date = new Date(dateStr);
+        if (isNaN(date.getTime())) {
+          console.warn('無効な日付形式:', dateStr);
+          return dateStr;
+        }
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+      } catch (error) {
+        console.warn('日付変換エラー:', dateStr, error);
+        return dateStr;
+      }
     }
 
     // 本日分の予約をチェックする関数
     function checkTodayReservations() {
       const today = getTodayString();
+      console.log('=== 本日分予約チェック開始 ===');
+      console.log('今日:', today);
+      console.log('全予約数:', allReservations.length);
+      
       const todayReservations = allReservations.filter(reservation => {
-        return reservation.pickupDate === today;
+        const normalizedDate = normalizeDateString(reservation.pickupDate);
+        const isToday = normalizedDate === today;
+        console.log('予約の受取日:', reservation.pickupDate, '正規化後:', normalizedDate, '比較:', isToday);
+        return isToday;
       });
       
+      console.log('本日分予約数:', todayReservations.length);
+      
       const groupedToday = groupByOrderId(todayReservations);
+      console.log('本日分グループ数:', groupedToday.length);
+      
       const todayPending = groupedToday.filter(group => 
         !group.items.every(item => item.isCompleted)
       );
       
+      console.log('本日分未完了グループ数:', todayPending.length);
+      
       const warningElement = document.getElementById('today-warning');
       if (todayPending.length > 0) {
+        console.log('警告メッセージ表示');
         warningElement.style.display = 'block';
       } else {
+        console.log('警告メッセージ非表示');
         warningElement.style.display = 'none';
       }
     }
@@ -866,6 +920,19 @@
             if (data && data.success) {
               console.log('予約データ取得成功:', data.data.length + '件');
               allReservations = data.data || [];
+              
+              // データ構造の詳細ログ
+              console.log('=== 受信データ詳細 ===');
+              if (allReservations.length > 0) {
+                console.log('最初の予約データ:', allReservations[0]);
+                console.log('全予約の受取日一覧:', allReservations.map(r => ({
+                  orderId: r.orderId,
+                  pickupDate: r.pickupDate,
+                  pickupTime: r.pickupTime,
+                  isCompleted: r.isCompleted,
+                  handoverStaff: r.handoverStaff
+                })));
+              }
               
               // 店舗名を設定
               if (data.storeName) {
@@ -1208,8 +1275,10 @@
             const success = result && result.success;
             if (success) {
               console.log('単一行更新成功:', rowId);
+              console.log('サーバーレスポンス詳細:', result);
             } else {
               console.error('単一行更新失敗:', {rowId, result});
+              console.log('エラー詳細:', result ? result.error : 'レスポンスなし');
             }
             if (callback) callback(success);
           } catch (error) {
@@ -1231,16 +1300,19 @@
 
         if (checked !== null && checked !== undefined) {
           params.append('checked', checked ? '1' : '0');
+          console.log('チェック状態送信:', checked ? '1' : '0');
         }
         if (memo !== null && memo !== undefined) {
           params.append('memo', memo);
+          console.log('メモ送信:', memo);
         }
         if (staffName !== null && staffName !== undefined) {
           params.append('staffName', staffName);
+          console.log('担当者名送信:', staffName);
         }
 
         const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
-        console.log('単一行JSONP URL:', jsonpUrl);
+        console.log('送信URL:', jsonpUrl);
 
         // スクリプトタグを作成・実行
         const script = document.createElement('script');
@@ -1297,12 +1369,14 @@
           try {
             if (result && result.success) {
               console.log('単一行UI更新成功:', rowId);
+              console.log('サーバーレスポンス詳細:', result);
               // 更新成功時に再読み込み
               setTimeout(() => {
                 loadReservations();
               }, 500);
             } else {
               console.error('単一行UI更新失敗:', {rowId, result});
+              console.log('エラー詳細:', result ? result.error : 'レスポンスなし');
               showError(result ? result.error : '更新に失敗しました');
             }
           } catch (error) {
@@ -1345,16 +1419,19 @@
 
         if (checked !== null && checked !== undefined) {
           params.append('checked', checked ? '1' : '0');
+          console.log('チェック状態送信:', checked ? '1' : '0');
         }
         if (memo !== null && memo !== undefined) {
           params.append('memo', memo);
+          console.log('メモ送信:', memo);
         }
         if (staffName !== null && staffName !== undefined) {
           params.append('staffName', staffName);
+          console.log('担当者名送信:', staffName);
         }
 
         const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
-        console.log('単一行UI JSONP URL:', jsonpUrl);
+        console.log('送信URL:', jsonpUrl);
 
         // スクリプトタグを作成・実行
         const script = document.createElement('script');
@@ -1445,6 +1522,7 @@
 
     // フィルタリング
     function filterReservations(filter) {
+      console.log('=== フィルタリング開始 ===', filter);
       currentFilter = filter;
       
       // ボタンのアクティブ状態を更新
@@ -1458,20 +1536,33 @@
       const today = getTodayString();
       
       if (filter === 'today') {
+        console.log('本日分フィルター適用中...');
+        console.log('今日の日付:', today);
+        console.log('全予約:', allReservations.map(r => ({orderId: r.orderId, pickupDate: r.pickupDate})));
+        
         // 本日分のみ
         filteredReservations = allReservations.filter(reservation => {
-          return reservation.pickupDate === today;
+          // 日付文字列を正規化して比較
+          const reservationDate = normalizeDateString(reservation.pickupDate);
+          const isToday = reservationDate === today;
+          console.log(`予約 ${reservation.orderId}: ${reservation.pickupDate} -> ${reservationDate} === ${today} ? ${isToday}`);
+          return isToday;
         });
+        
+        console.log('本日分予約フィルター結果:', filteredReservations.length + '件');
       } else {
         filteredReservations = allReservations;
       }
       
       // 完了状態でさらにフィルタリング
       const groupedFiltered = groupByOrderId(filteredReservations);
+      console.log('グループ化後:', groupedFiltered.length + 'グループ');
       
       // カードの表示/非表示を切り替え
       const cards = document.querySelectorAll('.reservation-card');
       let visibleCount = 0;
+      
+      console.log('カード総数:', cards.length);
       
       cards.forEach(card => {
         const orderId = card.querySelector('[id^="check-"]').id.replace('check-', '');
@@ -1479,6 +1570,7 @@
         
         if (!matchingGroup) {
           card.style.display = 'none';
+          console.log(`カード ${orderId}: マッチするグループなし - 非表示`);
           return;
         }
         
@@ -1488,10 +1580,14 @@
         if (filter === 'all' || filter === 'today' || cardFilter === filter) {
           card.style.display = 'block';
           visibleCount++;
+          console.log(`カード ${orderId}: 表示 (${cardFilter})`);
         } else {
           card.style.display = 'none';
+          console.log(`カード ${orderId}: 非表示 (${cardFilter})`);
         }
       });
+      
+      console.log('表示中のカード数:', visibleCount);
       
       // 表示する予約がない場合
       const listContainer = document.getElementById('reservation-list');
