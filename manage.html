@@ -331,23 +331,76 @@
       flex-wrap: wrap;
     }
     
-    .checkbox {
+    .toggle-container {
       display: flex;
       align-items: center;
       gap: 12px;
       font-weight: 500;
     }
     
-    .checkbox input[type="checkbox"] {
-      width: 27px;
-      height: 27px;
-      cursor: pointer;
-      transform: scale(1.0);
+    .toggle-switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 34px;
     }
     
-    .checkbox label {
+    .toggle-switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .toggle-slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    
+    .toggle-slider:before {
+      position: absolute;
+      content: "";
+      height: 26px;
+      width: 26px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .toggle-slider {
+      background-color: #27ae60;
+    }
+    
+    input:checked + .toggle-slider:before {
+      transform: translateX(26px);
+    }
+    
+    .toggle-slider:after {
+      content: '✗';
+      color: white;
+      display: block;
+      text-align: center;
+      line-height: 34px;
+      font-size: 18px;
+      font-weight: bold;
+    }
+    
+    input:checked + .toggle-slider:after {
+      content: '✓';
+    }
+    
+    .toggle-label {
       font-size: 1.1em;
       cursor: pointer;
+      user-select: none;
     }
     
     .memo-area {
@@ -424,6 +477,37 @@
       margin-top: 4px;
     }
     
+    /* 本日分警告メッセージ */
+    .today-warning {
+      background: linear-gradient(135deg, #e74c3c, #c0392b);
+      color: white;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 24px;
+      text-align: center;
+      box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+      animation: pulse 2s infinite;
+      border: 3px solid #fff;
+    }
+    
+    .today-warning h3 {
+      margin: 0 0 8px 0;
+      font-size: 1.3em;
+      font-weight: 700;
+    }
+    
+    .today-warning p {
+      margin: 0;
+      font-size: 1.1em;
+      opacity: 0.95;
+    }
+    
+    @keyframes pulse {
+      0% { box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3); }
+      50% { box-shadow: 0 6px 20px rgba(231, 76, 60, 0.5); }
+      100% { box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3); }
+    }
+    
     /* レスポンシブデザイン */
     @media (max-width: 768px) {
       body { 
@@ -448,8 +532,9 @@
         gap: 16px; /* 行間を広げる */
       }
       
-      .checkbox {
-        justify-content: flex-start;
+      .toggle-container {
+        flex-direction: column;
+        align-items: flex-start;
       }
       
       .memo-area { 
@@ -512,6 +597,86 @@
         content: "💾";
       }
     }
+    
+    /* ポップアップモーダル */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal-content {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+    }
+    
+    .modal-content h3 {
+      margin: 0 0 20px 0;
+      color: #2c3e50;
+      font-size: 1.3em;
+    }
+    
+    .modal-input {
+      width: 100%;
+      padding: 12px 16px;
+      border: 2px solid #e1e8ed;
+      border-radius: 8px;
+      font-size: 1.1em;
+      margin-bottom: 20px;
+      transition: border-color 0.2s ease;
+    }
+    
+    .modal-input:focus {
+      outline: none;
+      border-color: #3498db;
+      box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    }
+    
+    .modal-buttons {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+    }
+    
+    .modal-btn {
+      padding: 12px 24px;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    
+    .modal-btn.confirm {
+      background: #27ae60;
+      color: white;
+    }
+    
+    .modal-btn.confirm:hover {
+      background: #229954;
+    }
+    
+    .modal-btn.cancel {
+      background: #95a5a6;
+      color: white;
+    }
+    
+    .modal-btn.cancel:hover {
+      background: #7f8c8d;
+    }
   </style>
 </head>
 <body>
@@ -545,10 +710,19 @@
       </div>
     </div>
     
+    <!-- 本日分未完了警告メッセージ -->
+    <div id="today-warning" class="today-warning" style="display: none;">
+      <h3>🚨 本日分の予約に未受渡しがあります</h3>
+      <p>本日のお客様をお待たせしないよう、受渡し完了の確認をお願いします</p>
+    </div>
+    
     <!-- コントロールボタン -->
     <div class="controls">
       <button class="btn refresh" onclick="loadReservations()">
         🔄 更新
+      </button>
+      <button class="btn" id="filter-today" onclick="filterReservations('today')">
+        📅 本日分のみ
       </button>
       <button class="btn" id="filter-all" onclick="filterReservations('all')">
         📋 全て表示
@@ -583,6 +757,18 @@
     </div>
   </div>
 
+  <!-- 担当者名入力モーダル -->
+  <div id="staff-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content">
+      <h3>👤 受渡し担当者名を入力してください</h3>
+      <input type="text" id="staff-name-input" class="modal-input" placeholder="担当者名を入力..." maxlength="50" required>
+      <div class="modal-buttons">
+        <button class="modal-btn confirm" onclick="confirmStaffInput()">✓ 確定</button>
+        <button class="modal-btn cancel" onclick="cancelStaffInput()">✗ キャンセル</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     // GitHub Pages URL: https://applegrimm.github.io/fictional-octo-lamp/
     // GASのWebアプリURL（実際のURLに変更してください）
@@ -592,6 +778,39 @@
     let SHOP_SECRET = '';
     let allReservations = [];
     let currentFilter = 'all';
+
+    // モーダル関連の変数
+    let pendingToggleRowId = null;
+    let pendingToggleElement = null;
+
+    // 今日の日付を取得する関数
+    function getTodayString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
+    // 本日分の予約をチェックする関数
+    function checkTodayReservations() {
+      const today = getTodayString();
+      const todayReservations = allReservations.filter(reservation => {
+        return reservation.pickupDate === today;
+      });
+      
+      const groupedToday = groupByOrderId(todayReservations);
+      const todayPending = groupedToday.filter(group => 
+        !group.items.every(item => item.isCompleted)
+      );
+      
+      const warningElement = document.getElementById('today-warning');
+      if (todayPending.length > 0) {
+        warningElement.style.display = 'block';
+      } else {
+        warningElement.style.display = 'none';
+      }
+    }
 
     // ページ読み込み時の初期化
     window.addEventListener('DOMContentLoaded', function() {
@@ -752,6 +971,9 @@
       document.getElementById('total-count').textContent = totalCount;
       document.getElementById('pending-count').textContent = pendingCount;
       document.getElementById('completed-count').textContent = completedCount;
+      
+      // 本日分の警告チェック
+      checkTodayReservations();
     }
 
     // 予約一覧を表示
@@ -826,10 +1048,14 @@
             ` : ''}
             
             <div class="controls-row">
-              <div class="checkbox">
-                <input type="checkbox" id="check-${group.orderId}" ${isCompleted ? 'checked' : ''} 
-                       onchange="console.log('チェックボックス値:', this.checked); updateReservation('${group.items[0].rowId}', this.checked, null)">
-                <label for="check-${group.orderId}">受渡完了</label>
+              <div class="toggle-container">
+                <label class="toggle-switch">
+                  <input type="checkbox" id="check-${group.orderId}" ${isCompleted ? 'checked' : ''} 
+                         onchange="handleToggleChange('${group.items[0].rowId}', this)">
+                  <span class="toggle-slider"></span>
+                </label>
+                <label for="check-${group.orderId}" class="toggle-label">受渡完了</label>
+                ${customer.handoverStaff ? `<span style="color: #666; font-size: 0.9em; margin-left: 8px;">担当: ${escapeHtml(customer.handoverStaff)}</span>` : ''}
                 <span class="auto-save-message" id="save-msg-${group.orderId}" style="display: none; color: #27ae60; font-size: 0.9em; margin-left: 8px;">自動保存中...</span>
               </div>
               
@@ -869,8 +1095,8 @@
     }
 
     // 予約データを更新（JSONP方式・CORS完全回避・同一注文ID一括更新対応）
-    function updateReservation(rowId, checked, memo) {
-      console.log('=== updateReservation開始 ===', {rowId, checked, memo});
+    function updateReservation(rowId, checked, memo, staffName) {
+      console.log('=== updateReservation開始 ===', {rowId, checked, memo, staffName});
       
       // ボタンの参照を取得
       let originalButton = null;
@@ -903,13 +1129,13 @@
             console.log('同一注文ID行一括更新:', {orderId: currentReservation.orderId, rows: sameOrderRows});
             
             // 各行を順次更新
-            updateMultipleRows(sameOrderRows, checked, memo);
+            updateMultipleRows(sameOrderRows, checked, memo, staffName);
             return;
           }
         }
         
         // メモ更新の場合は単一行のみ更新（従来通り）
-        updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage);
+        updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage, staffName);
         
       } catch (error) {
         console.error('Update初期化エラー:', error);
@@ -936,7 +1162,7 @@
     }
 
     // 複数行を順次更新する関数
-    function updateMultipleRows(rowIds, checked, memo) {
+    function updateMultipleRows(rowIds, checked, memo, staffName) {
       let completedCount = 0;
       let totalCount = rowIds.length;
       let hasError = false;
@@ -945,7 +1171,7 @@
 
       rowIds.forEach((rowId, index) => {
         setTimeout(() => {
-          updateSingleRowInternal(rowId, checked, memo, (success) => {
+          updateSingleRowInternal(rowId, checked, memo, staffName, (success) => {
             completedCount++;
             if (!success) hasError = true;
 
@@ -969,7 +1195,7 @@
     }
 
     // 単一行更新の内部関数
-    function updateSingleRowInternal(rowId, checked, memo, callback) {
+    function updateSingleRowInternal(rowId, checked, memo, staffName, callback) {
       try {
         const callbackName = 'updateCallback' + Date.now() + '_' + rowId;
         console.log('単一行更新開始:', {rowId, callbackName});
@@ -1009,6 +1235,9 @@
         if (memo !== null && memo !== undefined) {
           params.append('memo', memo);
         }
+        if (staffName !== null && staffName !== undefined) {
+          params.append('staffName', staffName);
+        }
 
         const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
         console.log('単一行JSONP URL:', jsonpUrl);
@@ -1043,7 +1272,7 @@
     }
 
     // 単一行更新関数（UI付き）
-    function updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage) {
+    function updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage, staffName) {
       try {
         // ローディング表示
         if (originalButton) {
@@ -1119,6 +1348,9 @@
         }
         if (memo !== null && memo !== undefined) {
           params.append('memo', memo);
+        }
+        if (staffName !== null && staffName !== undefined) {
+          params.append('staffName', staffName);
         }
 
         const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
@@ -1221,13 +1453,39 @@
       });
       document.getElementById(`filter-${filter}`).classList.add('active');
       
+      // 表示する予約を決定
+      let filteredReservations = [];
+      const today = getTodayString();
+      
+      if (filter === 'today') {
+        // 本日分のみ
+        filteredReservations = allReservations.filter(reservation => {
+          return reservation.pickupDate === today;
+        });
+      } else {
+        filteredReservations = allReservations;
+      }
+      
+      // 完了状態でさらにフィルタリング
+      const groupedFiltered = groupByOrderId(filteredReservations);
+      
       // カードの表示/非表示を切り替え
       const cards = document.querySelectorAll('.reservation-card');
       let visibleCount = 0;
       
       cards.forEach(card => {
-        const cardFilter = card.getAttribute('data-filter');
-        if (filter === 'all' || cardFilter === filter) {
+        const orderId = card.querySelector('[id^="check-"]').id.replace('check-', '');
+        const matchingGroup = groupedFiltered.find(group => group.orderId === orderId);
+        
+        if (!matchingGroup) {
+          card.style.display = 'none';
+          return;
+        }
+        
+        const isCompleted = matchingGroup.items.every(item => item.isCompleted);
+        const cardFilter = isCompleted ? 'completed' : 'pending';
+        
+        if (filter === 'all' || filter === 'today' || cardFilter === filter) {
           card.style.display = 'block';
           visibleCount++;
         } else {
@@ -1242,9 +1500,19 @@
       if (visibleCount === 0 && allReservations.length > 0) {
         listContainer.style.display = 'none';
         noDataContainer.style.display = 'block';
+        
+        let message = '';
+        if (filter === 'today') {
+          message = '本日分の予約はありません。';
+        } else if (filter === 'pending') {
+          message = '「未完了」の予約はありません。';
+        } else if (filter === 'completed') {
+          message = '「完了済み」の予約はありません。';
+        }
+        
         noDataContainer.innerHTML = `
           <h3>📋 表示する予約がありません</h3>
-          <p>「${filter === 'pending' ? '未完了' : '完了済み'}」の予約はありません。</p>
+          <p>${message}</p>
         `;
       } else if (visibleCount > 0) {
         listContainer.style.display = 'grid';
@@ -1328,6 +1596,79 @@
     setTimeout(() => {
       document.getElementById('filter-all').classList.add('active');
     }, 100);
+
+    // トグルボタン変更処理
+    function handleToggleChange(rowId, toggleElement) {
+      console.log('=== handleToggleChange開始 ===', {rowId, checked: toggleElement.checked});
+      
+      if (toggleElement.checked) {
+        // ONにする場合：担当者名入力モーダルを表示
+        pendingToggleRowId = rowId;
+        pendingToggleElement = toggleElement;
+        showStaffModal();
+      } else {
+        // OFFにする場合：直接更新
+        updateReservation(rowId, false, null, null);
+      }
+    }
+
+    // 担当者名入力モーダルを表示
+    function showStaffModal() {
+      const modal = document.getElementById('staff-modal');
+      const input = document.getElementById('staff-name-input');
+      input.value = '';
+      modal.style.display = 'flex';
+      setTimeout(() => {
+        input.focus();
+      }, 100);
+      
+      // エンターキーで確定
+      input.onkeypress = function(e) {
+        if (e.key === 'Enter') {
+          confirmStaffInput();
+        }
+      };
+    }
+
+    // 担当者名入力確定
+    function confirmStaffInput() {
+      const staffName = document.getElementById('staff-name-input').value.trim();
+      
+      if (!staffName) {
+        alert('担当者名を入力してください。');
+        return;
+      }
+      
+      if (staffName.length > 50) {
+        alert('担当者名は50文字以内で入力してください。');
+        return;
+      }
+      
+      // モーダルを閉じる
+      document.getElementById('staff-modal').style.display = 'none';
+      
+      // 予約を更新（受渡完了 + 担当者名）
+      updateReservation(pendingToggleRowId, true, null, staffName);
+      
+      // 変数をクリア
+      pendingToggleRowId = null;
+      pendingToggleElement = null;
+    }
+
+    // 担当者名入力キャンセル
+    function cancelStaffInput() {
+      // モーダルを閉じる
+      document.getElementById('staff-modal').style.display = 'none';
+      
+      // トグルを元に戻す
+      if (pendingToggleElement) {
+        pendingToggleElement.checked = false;
+      }
+      
+      // 変数をクリア
+      pendingToggleRowId = null;
+      pendingToggleElement = null;
+    }
   </script>
 </body>
 </html> 
