@@ -211,6 +211,26 @@
       </p>
     </div>
     
+    <div id="close-instruction" style="display: none; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 16px; margin: 24px 0; font-size: 0.9em; color: #495057;">
+      <h4 style="margin: 0 0 12px 0; color: #495057; font-size: 1em;">📋 ご案内</h4>
+      <p style="margin: 0 0 16px 0; color: #495057; font-weight: bold; font-size: 1em;">
+        予約処理が完了しました。この画面を閉じてください。
+      </p>
+      <div style="text-align: left;">
+        <p style="margin: 8px 0; font-weight: bold; color: #6c757d;">📱 スマートフォンの場合：</p>
+        <ul style="margin: 4px 0 12px 20px; padding: 0;">
+          <li>ブラウザのタブ一覧から該当タブを閉じる</li>
+          <li>ブラウザアプリを終了する</li>
+        </ul>
+        <p style="margin: 8px 0; font-weight: bold; color: #6c757d;">💻 パソコンの場合：</p>
+        <ul style="margin: 4px 0 8px 20px; padding: 0;">
+          <li>ブラウザのタブの「×」ボタンをクリック</li>
+          <li>キーボードの「Ctrl + W」（Windows）または「Cmd + W」（Mac）</li>
+          <li>ブラウザウィンドウの「×」ボタンをクリック</li>
+        </ul>
+      </div>
+    </div>
+    
     <div id="error-details" class="error-content" style="display: none;">
       <div class="error-icon">❌</div>
       <h2>エラーが発生しました</h2>
@@ -226,7 +246,6 @@
     
     <div class="action-buttons" id="action-buttons" style="display: none;">
       <a href="index.html" class="btn btn-primary">新しい予約をする</a>
-      <button onclick="closeWindow()" class="btn btn-secondary">画面を閉じる</button>
     </div>
   </div>
 
@@ -516,6 +535,7 @@
           // 成功時の表示
           document.getElementById('processing-status').style.display = 'none';
           document.getElementById('success-message').style.display = 'block';
+          document.getElementById('close-instruction').style.display = 'block';
           document.getElementById('action-buttons').style.display = 'block';
         } else {
           // 失敗時の表示
@@ -549,26 +569,8 @@
       }
       
       document.getElementById('error-details').style.display = 'block';
+      document.getElementById('close-instruction').style.display = 'block';
       document.getElementById('action-buttons').style.display = 'block';
-    }
-
-    /**
-     * 画面を閉じるボタンの処理
-     */
-    function closeWindow() {
-      console.log('画面を閉じる処理開始');
-      
-      // 一応window.close()を試行（効果がない場合が多い）
-      try {
-        window.close();
-      } catch (error) {
-        console.log('window.close()が制限されています:', error);
-      }
-      
-      // 確実に案内を表示（Stripeからのリダイレクトでは閉じられないため）
-      setTimeout(() => {
-        alert('以下の方法で画面を閉じてください：\n\n📱 スマートフォンの場合：\n• ブラウザのタブ一覧から該当タブを閉じる\n• ブラウザアプリを終了する\n\n💻 パソコンの場合：\n• ブラウザのタブの「×」ボタンをクリック\n• キーボードの「Ctrl + W」（Windows）または「Cmd + W」（Mac）\n• ブラウザウィンドウの「×」ボタンをクリック');
-      }, 100);
     }
   </script>
 </body>
