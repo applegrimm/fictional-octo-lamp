@@ -911,6 +911,11 @@
               console.log('予約データ取得成功:', data.data.length + '件');
               allReservations = data.data || [];
               
+              // 店舗名をヘッダーに表示
+              if (data.storeName) {
+                updateStoreNameHeader(data.storeName, 'today_onwards');
+              }
+              
               // データ構造の詳細ログ
               console.log('=== 受信データ詳細 ===');
               if (allReservations.length > 0) {
@@ -923,10 +928,9 @@
                   handoverStaff: r.handoverStaff
                 })));
                 
-                // 担当者名フィールドの確認
-                console.log('=== 担当者名フィールド確認 ===');
+                // 担当者名のログ
                 allReservations.forEach(r => {
-                  if (r.handoverStaff) {
+                  if (r.handoverStaff && r.handoverStaff.trim() !== '') {
                     console.log(`注文${r.orderId}: 担当者名="${r.handoverStaff}"`);
                   } else {
                     console.log(`注文${r.orderId}: 担当者名なし (${typeof r.handoverStaff})`);
@@ -1800,6 +1804,11 @@
               console.log('過去7日間データ取得成功:', data.data.length + '件');
               allReservations = data.data || [];
               
+              // 店舗名をヘッダーに表示（過去7日間モード）
+              if (data.storeName) {
+                updateStoreNameHeader(data.storeName, 'past7days');
+              }
+              
               // 過去の予約カードに背景色を設定するためのスタイルを追加
               addPastReservationStyles();
               
@@ -1934,6 +1943,18 @@
         if (activeButton) {
           activeButton.classList.add('active');
         }
+      }
+    }
+
+    // 店舗名をヘッダーに表示
+    function updateStoreNameHeader(storeName, mode) {
+      const header = document.querySelector('.header');
+      const subtitle = document.querySelector('.header .subtitle');
+      
+      if (mode === 'past7days') {
+        subtitle.textContent = `過去7日間の予約履歴（${storeName}）`;
+      } else {
+        subtitle.textContent = `本日以降の予約一覧（${storeName}）`;
       }
     }
   </script>
