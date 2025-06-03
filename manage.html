@@ -252,6 +252,9 @@
       <button class="btn" id="filter-completed" onclick="filterReservations('completed')">
         ✅ 完了済みのみ
       </button>
+      <button class="btn" style="background: #9b59b6;" onclick="testGasConnection()">
+        🧪 GAS接続テスト
+      </button>
     </div>
     
     <!-- ローディング -->
@@ -473,6 +476,80 @@
 
     function showError(message) {
       console.error('エラー表示:', message);
+    }
+
+    // GAS接続テスト機能
+    function testGasConnection() {
+      console.log('=== GAS接続テスト開始 ===');
+      
+      try {
+        const callbackName = 'testCallback' + Date.now();
+        
+        // テスト用のAPIを呼び出し
+        const testUrl = `${GAS_API_URL}?action=test&callback=${callbackName}&_t=${Date.now()}`;
+        
+        console.log('GAS テストURL:', testUrl);
+        
+        // グローバルコールバック関数を定義
+        window[callbackName] = function(data) {
+          console.log('=== GAS テストレスポンス ===', data);
+          
+          // 結果を画面に表示
+          const listContainer = document.getElementById('reservation-list');
+          listContainer.style.display = 'grid';
+          listContainer.innerHTML = `
+            <div class="reservation-card" style="background: #e8f5e8; border-left: 4px solid #27ae60;">
+              <h3>🧪 GAS接続テスト結果</h3>
+              <p><strong>接続状況:</strong> ${data.success ? '✅ 成功' : '❌ 失敗'}</p>
+              <p><strong>メッセージ:</strong> ${data.message || 'なし'}</p>
+              <p><strong>ステータス:</strong> ${data.status || 'なし'}</p>
+              <p><strong>タイムスタンプ:</strong> ${data.timestamp || 'なし'}</p>
+              <p><strong>機能一覧:</strong> ${data.features ? data.features.join(', ') : 'なし'}</p>
+              <hr>
+              <p><strong>📝 解釈:</strong></p>
+              <ul>
+                <li>接続が成功している場合、Code.gsは動作しています</li>
+                <li>期間フィルタが動作しない場合は、デプロイ問題の可能性が高いです</li>
+                <li>新しいデプロイを作成してから再度テストしてください</li>
+              </ul>
+            </div>
+          `;
+          
+          cleanupJSONP(callbackName);
+        };
+        
+        // スクリプトタグを作成
+        const script = document.createElement('script');
+        script.src = testUrl;
+        script.setAttribute('data-jsonp', 'true');
+        script.setAttribute('data-callback', callbackName);
+        
+        script.onerror = function(error) {
+          console.error('GAS接続テストエラー:', error);
+          
+          const listContainer = document.getElementById('reservation-list');
+          listContainer.style.display = 'grid';
+          listContainer.innerHTML = `
+            <div class="reservation-card" style="background: #f8d7da; border-left: 4px solid #dc3545;">
+              <h3>❌ GAS接続テスト失敗</h3>
+              <p>GASへの接続に失敗しました。</p>
+              <p><strong>考えられる原因:</strong></p>
+              <ul>
+                <li>GASのデプロイが正しく行われていない</li>
+                <li>URLが間違っている</li>
+                <li>ネットワークの問題</li>
+              </ul>
+            </div>
+          `;
+          
+          cleanupJSONP(callbackName);
+        };
+        
+        document.head.appendChild(script);
+        
+      } catch (error) {
+        console.error('GAS接続テスト初期化エラー:', error);
+      }
     }
 
     // ページ読み込み時の初期化
