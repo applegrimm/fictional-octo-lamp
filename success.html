@@ -226,7 +226,7 @@
     
     <div class="action-buttons" id="action-buttons" style="display: none;">
       <a href="index.html" class="btn btn-primary">新しい予約をする</a>
-      <button onclick="window.close()" class="btn btn-secondary">画面を閉じる</button>
+      <button onclick="closeWindow()" class="btn btn-secondary">画面を閉じる</button>
     </div>
   </div>
 
@@ -550,6 +550,25 @@
       
       document.getElementById('error-details').style.display = 'block';
       document.getElementById('action-buttons').style.display = 'block';
+    }
+
+    /**
+     * 画面を閉じるボタンの処理
+     */
+    function closeWindow() {
+      console.log('画面を閉じる処理開始');
+      
+      // 一応window.close()を試行（効果がない場合が多い）
+      try {
+        window.close();
+      } catch (error) {
+        console.log('window.close()が制限されています:', error);
+      }
+      
+      // 確実に案内を表示（Stripeからのリダイレクトでは閉じられないため）
+      setTimeout(() => {
+        alert('以下の方法で画面を閉じてください：\n\n📱 スマートフォンの場合：\n• ブラウザのタブ一覧から該当タブを閉じる\n• ブラウザアプリを終了する\n\n💻 パソコンの場合：\n• ブラウザのタブの「×」ボタンをクリック\n• キーボードの「Ctrl + W」（Windows）または「Cmd + W」（Mac）\n• ブラウザウィンドウの「×」ボタンをクリック');
+      }, 100);
     }
   </script>
 </body>
