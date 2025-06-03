@@ -376,7 +376,7 @@
       }
     }
 
-    // 予約一覧を表示（簡略版）
+    // 予約一覧を表示（詳細デバッグ版）
     function displayReservations(reservations) {
       const listContainer = document.getElementById('reservation-list');
       const noDataContainer = document.getElementById('no-data');
@@ -390,7 +390,74 @@
       listContainer.style.display = 'grid';
       noDataContainer.style.display = 'none';
 
-      listContainer.innerHTML = '<div class="reservation-card"><h3>予約データ表示機能は後で追加します</h3><p>現在は期間フィルタのテスト中です。</p></div>';
+      // デバッグ情報を詳細表示
+      const today = new Date();
+      const todayStr = today.toISOString().split('T')[0];
+      
+      // 受取日別にグループ化してデバッグ
+      const dateGroups = {};
+      reservations.forEach(res => {
+        const pickupDate = res.pickupDate;
+        if (!dateGroups[pickupDate]) {
+          dateGroups[pickupDate] = [];
+        }
+        dateGroups[pickupDate].push(res);
+      });
+      
+      console.log('=== 期間フィルタデバッグ情報 ===');
+      console.log('現在の期間設定:', currentPeriod === null ? '本日以降' : `過去${currentPeriod}日間`);
+      console.log('今日の日付:', todayStr);
+      console.log('受取日別グループ:', dateGroups);
+      console.log('=====================================');
+
+      // デバッグ表示用のHTML作成
+      let debugHtml = `
+        <div class="reservation-card" style="background: #f8f9fa; border-left: 4px solid #17a2b8;">
+          <h3>🔍 期間フィルタ デバッグ情報</h3>
+          <p><strong>現在の期間設定:</strong> ${currentPeriod === null ? '本日以降' : `過去${currentPeriod}日間`}</p>
+          <p><strong>今日の日付:</strong> ${todayStr}</p>
+          <p><strong>取得した予約件数:</strong> ${reservations.length}件</p>
+          <h4>📅 受取日別の予約数:</h4>
+          <ul>
+      `;
+      
+      // 日付順にソートして表示
+      Object.keys(dateGroups).sort().forEach(date => {
+        const count = dateGroups[date].length;
+        const dateObj = new Date(date);
+        const daysDiff = Math.floor((dateObj - today) / (1000 * 60 * 60 * 24));
+        const dayLabel = daysDiff === 0 ? '(本日)' : 
+                        daysDiff === 1 ? '(明日)' : 
+                        daysDiff > 0 ? `(+${daysDiff}日後)` : `(${Math.abs(daysDiff)}日前)`;
+        
+        debugHtml += `<li><strong>${date}</strong> ${dayLabel}: ${count}件</li>`;
+      });
+      
+      debugHtml += `
+          </ul>
+          <h4>📋 最初の3件の予約詳細:</h4>
+          <ul>
+      `;
+      
+      reservations.slice(0, 3).forEach((res, index) => {
+        debugHtml += `
+          <li>
+            <strong>予約${index + 1}:</strong> 
+            注文ID: ${res.orderId}, 
+            受取日: ${res.pickupDate}, 
+            顧客: ${res.customerName}, 
+            商品: ${res.productName}
+          </li>
+        `;
+      });
+      
+      debugHtml += `
+          </ul>
+          ${reservations.length > 3 ? `<p>...他${reservations.length - 3}件</p>` : ''}
+        </div>
+      `;
+
+      listContainer.innerHTML = debugHtml;
     }
 
     // フィルタリング（プレースホルダー）
