@@ -344,7 +344,8 @@ body {
 .item-name {
   font-weight: 500;
   color: #2c3e50;
-  font-size: 16px; /* 注文内容の文字サイズを大きく */
+  font-size: 20pt; /* 20ポイントに拡大 */
+  font-family: 'UD教科書体 N-R', 'UD教科書体', 'UD Textbook', 'Meiryo', 'メイリオ', sans-serif; /* UD教科書体を優先 */
 }
 
 .item-quantity {
@@ -438,7 +439,8 @@ body {
 .product-name {
   font-weight: 500;
   color: #2c3e50;
-  font-size: 16px; /* 注文内容の文字サイズを大きく */
+  font-size: 20pt; /* 20ポイントに拡大 */
+  font-family: 'UD教科書体 N-R', 'UD教科書体', 'UD Textbook', 'Meiryo', 'メイリオ', sans-serif; /* UD教科書体を優先 */
 }
 
 .product-price {
