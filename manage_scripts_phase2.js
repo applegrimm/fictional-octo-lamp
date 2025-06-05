@@ -385,146 +385,177 @@ function updateStats(reservations) {
 }
 
 function groupByOrderId(reservations) {
-  const grouped = {};
+  const groups = {};
   
   reservations.forEach(reservation => {
-    if (!grouped[reservation.orderId]) {
-      grouped[reservation.orderId] = {
-        orderId: reservation.orderId,
-        customerName: reservation.customerName,
-        phone: reservation.phone,
-        pickupDate: reservation.pickupDate,
-        pickupTime: reservation.pickupTime,
-        totalAmount: reservation.totalAmount || 0,
+    const orderId = reservation.orderId;
+    if (!groups[orderId]) {
+      groups[orderId] = {
+        orderId: orderId,
         items: []
       };
     }
-    
-    grouped[reservation.orderId].items.push({
-      rowId: reservation.rowId,
-      itemName: reservation.itemName,
-      quantity: reservation.quantity,
-      amount: reservation.amount,
-      isCompleted: reservation.isCompleted,
-      memo: reservation.memo || '',
-      handoverStaff: reservation.handoverStaff || ''
-    });
+    groups[orderId].items.push(reservation);
   });
   
-  return Object.values(grouped);
+  return Object.values(groups).sort((a, b) => {
+    const dateA = new Date(a.items[0].pickupDate + ' ' + a.items[0].pickupTime);
+    const dateB = new Date(b.items[0].pickupDate + ' ' + b.items[0].pickupTime);
+    return dateA - dateB;
+  });
+}
+
+// HTMLエスケープ関数
+function escapeHtml(unsafe) {
+  if (!unsafe) return '';
+  return unsafe
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+// 日付時刻フォーマット関数
+function formatPickupDateTime(pickupDate, pickupTime) {
+  try {
+    // 日付をフォーマット
+    let formattedDate = pickupDate;
+    if (pickupDate && pickupDate.includes('-')) {
+      const dateParts = pickupDate.split('-');
+      if (dateParts.length === 3) {
+        formattedDate = `${dateParts[0]}年${parseInt(dateParts[1])}月${parseInt(dateParts[2])}日`;
+      }
+    }
+    
+    // 時刻をフォーマット
+    let formattedTime = pickupTime;
+    if (pickupTime && pickupTime.includes(':')) {
+      const timeParts = pickupTime.split(':');
+      if (timeParts.length >= 2) {
+        formattedTime = `${parseInt(timeParts[0])}:${timeParts[1].padStart(2, '0')}`;
+      }
+    }
+    
+    return `${formattedDate} ${formattedTime}`;
+  } catch (error) {
+    console.warn('日付フォーマットエラー:', error);
+    return `${pickupDate} ${pickupTime}`;
+  }
 }
 
 function displayReservations(reservations) {
   console.log('=== displayReservations開始 ===');
   console.log('表示対象件数:', reservations.length);
   
-  const reservationList = document.getElementById('reservation-list');
-  const noData = document.getElementById('no-data');
-  
+  const listContainer = document.getElementById('reservation-list');
+  const noDataContainer = document.getElementById('no-data');
+
   if (reservations.length === 0) {
-    reservationList.style.display = 'none';
-    noData.style.display = 'block';
+    listContainer.style.display = 'none';
+    noDataContainer.style.display = 'block';
     return;
   }
-  
+
+  listContainer.style.display = 'grid';
+  noDataContainer.style.display = 'none';
+
+  // 注文IDごとにグループ化
   const groupedReservations = groupByOrderId(reservations);
-  console.log('グループ化後:', groupedReservations.length + 'グループ');
-  
-  groupedReservations.sort((a, b) => {
-    const dateA = new Date(a.pickupDate + ' ' + a.pickupTime);
-    const dateB = new Date(b.pickupDate + ' ' + b.pickupTime);
-    return dateB - dateA;
-  });
-  
-  let html = '';
-  
-  groupedReservations.forEach((group, index) => {
-    console.log(`グループ${index + 1}:`, group);
-    
+
+  listContainer.innerHTML = groupedReservations.map(group => {
     const isCompleted = group.items.every(item => item.isCompleted);
-    const today = getTodayString();
-    const normalizedPickupDate = normalizeDateString(group.pickupDate);
-    const isPast = normalizedPickupDate < today;
+    const totalAmount = group.items[0].total;
+    const customer = group.items[0];
     
-    let cardClass = 'reservation-card';
-    if (isPast) {
-      cardClass += ' past';
-    } else if (isCompleted) {
-      cardClass += ' completed';
+    // 過去の予約かどうかを判定
+    const isPast = customer.isPastReservation || false;
+    
+    // クラス名を構築
+    let cardClasses = 'reservation-card';
+    if (isCompleted) {
+      cardClasses += ' completed';
     } else {
-      cardClass += ' pending';
+      cardClasses += ' pending';
     }
-    
-    html += `
-      <div class="${cardClass}">
+    if (isPast) {
+      cardClasses += ' past';
+    }
+
+    return `
+      <div class="${cardClasses}" data-filter="${isCompleted ? 'completed' : 'pending'}">
         <div class="card-header">
           <div class="pickup-info">
-            📅 ${group.pickupDate} ${group.pickupTime}
+            ${isPast ? '📅 (過去)' : '📅'} ${formatPickupDateTime(customer.pickupDate, customer.pickupTime)}
+          </div>
+          <div class="status ${isCompleted ? 'completed' : 'pending'}">
+            ${isCompleted ? '完了' : '未完了'}
           </div>
         </div>
         
         <div class="customer-info">
           <div class="row">
-            <span class="label">注文番号:</span>
-            <span class="value">${group.orderId}</span>
+            <span class="icon">👤</span>
+            <strong>${escapeHtml(customer.customerName)}</strong>
           </div>
           <div class="row">
-            <span class="label">お客様:</span>
-            <span class="value">${group.customerName}</span>
+            <span class="icon">📞</span>
+            <a href="tel:${customer.phone}" class="phone-link">${customer.phone}</a>
           </div>
           <div class="row">
-            <span class="label">電話番号:</span>
-            <span class="value">${group.phone}</span>
+            <span class="icon">📧</span>
+            <span>${escapeHtml(customer.email)}</span>
+          </div>
+          <div class="row">
+            <span class="icon">🆔</span>
+            <span>${escapeHtml(customer.orderId)}</span>
           </div>
         </div>
         
-        <div class="items-list">
-          <h4>📦 ご注文内容</h4>
+        <div class="products">
+          <div class="title">📦 注文内容</div>
           ${group.items.map(item => `
-            <div class="item">
-              <div class="item-name">${item.itemName}</div>
-              <div class="item-quantity">×${item.quantity}</div>
-            </div>
-            
-            <div class="controls-row">
-              <div class="toggle-container">
-                <input type="checkbox" 
-                       class="toggle-switch" 
-                       id="check-${item.rowId}"
-                       ${item.isCompleted ? 'checked' : ''}
-                       onchange="toggleCompletion(${item.rowId}, this.checked, event)">
-                <label for="check-${item.rowId}" class="toggle-label">
-                  ${item.isCompleted ? '✅ 受渡し完了' : '⏳ 未完了'}
-                  ${item.handoverStaff ? `（担当: ${item.handoverStaff}）` : ''}
-                </label>
-                <span id="save-msg-${item.rowId}" style="display: none; color: #27ae60; font-weight: bold; margin-left: 8px;">💾 自動保存中...</span>
-              </div>
-              
-              <div class="memo-area">
-                <input type="text" 
-                       class="memo-input" 
-                       id="memo-${item.rowId}"
-                       value="${item.memo}"
-                       placeholder="メモを入力...">
-                <button class="save-btn" onclick="saveMemo(${item.rowId}, event)">
-                  📝 <span class="save-btn-text">メモ保存</span>
-                </button>
-              </div>
+            <div class="product-item">
+              <span class="product-name">${escapeHtml(item.productName)} × ${item.quantity}</span>
+              <span class="product-price">${item.subtotal}円</span>
             </div>
           `).join('')}
+        </div>
+        
+        <div class="total">💰 合計金額: ${totalAmount}円</div>
+        
+        ${customer.note ? `
+          <div class="note">
+            <div class="title">📝 お客様からの備考</div>
+            <div>${escapeHtml(customer.note)}</div>
+          </div>
+        ` : ''}
+        
+        <div class="controls-row">
+          <div class="toggle-container">
+            <label class="toggle-switch">
+              <input type="checkbox" id="check-${group.orderId}" ${isCompleted ? 'checked' : ''} 
+                     onchange="handleToggleChange('${group.items[0].rowId}', this)">
+              <span class="toggle-slider"></span>
+            </label>
+            <label for="check-${group.orderId}" class="toggle-label">受渡完了</label>
+            ${customer.handoverStaff ? `<span style="color: #666; font-size: 0.9em; margin-left: 8px;">担当: ${escapeHtml(customer.handoverStaff)}</span>` : ''}
+            <span class="auto-save-message" id="save-msg-${group.orderId}" style="display: none; color: #27ae60; font-size: 0.9em; margin-left: 8px;">自動保存中...</span>
+          </div>
           
-          <div class="total-amount">
-            合計金額: ¥${group.totalAmount.toLocaleString()}
+          <div class="memo-area">
+            <input type="text" class="memo-input" id="memo-${group.orderId}" 
+                   value="${escapeHtml(customer.memo || '')}" placeholder="スタッフメモを入力..." maxlength="200">
+            <button class="save-btn" onclick="updateReservationPhase2('${group.items[0].rowId}', null, document.getElementById('memo-${group.orderId}').value)">
+              📝 <span class="save-btn-text">メモ保存</span>
+            </button>
           </div>
         </div>
       </div>
     `;
-  });
+  }).join('');
   
-  reservationList.innerHTML = html;
-  reservationList.style.display = 'block';
-  noData.style.display = 'none';
-  
+  // 本日分の予約チェック
   checkTodayReservations();
   
   console.log('表示HTML生成完了');
@@ -580,6 +611,23 @@ function toggleCompletion(rowId, checked, event) {
     document.getElementById('staff-name-input').focus();
   } else {
     updateReservationPhase2(rowId, checked, null, event, null);
+  }
+}
+
+// 元のmanage.htmlのトグル処理関数
+function handleToggleChange(rowId, toggleElement) {
+  const checked = toggleElement.checked;
+  console.log('=== handleToggleChange ===', {rowId, checked});
+  
+  if (checked) {
+    // チェックONの場合は担当者名入力を要求
+    pendingToggleRowId = rowId;
+    pendingToggleElement = toggleElement;
+    document.getElementById('staff-modal').style.display = 'flex';
+    document.getElementById('staff-name-input').focus();
+  } else {
+    // チェックOFFの場合は直接更新
+    updateReservationPhase2(rowId, checked, null, {target: toggleElement}, null);
   }
 }
 
