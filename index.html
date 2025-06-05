@@ -677,6 +677,24 @@
           <label for="privacy-consent">上記の個人情報保護方針を確認し、個人情報の取り扱いに同意します<span class="required">*</span></label>
         </div>
         <span class="error-message" id="privacy-consent-error"></span>
+        
+        <!-- キャンセルポリシー同意チェックボックス -->
+        <div class="consent-checkbox">
+          <input type="checkbox" id="cancel-policy-consent" name="cancel-policy-consent" required>
+          <label for="cancel-policy-consent">
+            <a href="cancel-policy.html?from=form" target="_blank" style="color: #3498db; text-decoration: underline;">キャンセルポリシー</a>を確認し、キャンセル条件に同意します<span class="required">*</span>
+          </label>
+        </div>
+        <span class="error-message" id="cancel-policy-consent-error"></span>
+        
+        <!-- キャンセルポリシー詳細リンク -->
+        <div style="margin: 16px 0; padding: 12px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #3498db;">
+          <p style="margin: 0; font-size: 0.9em; color: #555;">
+            📋 <strong>キャンセルについて：</strong>
+            ご予約のキャンセルは受取予定日の<strong style="color: #e74c3c;">2日前</strong>までにご連絡が必要です。<br>
+            詳細は<a href="cancel-policy.html?from=form" target="_blank" style="color: #3498db; text-decoration: underline; font-weight: bold;">キャンセルポリシー</a>をご確認ください。
+          </p>
+        </div>
       </div>
       
       <!-- reCAPTCHA v3は背景で動作するため表示要素は不要 -->
@@ -1882,6 +1900,12 @@
         }
       });
       
+      // キャンセルポリシー同意チェック
+      const cancelPolicyConsent = document.getElementById('cancel-policy-consent').checked;
+      if (!cancelPolicyConsent) {
+        errors.push({ field: 'cancel-policy-consent', message: 'キャンセルポリシーへの同意が必要です' });
+      }
+      
       return { isValid: errors.length === 0, errors: errors };
     }
     
@@ -2124,6 +2148,13 @@
         const privacyConsent = document.getElementById('privacy-consent').checked;
         if (!privacyConsent) {
           alert('プライバシーポリシーへの同意が必要です。');
+          return;
+        }
+        
+        // キャンセルポリシー同意チェック
+        const cancelPolicyConsent = document.getElementById('cancel-policy-consent').checked;
+        if (!cancelPolicyConsent) {
+          alert('キャンセルポリシーへの同意が必要です。');
           return;
         }
         
