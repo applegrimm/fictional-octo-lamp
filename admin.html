@@ -686,8 +686,11 @@
             <button class="btn btn-primary" onclick="addStoreRow()">
               ➕ 店舗を追加
             </button>
-            <button class="btn btn-success" onclick="generateStoresJson()">
-              💾 stores.jsonを生成
+            <button class="btn btn-success" onclick="pushToGitHub('stores')">
+              📤 GitHubへアップロード
+            </button>
+            <button class="btn btn-secondary" onclick="generateStoresJson()">
+              💾 ローカルに保存
             </button>
           </div>
         </div>
@@ -729,8 +732,11 @@
             <button class="btn btn-primary" onclick="addProductRow()">
               ➕ 商品を追加
             </button>
-            <button class="btn btn-success" onclick="generateProductsJson()">
-              💾 products.jsonを生成
+            <button class="btn btn-success" onclick="pushToGitHub('products')">
+              📤 GitHubへアップロード
+            </button>
+            <button class="btn btn-secondary" onclick="generateProductsJson()">
+              💾 ローカルに保存
             </button>
           </div>
         </div>
@@ -768,7 +774,7 @@
             <button class="btn btn-warning" onclick="testGitHubConnection()">
               🔧 接続テスト
             </button>
-            <button class="btn btn-success" onclick="pushToGitHub('both')">
+            <button class="btn btn-success" onclick="pushToGitHub('all')">
               📤 全てをGitHubにプッシュ
             </button>
             <button class="btn btn-danger" onclick="logout()" style="margin-left: 15px;">
@@ -867,6 +873,54 @@
               <button class="btn btn-success" onclick="pushToGitHub('products')">
                 🛍️ products.jsonをプッシュ
               </button>
+              <button class="btn btn-warning" onclick="pushToGitHub('admin')">
+                🔧 admin.htmlをプッシュ
+              </button>
+            </div>
+            
+            <h3>🔑 パスワード変更</h3>
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 15px; margin-bottom: 20px;">
+              <h4 style="margin-top: 0; color: #856404;">パスワード変更機能</h4>
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 15px;">
+                <div>
+                  <label for="current-password" style="display: block; font-weight: bold; margin-bottom: 8px;">
+                    現在のパスワード:
+                  </label>
+                  <input type="password" id="current-password" 
+                         placeholder="現在のパスワードを入力" 
+                         style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+                <div>
+                  <label for="new-password" style="display: block; font-weight: bold; margin-bottom: 8px;">
+                    新しいパスワード:
+                  </label>
+                  <input type="password" id="new-password" 
+                         placeholder="新しいパスワードを入力" 
+                         style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+                </div>
+              </div>
+              <div style="margin-bottom: 15px;">
+                <label for="confirm-password" style="display: block; font-weight: bold; margin-bottom: 8px;">
+                  新しいパスワード（確認）:
+                </label>
+                <input type="password" id="confirm-password" 
+                       placeholder="新しいパスワードを再入力" 
+                       style="width: 50%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
+              </div>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn btn-warning" onclick="changePassword()">
+                  🔑 パスワードを変更
+                </button>
+                <button class="btn btn-success" onclick="pushUpdatedAdminToGitHub()">
+                  📤 新しいadmin.htmlをGitHubにプッシュ
+                </button>
+                <button class="btn btn-secondary" onclick="downloadUpdatedAdminFile()">
+                  📥 ローカルにダウンロード
+                </button>
+              </div>
+              <small style="color: #856404; display: block; margin-top: 10px;">
+                ⚠️ パスワード変更後は、「GitHubにプッシュ」または「ローカルにダウンロード」してファイルを更新してください
+              </small>
             </div>
           </div>
         </div>
@@ -1554,16 +1608,21 @@
       const config = getGitHubConfig();
       if (!config) return;
       
-      if (type === 'both') {
+      if (type === 'both' || type === 'all') {
         await pushFileToGitHub('stores', storesData, config);
         await pushFileToGitHub('products', productsData, config);
+        if (type === 'all') {
+          await pushAdminFileToGitHub(config);
+        }
       } else if (type === 'stores') {
         await pushFileToGitHub('stores', storesData, config);
       } else if (type === 'products') {
         await pushFileToGitHub('products', productsData, config);
+      } else if (type === 'admin') {
+        await pushAdminFileToGitHub(config);
       }
       
-      showMessage(`${type === 'both' ? '全ファイル' : type + '.json'}をGitHubにプッシュしました`, 'success');
+      showMessage(`${type === 'both' ? 'JSONファイル' : type === 'all' ? '全ファイル' : type === 'admin' ? 'admin.html' : type + '.json'}をGitHubにプッシュしました`, 'success');
       
     } catch (error) {
       showMessage('GitHubプッシュ失敗: ' + error.message, 'error');
@@ -1704,6 +1763,79 @@
       loadGitHubConfig();
     }
   });
+  
+  /**
+   * admin.htmlをGitHubにプッシュ
+   */
+  async function pushAdminFileToGitHub(config) {
+    const fileName = 'admin.html';
+    const filePath = config.path ? `${config.path}${fileName}` : fileName;
+    
+    addGitHubLog(`📤 ${fileName}をプッシュ中...`);
+    
+    // 現在のHTMLコンテンツを取得
+    const htmlContent = document.documentElement.outerHTML;
+    const encodedContent = btoa(unescape(encodeURIComponent(htmlContent)));
+    
+    // 既存ファイルのSHAを取得
+    let sha = null;
+    try {
+      const getResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
+        headers: {
+          'Authorization': `token ${config.token}`,
+          'Accept': 'application/vnd.github.v3+json'
+        }
+      });
+      
+      if (getResponse.ok) {
+        const fileInfo = await getResponse.json();
+        sha = fileInfo.sha;
+        addGitHubLog(`   - 既存ファイルを更新 (SHA: ${sha.substring(0, 7)})`);
+      } else if (getResponse.status === 404) {
+        addGitHubLog(`   - 新規ファイルを作成`);
+      } else {
+        throw new Error(`ファイル情報取得エラー: HTTP ${getResponse.status}`);
+      }
+    } catch (error) {
+      addGitHubLog(`   - ファイル情報取得でエラー: ${error.message}`);
+    }
+    
+    // ファイルをコミット
+    const commitData = {
+      message: `🔧 Update admin.html via admin interface`,
+      content: encodedContent,
+      branch: config.branch
+    };
+    
+    if (sha) {
+      commitData.sha = sha;
+    }
+    
+    const putResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `token ${config.token}`,
+        'Accept': 'application/vnd.github.v3+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(commitData)
+    });
+    
+    if (!putResponse.ok) {
+      const error = await putResponse.json();
+      throw new Error(`HTTP ${putResponse.status}: ${error.message}`);
+    }
+    
+    const result = await putResponse.json();
+    addGitHubLog(`✅ ${fileName}プッシュ完了`);
+    addGitHubLog(`   - コミットSHA: ${result.commit.sha.substring(0, 7)}`);
+    addGitHubLog(`   - ファイルサイズ: ${Math.round(htmlContent.length / 1024)}KB`);
+    addGitHubLog(`   - URL: ${result.content.html_url}`);
+  }
+  
+  /**
+   * 個別ファイルをGitHubにプッシュ
+   */
 </script>
 
 <script>
@@ -1827,8 +1959,15 @@
     
     const password = document.getElementById('auth-password').value;
     
+    // デバッグ情報を出力
+    console.log('🔍 デバッグ情報:');
+    console.log('  入力パスワード:', password);
+    console.log('  期待ハッシュ:', AUTH_CONFIG.passwordHash);
+    
     // パスワードをハッシュ化
     const hash = await hashPassword(password);
+    console.log('  計算ハッシュ:', hash);
+    console.log('  一致判定:', hash === AUTH_CONFIG.passwordHash);
     
     // パスワード検証
     if (hash === AUTH_CONFIG.passwordHash) {
@@ -2031,6 +2170,214 @@
   // =============================
   // グローバル変数
   // =============================
+</script>
+
+<script>
+  // =============================
+  // パスワード変更機能
+  // =============================
+  
+  // 新しいパスワードハッシュを一時保存
+  let newPasswordHash = null;
+  
+  /**
+   * パスワード変更処理
+   */
+  async function changePassword() {
+    try {
+      const currentPassword = document.getElementById('current-password').value;
+      const newPassword = document.getElementById('new-password').value;
+      const confirmPassword = document.getElementById('confirm-password').value;
+      
+      // バリデーション
+      if (!currentPassword || !newPassword || !confirmPassword) {
+        showMessage('すべてのパスワードフィールドを入力してください', 'error');
+        return;
+      }
+      
+      if (newPassword !== confirmPassword) {
+        showMessage('新しいパスワードと確認パスワードが一致しません', 'error');
+        return;
+      }
+      
+      if (newPassword.length < 4) {
+        showMessage('新しいパスワードは4文字以上で入力してください', 'error');
+        return;
+      }
+      
+      // 現在のパスワードを検証
+      const currentHash = await hashPassword(currentPassword);
+      if (currentHash !== AUTH_CONFIG.passwordHash) {
+        showMessage('現在のパスワードが間違っています', 'error');
+        return;
+      }
+      
+      // 新しいパスワードのハッシュを生成
+      newPasswordHash = await hashPassword(newPassword);
+      
+      // 成功メッセージ
+      showMessage('パスワードハッシュを生成しました。「更新されたadmin.htmlをダウンロード」ボタンをクリックしてください', 'success');
+      addGitHubLog(`🔑 新しいパスワードハッシュを生成しました`);
+      addGitHubLog(`   - 新しいパスワード: ${newPassword}`);
+      addGitHubLog('   - 「更新されたadmin.htmlをダウンロード」ボタンでファイルを取得してください');
+      
+      // フィールドをクリア
+      document.getElementById('current-password').value = '';
+      document.getElementById('new-password').value = '';
+      document.getElementById('confirm-password').value = '';
+      
+    } catch (error) {
+      showMessage('パスワード変更処理でエラーが発生しました: ' + error.message, 'error');
+      addGitHubLog('❌ パスワード変更エラー: ' + error.message);
+    }
+  }
+  
+  /**
+   * 更新されたadmin.htmlファイルをダウンロード
+   */
+  async function downloadUpdatedAdminFile() {
+    try {
+      if (!newPasswordHash) {
+        showMessage('先にパスワード変更処理を実行してください', 'error');
+        return;
+      }
+      
+      // 現在のHTMLコンテンツを取得
+      const currentHTML = document.documentElement.outerHTML;
+      
+      // パスワードハッシュを置換
+      const updatedHTML = currentHTML.replace(
+        /passwordHash: "[^"]*"/,
+        `passwordHash: "${newPasswordHash}"`
+      );
+      
+      // コメント部分も更新
+      const finalHTML = updatedHTML.replace(
+        /\/\/ デフォルトパスワード: "[^"]*"/,
+        `// デフォルトパスワード: "***変更済み***"`
+      );
+      
+      // ファイルをダウンロード
+      const blob = new Blob([finalHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'admin.html';
+      a.click();
+      
+      URL.revokeObjectURL(url);
+      
+      showMessage('新しいadmin.htmlファイルをダウンロードしました。このファイルと置き換えてください', 'success');
+      addGitHubLog('📥 更新されたadmin.htmlファイルをダウンロードしました');
+      addGitHubLog('   - 現在のadmin.htmlファイルと置き換えてください');
+      addGitHubLog('   - 次回から新しいパスワードでログインできます');
+      
+      // 一時的なハッシュをクリア
+      newPasswordHash = null;
+      
+    } catch (error) {
+      showMessage('ファイルダウンロードでエラーが発生しました: ' + error.message, 'error');
+      addGitHubLog('❌ ファイルダウンロードエラー: ' + error.message);
+    }
+  }
+  
+  /**
+   * 更新されたadmin.htmlをGitHubにプッシュ
+   */
+  async function pushUpdatedAdminToGitHub() {
+    try {
+      if (!newPasswordHash) {
+        showMessage('先にパスワード変更処理を実行してください', 'error');
+        return;
+      }
+      
+      const config = getGitHubConfig();
+      if (!config) return;
+      
+      addGitHubLog('📤 新しいパスワードでadmin.htmlをGitHubにプッシュ中...');
+      
+      // 現在のHTMLコンテンツを取得
+      const currentHTML = document.documentElement.outerHTML;
+      
+      // パスワードハッシュを置換
+      const updatedHTML = currentHTML.replace(
+        /passwordHash: "[^"]*"/,
+        `passwordHash: "${newPasswordHash}"`
+      );
+      
+      // コメント部分も更新
+      const finalHTML = updatedHTML.replace(
+        /\/\/ デフォルトパスワード: "[^"]*"/,
+        `// デフォルトパスワード: "***変更済み***"`
+      );
+      
+      const fileName = 'admin.html';
+      const filePath = config.path ? `${config.path}${fileName}` : fileName;
+      const encodedContent = btoa(unescape(encodeURIComponent(finalHTML)));
+      
+      // 既存ファイルのSHAを取得
+      let sha = null;
+      try {
+        const getResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
+          headers: {
+            'Authorization': `token ${config.token}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        
+        if (getResponse.ok) {
+          const fileInfo = await getResponse.json();
+          sha = fileInfo.sha;
+          addGitHubLog(`   - 既存ファイルを更新 (SHA: ${sha.substring(0, 7)})`);
+        }
+      } catch (error) {
+        addGitHubLog(`   - ファイル情報取得でエラー: ${error.message}`);
+      }
+      
+      // ファイルをコミット
+      const commitData = {
+        message: `🔑 Update admin.html with new password hash`,
+        content: encodedContent,
+        branch: config.branch
+      };
+      
+      if (sha) {
+        commitData.sha = sha;
+      }
+      
+      const putResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `token ${config.token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(commitData)
+      });
+      
+      if (!putResponse.ok) {
+        const error = await putResponse.json();
+        throw new Error(`HTTP ${putResponse.status}: ${error.message}`);
+      }
+      
+      const result = await putResponse.json();
+      
+      showMessage('新しいパスワードでadmin.htmlをGitHubにプッシュしました！', 'success');
+      addGitHubLog(`✅ ${fileName}プッシュ完了`);
+      addGitHubLog(`   - コミットSHA: ${result.commit.sha.substring(0, 7)}`);
+      addGitHubLog(`   - 新しいパスワードが適用されました`);
+      addGitHubLog(`   - URL: ${result.content.html_url}`);
+      addGitHubLog('   - 次回から新しいパスワードでログインできます');
+      
+      // 一時的なハッシュをクリア
+      newPasswordHash = null;
+      
+    } catch (error) {
+      showMessage('GitHubプッシュでエラーが発生しました: ' + error.message, 'error');
+      addGitHubLog('❌ GitHubプッシュエラー: ' + error.message);
+    }
+  }
 </script>
 </body>
 </html> 
