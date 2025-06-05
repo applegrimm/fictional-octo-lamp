@@ -419,6 +419,8 @@ function escapeHtml(unsafe) {
 // 日付時刻フォーマット関数
 function formatPickupDateTime(pickupDate, pickupTime) {
   try {
+    console.log('日付フォーマット入力:', {pickupDate, pickupTime});
+    
     // 日付をフォーマット
     let formattedDate = pickupDate;
     if (pickupDate && pickupDate.includes('-')) {
@@ -428,16 +430,28 @@ function formatPickupDateTime(pickupDate, pickupTime) {
       }
     }
     
-    // 時刻をフォーマット
+    // 時刻をフォーマット（時間のバリデーション追加）
     let formattedTime = pickupTime;
     if (pickupTime && pickupTime.includes(':')) {
       const timeParts = pickupTime.split(':');
       if (timeParts.length >= 2) {
-        formattedTime = `${parseInt(timeParts[0])}:${timeParts[1].padStart(2, '0')}`;
+        let hour = parseInt(timeParts[0]);
+        let minute = parseInt(timeParts[1]);
+        
+        // 時間の範囲チェック（0-23時）
+        if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
+          formattedTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        } else {
+          console.warn('無効な時刻:', {hour, minute, original: pickupTime});
+          // 異常な時刻の場合は元の値をそのまま使用
+          formattedTime = pickupTime;
+        }
       }
     }
     
-    return `${formattedDate} ${formattedTime}`;
+    const result = `${formattedDate} ${formattedTime}`;
+    console.log('日付フォーマット結果:', result);
+    return result;
   } catch (error) {
     console.warn('日付フォーマットエラー:', error);
     return `${pickupDate} ${pickupTime}`;
