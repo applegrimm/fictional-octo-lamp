@@ -691,7 +691,7 @@
         <div style="margin: 16px 0; padding: 12px; background: #f8f9fa; border-radius: 4px; border-left: 4px solid #3498db;">
           <p style="margin: 0; font-size: 0.9em; color: #555;">
             📋 <strong>キャンセルについて：</strong>
-            ご予約のキャンセルは受取予定日の<strong style="color: #e74c3c;">2日前</strong>までにご連絡が必要です。<br>
+            ご予約のキャンセルは受取予定日の<strong style="color: #e74c3c;">3日前</strong>までにご連絡が必要です。<br>
             詳細は<a href="cancel-policy.html?from=form" target="_blank" style="color: #3498db; text-decoration: underline; font-weight: bold;">キャンセルポリシー</a>をご確認ください。
           </p>
         </div>
@@ -726,7 +726,7 @@
         </button>
         
         <!-- 事前決済ボタン（新規） -->
-        <button type="button" id="payment-btn" class="payment-reservation-btn" style="display: none;">
+        <button type="button" id="payment-btn" class="payment-reservation-btn">
           💳 事前決済で予約
         </button>
       </div>
@@ -2059,8 +2059,8 @@
           `• ${item.name} × ${item.qty} = ${item.subtotal.toLocaleString()}円`
         ).join('<br>');
         
-        // 決済機能が有効で全ての項目が正しく入力されている場合のみ決済ボタンを表示
-        if (typeof isPaymentEnabled === 'function' && isPaymentEnabled() && allValid) {
+        // 決済機能が有効の場合は決済ボタンを表示
+        if (typeof isPaymentEnabled === 'function' && isPaymentEnabled()) {
           paymentBtn.style.display = 'block';
           
           // テストモード表示
