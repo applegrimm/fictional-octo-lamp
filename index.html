@@ -2080,7 +2080,12 @@
         }
       } else {
         totalSection.style.display = 'none';
-        paymentBtn.style.display = 'none';
+        // 決済機能が有効の場合は商品未選択でもボタンを表示
+        if (typeof isPaymentEnabled === 'function' && isPaymentEnabled()) {
+          paymentBtn.style.display = 'block';
+        } else {
+          paymentBtn.style.display = 'none';
+        }
       }
     }
     
