@@ -876,12 +876,15 @@
     // 商品・店舗データを読み込む
     async function loadProductsAndStores() {
       try {
+        // キャッシュバスター（タイムスタンプ）を追加してブラウザキャッシュを回避
+        const timestamp = Date.now();
+        
         // 商品データを読み込み
-        const productsResponse = await fetch('./products.json');
+        const productsResponse = await fetch(`./products.json?v=${timestamp}`);
         allProducts = await productsResponse.json();
         
         // 店舗データを読み込み
-        const storesResponse = await fetch('./stores.json');
+        const storesResponse = await fetch(`./stores.json?v=${timestamp}`);
         allStores = await storesResponse.json();
         
         // 店舗選択肢を設定
@@ -895,6 +898,12 @@
         
         // 商品選択肢を更新
         updateProductSelects();
+        
+        console.log('✅ データ読み込み完了:', {
+          商品数: allProducts.length,
+          店舗数: allStores.length,
+          キャッシュバスター: timestamp
+        });
         
       } catch (error) {
         console.error('データの読み込みに失敗しました:', error);
