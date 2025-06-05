@@ -1,0 +1,1156 @@
+<!--
+  @file admin.html
+  @brief 店舗・商品情報管理画面
+  @details スプレッドシート風UIで店舗・商品データを編集し、JSONファイルを生成・更新
+  @author AI Assistant
+  @date 2024-12-20
+-->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>店舗・商品情報管理画面</title>
+  
+  <style>
+    /* =============================
+       基本レイアウト
+    ============================= */
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', 'Meiryo', sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f5f5f5;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
+    
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 20px 30px;
+      text-align: center;
+    }
+    
+    .header h1 {
+      margin: 0;
+      font-size: 2rem;
+      font-weight: 600;
+    }
+    
+    .header p {
+      margin: 10px 0 0 0;
+      opacity: 0.9;
+      font-size: 1.1rem;
+    }
+    
+    /* =============================
+       タブナビゲーション
+    ============================= */
+    .tab-nav {
+      background: #fff;
+      border-bottom: 2px solid #e9ecef;
+      display: flex;
+      padding: 0 30px;
+    }
+    
+    .tab-btn {
+      background: none;
+      border: none;
+      padding: 15px 25px;
+      cursor: pointer;
+      font-size: 1rem;
+      font-weight: 500;
+      color: #6c757d;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s ease;
+    }
+    
+    .tab-btn:hover {
+      color: #495057;
+      background-color: #f8f9fa;
+    }
+    
+    .tab-btn.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background-color: #f8f9fa;
+    }
+    
+    /* =============================
+       コンテンツエリア
+    ============================= */
+    .content {
+      padding: 30px;
+    }
+    
+    .tab-content {
+      display: none;
+    }
+    
+    .tab-content.active {
+      display: block;
+    }
+    
+    /* =============================
+       コントロールバー
+    ============================= */
+    .controls {
+      margin-bottom: 25px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px;
+      background: #f8f9fa;
+      border-radius: 8px;
+      border-left: 4px solid #667eea;
+    }
+    
+    .controls-left {
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+    }
+    
+    .controls-right {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    
+    .btn-primary:hover {
+      background: #5a6fd8;
+      transform: translateY(-1px);
+    }
+    
+    .btn-success {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-success:hover {
+      background: #218838;
+      transform: translateY(-1px);
+    }
+    
+    .btn-warning {
+      background: #ffc107;
+      color: #212529;
+    }
+    
+    .btn-warning:hover {
+      background: #e0a800;
+      transform: translateY(-1px);
+    }
+    
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-danger:hover {
+      background: #c82333;
+      transform: translateY(-1px);
+    }
+    
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+    
+    .btn-secondary:hover {
+      background: #5a6268;
+      transform: translateY(-1px);
+    }
+    
+    /* =============================
+       ファイルアップロード
+    ============================= */
+    .file-upload {
+      position: relative;
+      display: inline-block;
+      overflow: hidden;
+    }
+    
+    .file-upload input[type="file"] {
+      position: absolute;
+      left: -9999px;
+    }
+    
+    .file-upload label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: #6c757d;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+    
+    .file-upload label:hover {
+      background: #5a6268;
+      transform: translateY(-1px);
+    }
+    
+    /* =============================
+       テーブルスタイル
+    ============================= */
+    .table-container {
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
+    
+    .data-table th {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 15px 12px;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid #5a6fd8;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    
+    .data-table td {
+      padding: 12px;
+      border-bottom: 1px solid #e9ecef;
+      vertical-align: top;
+    }
+    
+    .data-table tbody tr:hover {
+      background-color: #f8f9fa;
+    }
+    
+    .data-table tbody tr:nth-child(even) {
+      background-color: #fdfdfd;
+    }
+    
+    .data-table tbody tr:nth-child(even):hover {
+      background-color: #f1f3f4;
+    }
+    
+    /* =============================
+       入力フィールド
+    ============================= */
+    .data-table input,
+    .data-table select,
+    .data-table textarea {
+      width: 100%;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      padding: 8px;
+      font-size: 0.9rem;
+      transition: border-color 0.3s ease;
+    }
+    
+    .data-table input:focus,
+    .data-table select:focus,
+    .data-table textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.2);
+    }
+    
+    .data-table input[type="number"] {
+      text-align: right;
+    }
+    
+    .data-table textarea {
+      min-height: 60px;
+      resize: vertical;
+    }
+    
+    /* =============================
+       営業時間設定
+    ============================= */
+    .hours-input {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      min-width: 200px;
+    }
+    
+    .hours-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 0.8rem;
+    }
+    
+    .hours-row input[type="time"] {
+      width: 70px;
+      font-size: 0.8rem;
+      padding: 4px;
+    }
+    
+    .hours-row input[type="checkbox"] {
+      width: auto;
+    }
+    
+    .hours-row label {
+      min-width: 30px;
+      font-size: 0.8rem;
+    }
+    
+    /* =============================
+       アクションボタン
+    ============================= */
+    .action-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      margin: 2px;
+      transition: all 0.3s ease;
+    }
+    
+    .action-btn:hover {
+      transform: translateY(-1px);
+    }
+    
+    .btn-add {
+      background: #28a745;
+      color: white;
+    }
+    
+    .btn-add:hover {
+      background: #218838;
+    }
+    
+    .btn-remove {
+      background: #dc3545;
+      color: white;
+    }
+    
+    .btn-remove:hover {
+      background: #c82333;
+    }
+    
+    /* =============================
+       メッセージ表示
+    ============================= */
+    .message {
+      padding: 15px 20px;
+      margin: 20px 0;
+      border-radius: 6px;
+      border-left: 4px solid;
+      font-weight: 500;
+    }
+    
+    .message-success {
+      background-color: #d4edda;
+      border-color: #28a745;
+      color: #155724;
+    }
+    
+    .message-error {
+      background-color: #f8d7da;
+      border-color: #dc3545;
+      color: #721c24;
+    }
+    
+    .message-info {
+      background-color: #d1ecf1;
+      border-color: #17a2b8;
+      color: #0c5460;
+    }
+    
+    /* =============================
+       レスポンシブ対応
+    ============================= */
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+      }
+      
+      .header {
+        padding: 15px 20px;
+      }
+      
+      .header h1 {
+        font-size: 1.5rem;
+      }
+      
+      .content {
+        padding: 20px 15px;
+      }
+      
+      .controls {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      
+      .controls-left,
+      .controls-right {
+        justify-content: center;
+      }
+      
+      .data-table {
+        font-size: 0.8rem;
+      }
+      
+      .data-table th,
+      .data-table td {
+        padding: 8px 6px;
+      }
+      
+      .hours-input {
+        min-width: 150px;
+      }
+    }
+    
+    /* =============================
+       プログレスバー
+    ============================= */
+    .progress-container {
+      width: 100%;
+      height: 4px;
+      background-color: #e9ecef;
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      background: linear-gradient(90deg, #667eea, #764ba2);
+      width: 0%;
+      transition: width 0.3s ease;
+    }
+    
+    /* =============================
+       隠し要素
+    ============================= */
+    .hidden {
+      display: none !important;
+    }
+    
+    /* =============================
+       ローディング状態
+    ============================= */
+    .loading {
+      opacity: 0.6;
+      pointer-events: none;
+    }
+    
+    .loading::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 20px;
+      height: 20px;
+      margin: -10px 0 0 -10px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #667eea;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- ヘッダー -->
+    <div class="header">
+      <h1>🏪 店舗・商品情報管理システム</h1>
+      <p>スプレッドシート風エディタで店舗・商品データを編集し、JSONファイルを生成</p>
+    </div>
+    
+    <!-- タブナビゲーション -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="switchTab('stores')">
+        🏢 店舗管理
+      </button>
+      <button class="tab-btn" onclick="switchTab('products')">
+        🛍️ 商品管理
+      </button>
+    </div>
+    
+    <!-- メッセージ表示エリア -->
+    <div id="message-area"></div>
+    
+    <!-- 店舗管理タブ -->
+    <div id="stores-tab" class="tab-content active">
+      <div class="content">
+        <div class="controls">
+          <div class="controls-left">
+            <h2 style="margin: 0; color: #495057;">🏢 店舗情報管理</h2>
+          </div>
+          <div class="controls-right">
+            <div class="file-upload">
+              <input type="file" id="stores-file-input" accept=".json" onchange="loadStoresFromFile(event)">
+              <label for="stores-file-input">
+                📁 stores.jsonを読み込み
+              </label>
+            </div>
+            <button class="btn btn-primary" onclick="addStoreRow()">
+              ➕ 店舗を追加
+            </button>
+            <button class="btn btn-success" onclick="generateStoresJson()">
+              💾 stores.jsonを生成
+            </button>
+          </div>
+        </div>
+        
+        <div class="table-container">
+          <table class="data-table" id="stores-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">ID</th>
+                <th style="width: 200px;">店舗名</th>
+                <th style="width: 150px;">管理シークレット</th>
+                <th style="width: 600px;">営業時間</th>
+                <th style="width: 200px;">休業日</th>
+                <th style="width: 100px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="stores-tbody">
+              <!-- 店舗データが動的に追加される -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 商品管理タブ -->
+    <div id="products-tab" class="tab-content">
+      <div class="content">
+        <div class="controls">
+          <div class="controls-left">
+            <h2 style="margin: 0; color: #495057;">🛍️ 商品情報管理</h2>
+          </div>
+          <div class="controls-right">
+            <div class="file-upload">
+              <input type="file" id="products-file-input" accept=".json" onchange="loadProductsFromFile(event)">
+              <label for="products-file-input">
+                📁 products.jsonを読み込み
+              </label>
+            </div>
+            <button class="btn btn-primary" onclick="addProductRow()">
+              ➕ 商品を追加
+            </button>
+            <button class="btn btn-success" onclick="generateProductsJson()">
+              💾 products.jsonを生成
+            </button>
+          </div>
+        </div>
+        
+        <div class="table-container">
+          <table class="data-table" id="products-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">ID</th>
+                <th style="width: 200px;">商品名</th>
+                <th style="width: 100px;">価格（円）</th>
+                <th style="width: 100px;">最小日数</th>
+                <th style="width: 100px;">締切時間</th>
+                <th style="width: 120px;">日数タイプ</th>
+                <th style="width: 300px;">説明</th>
+                <th style="width: 100px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="products-tbody">
+              <!-- 商品データが動的に追加される -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // =============================
+    // グローバル変数
+    // =============================
+    let storesData = [];
+    let productsData = [];
+    
+    // =============================
+    // 初期化処理
+    // =============================
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('店舗・商品管理画面を初期化しています...');
+      
+      // 既存のJSONファイルを読み込み
+      loadExistingData();
+    });
+    
+    // =============================
+    // タブ切り替え
+    // =============================
+    function switchTab(tabName) {
+      // すべてのタブを非表示
+      document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+      });
+      
+      // すべてのタブボタンを非アクティブ
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+      
+      // 選択されたタブを表示
+      document.getElementById(tabName + '-tab').classList.add('active');
+      event.target.classList.add('active');
+    }
+    
+    // =============================
+    // メッセージ表示
+    // =============================
+    function showMessage(text, type = 'info') {
+      const messageArea = document.getElementById('message-area');
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message message-${type}`;
+      messageDiv.textContent = text;
+      
+      messageArea.innerHTML = '';
+      messageArea.appendChild(messageDiv);
+      
+      // 5秒後に自動削除
+      setTimeout(() => {
+        if (messageDiv.parentNode) {
+          messageDiv.parentNode.removeChild(messageDiv);
+        }
+      }, 5000);
+    }
+    
+    // =============================
+    // 既存データの読み込み
+    // =============================
+    async function loadExistingData() {
+      try {
+        showMessage('既存データを読み込んでいます...', 'info');
+        
+        // キャッシュバスター（タイムスタンプ）を追加
+        const timestamp = Date.now();
+        
+        // stores.jsonを読み込み
+        try {
+          const storesResponse = await fetch(`./stores.json?v=${timestamp}`);
+          if (storesResponse.ok) {
+            storesData = await storesResponse.json();
+            console.log('店舗データ読み込み成功:', storesData.length + '件');
+          }
+        } catch (error) {
+          console.warn('stores.jsonの読み込みに失敗:', error);
+        }
+        
+        // products.jsonを読み込み
+        try {
+          const productsResponse = await fetch(`./products.json?v=${timestamp}`);
+          if (productsResponse.ok) {
+            productsData = await productsResponse.json();
+            console.log('商品データ読み込み成功:', productsData.length + '件');
+          }
+        } catch (error) {
+          console.warn('products.jsonの読み込みに失敗:', error);
+        }
+        
+        // テーブルを更新
+        updateStoresTable();
+        updateProductsTable();
+        
+        showMessage(`データの読み込みが完了しました（店舗:${storesData.length}件、商品:${productsData.length}件）`, 'success');
+        
+      } catch (error) {
+        console.error('データ読み込みエラー:', error);
+        showMessage('データの読み込み中にエラーが発生しました: ' + error.message, 'error');
+      }
+    }
+    
+    // =============================
+    // 店舗管理機能
+    // =============================
+    
+    /**
+     * 店舗テーブルを更新
+     */
+    function updateStoresTable() {
+      const tbody = document.getElementById('stores-tbody');
+      tbody.innerHTML = '';
+      
+      storesData.forEach((store, index) => {
+        const row = createStoreRow(store, index);
+        tbody.appendChild(row);
+      });
+      
+      // 店舗がない場合は初期行を追加
+      if (storesData.length === 0) {
+        addStoreRow();
+      }
+    }
+    
+    /**
+     * 店舗行を作成
+     */
+    function createStoreRow(store, index) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>
+          <input type="text" value="${store.id || ''}" 
+                 onchange="updateStoreData(${index}, 'id', this.value)"
+                 placeholder="例: b1">
+        </td>
+        <td>
+          <input type="text" value="${store.name || ''}" 
+                 onchange="updateStoreData(${index}, 'name', this.value)"
+                 placeholder="店舗名を入力">
+        </td>
+        <td>
+          <input type="text" value="${store.managementSecret || ''}" 
+                 onchange="updateStoreData(${index}, 'managementSecret', this.value)"
+                 placeholder="管理用シークレット">
+        </td>
+        <td>
+          ${createHoursInput(store.hours || {}, index)}
+        </td>
+        <td>
+          <textarea onchange="updateStoreData(${index}, 'unavailable_dates', this.value.split(',').map(d => d.trim()).filter(d => d))"
+                    placeholder="YYYY-MM-DD,YYYY-MM-DD">${(store.unavailable_dates || []).join(',')}</textarea>
+        </td>
+        <td>
+          <button class="action-btn btn-remove" onclick="removeStoreRow(${index})">削除</button>
+        </td>
+      `;
+      return row;
+    }
+    
+    /**
+     * 営業時間入力フィールドを作成
+     */
+    function createHoursInput(hours, storeIndex) {
+      const days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+      const dayNames = ['月', '火', '水', '木', '金', '土', '日'];
+      
+      let html = '<div class="hours-input">';
+      
+      days.forEach((day, dayIndex) => {
+        const dayHours = hours[day];
+        const isClosed = dayHours === null;
+        const isMultipleSlots = Array.isArray(dayHours) && Array.isArray(dayHours[0]);
+        
+        html += `<div class="hours-row">
+          <label>${dayNames[dayIndex]}:</label>
+          <input type="checkbox" ${isClosed ? '' : 'checked'} 
+                 onchange="toggleStoreDay(${storeIndex}, '${day}', this.checked)">
+          <span>営業</span>`;
+        
+        if (!isClosed) {
+          if (isMultipleSlots) {
+            // 複数営業時間帯
+            dayHours.forEach((slot, slotIndex) => {
+              html += `
+                <input type="time" value="${slot[0] || ''}" 
+                       onchange="updateStoreHours(${storeIndex}, '${day}', ${slotIndex}, 0, this.value)">
+                <span>-</span>
+                <input type="time" value="${slot[1] || ''}" 
+                       onchange="updateStoreHours(${storeIndex}, '${day}', ${slotIndex}, 1, this.value)">`;
+            });
+            html += `<button type="button" class="action-btn btn-add" 
+                            onclick="addStoreTimeSlot(${storeIndex}, '${day}')">+</button>`;
+          } else {
+            // 単一営業時間帯
+            const startTime = Array.isArray(dayHours) ? dayHours[0] : '';
+            const endTime = Array.isArray(dayHours) ? dayHours[1] : '';
+            html += `
+              <input type="time" value="${startTime}" 
+                     onchange="updateStoreHours(${storeIndex}, '${day}', null, 0, this.value)">
+              <span>-</span>
+              <input type="time" value="${endTime}" 
+                     onchange="updateStoreHours(${storeIndex}, '${day}', null, 1, this.value)">
+              <button type="button" class="action-btn btn-add" 
+                      onclick="addStoreTimeSlot(${storeIndex}, '${day}')">複数時間帯</button>`;
+          }
+        }
+        
+        html += '</div>';
+      });
+      
+      html += '</div>';
+      return html;
+    }
+    
+    /**
+     * 店舗データを更新
+     */
+    function updateStoreData(index, field, value) {
+      if (!storesData[index]) {
+        storesData[index] = {};
+      }
+      storesData[index][field] = value;
+      console.log(`店舗[${index}]の${field}を更新:`, value);
+    }
+    
+    /**
+     * 店舗営業日の切り替え
+     */
+    function toggleStoreDay(storeIndex, day, isOpen) {
+      if (!storesData[storeIndex]) {
+        storesData[storeIndex] = {};
+      }
+      if (!storesData[storeIndex].hours) {
+        storesData[storeIndex].hours = {};
+      }
+      
+      if (isOpen) {
+        storesData[storeIndex].hours[day] = ['09:00', '18:00'];
+      } else {
+        storesData[storeIndex].hours[day] = null;
+      }
+      
+      updateStoresTable();
+    }
+    
+    /**
+     * 店舗営業時間を更新
+     */
+    function updateStoreHours(storeIndex, day, slotIndex, timeIndex, value) {
+      if (!storesData[storeIndex] || !storesData[storeIndex].hours) {
+        return;
+      }
+      
+      const dayHours = storesData[storeIndex].hours[day];
+      
+      if (slotIndex === null) {
+        // 単一営業時間帯
+        if (!Array.isArray(dayHours)) {
+          storesData[storeIndex].hours[day] = ['', ''];
+        }
+        storesData[storeIndex].hours[day][timeIndex] = value;
+      } else {
+        // 複数営業時間帯
+        if (!Array.isArray(dayHours) || !Array.isArray(dayHours[slotIndex])) {
+          return;
+        }
+        storesData[storeIndex].hours[day][slotIndex][timeIndex] = value;
+      }
+      
+      console.log(`店舗[${storeIndex}]の${day}営業時間を更新:`, storesData[storeIndex].hours[day]);
+    }
+    
+    /**
+     * 営業時間スロットを追加
+     */
+    function addStoreTimeSlot(storeIndex, day) {
+      if (!storesData[storeIndex] || !storesData[storeIndex].hours) {
+        return;
+      }
+      
+      const dayHours = storesData[storeIndex].hours[day];
+      
+      if (Array.isArray(dayHours) && !Array.isArray(dayHours[0])) {
+        // 単一→複数に変換
+        storesData[storeIndex].hours[day] = [dayHours, ['', '']];
+      } else if (Array.isArray(dayHours) && Array.isArray(dayHours[0])) {
+        // 複数時間帯に追加
+        storesData[storeIndex].hours[day].push(['', '']);
+      }
+      
+      updateStoresTable();
+    }
+    
+    /**
+     * 店舗行を追加
+     */
+    function addStoreRow() {
+      const newStore = {
+        id: '',
+        name: '',
+        managementSecret: '',
+        hours: {
+          mon: ['09:00', '18:00'],
+          tue: ['09:00', '18:00'],
+          wed: ['09:00', '18:00'],
+          thu: ['09:00', '18:00'],
+          fri: ['09:00', '18:00'],
+          sat: ['09:00', '18:00'],
+          sun: null
+        },
+        unavailable_dates: []
+      };
+      
+      storesData.push(newStore);
+      updateStoresTable();
+      showMessage('新しい店舗行を追加しました', 'success');
+    }
+    
+    /**
+     * 店舗行を削除
+     */
+    function removeStoreRow(index) {
+      if (confirm('この店舗を削除しますか？')) {
+        storesData.splice(index, 1);
+        updateStoresTable();
+        showMessage('店舗を削除しました', 'success');
+      }
+    }
+    
+    /**
+     * ファイルから店舗データを読み込み
+     */
+    function loadStoresFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          storesData = data;
+          updateStoresTable();
+          showMessage(`${storesData.length}件の店舗データを読み込みました`, 'success');
+        } catch (error) {
+          showMessage('JSONファイルの読み込みに失敗しました: ' + error.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+    
+    /**
+     * stores.jsonを生成・ダウンロード
+     */
+    function generateStoresJson() {
+      try {
+        // データの妥当性チェック
+        const validStores = storesData.filter(store => store.id && store.name);
+        
+        if (validStores.length === 0) {
+          showMessage('有効な店舗データがありません（IDと店舗名は必須です）', 'error');
+          return;
+        }
+        
+        const jsonString = JSON.stringify(validStores, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'stores.json';
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        showMessage(`stores.json（${validStores.length}件）を生成しました`, 'success');
+        
+      } catch (error) {
+        showMessage('stores.jsonの生成に失敗しました: ' + error.message, 'error');
+      }
+    }
+    
+    // =============================
+    // 商品管理機能
+    // =============================
+    
+    /**
+     * 商品テーブルを更新
+     */
+    function updateProductsTable() {
+      const tbody = document.getElementById('products-tbody');
+      tbody.innerHTML = '';
+      
+      productsData.forEach((product, index) => {
+        const row = createProductRow(product, index);
+        tbody.appendChild(row);
+      });
+      
+      // 商品がない場合は初期行を追加
+      if (productsData.length === 0) {
+        addProductRow();
+      }
+    }
+    
+    /**
+     * 商品行を作成
+     */
+    function createProductRow(product, index) {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>
+          <input type="text" value="${product.id || ''}" 
+                 onchange="updateProductData(${index}, 'id', this.value)"
+                 placeholder="例: p1">
+        </td>
+        <td>
+          <input type="text" value="${product.name || ''}" 
+                 onchange="updateProductData(${index}, 'name', this.value)"
+                 placeholder="商品名を入力">
+        </td>
+        <td>
+          <input type="number" value="${product.price || ''}" 
+                 onchange="updateProductData(${index}, 'price', parseInt(this.value))"
+                 placeholder="価格">
+        </td>
+        <td>
+          <input type="number" value="${product.minDays || ''}" 
+                 onchange="updateProductData(${index}, 'minDays', parseInt(this.value))"
+                 placeholder="日数">
+        </td>
+        <td>
+          <input type="time" value="${product.cutoff || ''}" 
+                 onchange="updateProductData(${index}, 'cutoff', this.value || null)"
+                 placeholder="HH:MM">
+        </td>
+        <td>
+          <select onchange="updateProductData(${index}, 'minType', this.value)">
+            <option value="calendar" ${product.minType === 'calendar' ? 'selected' : ''}>カレンダー日</option>
+            <option value="business" ${product.minType === 'business' ? 'selected' : ''}>営業日</option>
+          </select>
+        </td>
+        <td>
+          <textarea onchange="updateProductData(${index}, 'description', this.value)"
+                    placeholder="商品の説明を入力">${product.description || ''}</textarea>
+        </td>
+        <td>
+          <button class="action-btn btn-remove" onclick="removeProductRow(${index})">削除</button>
+        </td>
+      `;
+      return row;
+    }
+    
+    /**
+     * 商品データを更新
+     */
+    function updateProductData(index, field, value) {
+      if (!productsData[index]) {
+        productsData[index] = {};
+      }
+      productsData[index][field] = value;
+      console.log(`商品[${index}]の${field}を更新:`, value);
+    }
+    
+    /**
+     * 商品行を追加
+     */
+    function addProductRow() {
+      const newProduct = {
+        id: '',
+        name: '',
+        price: 0,
+        minDays: 1,
+        cutoff: null,
+        minType: 'calendar',
+        description: ''
+      };
+      
+      productsData.push(newProduct);
+      updateProductsTable();
+      showMessage('新しい商品行を追加しました', 'success');
+    }
+    
+    /**
+     * 商品行を削除
+     */
+    function removeProductRow(index) {
+      if (confirm('この商品を削除しますか？')) {
+        productsData.splice(index, 1);
+        updateProductsTable();
+        showMessage('商品を削除しました', 'success');
+      }
+    }
+    
+    /**
+     * ファイルから商品データを読み込み
+     */
+    function loadProductsFromFile(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          productsData = data;
+          updateProductsTable();
+          showMessage(`${productsData.length}件の商品データを読み込みました`, 'success');
+        } catch (error) {
+          showMessage('JSONファイルの読み込みに失敗しました: ' + error.message, 'error');
+        }
+      };
+      reader.readAsText(file);
+    }
+    
+    /**
+     * products.jsonを生成・ダウンロード
+     */
+    function generateProductsJson() {
+      try {
+        // データの妥当性チェック
+        const validProducts = productsData.filter(product => 
+          product.id && product.name && typeof product.price === 'number'
+        );
+        
+        if (validProducts.length === 0) {
+          showMessage('有効な商品データがありません（ID、商品名、価格は必須です）', 'error');
+          return;
+        }
+        
+        const jsonString = JSON.stringify(validProducts, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'products.json';
+        a.click();
+        
+        URL.revokeObjectURL(url);
+        showMessage(`products.json（${validProducts.length}件）を生成しました`, 'success');
+        
+      } catch (error) {
+        showMessage('products.jsonの生成に失敗しました: ' + error.message, 'error');
+      }
+    }
+  </script>
+</body>
+</html> 
