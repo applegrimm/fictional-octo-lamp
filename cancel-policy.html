@@ -1,0 +1,400 @@
+<!--
+  @file cancel-policy.html
+  @brief キャンセルポリシー専用ページ
+  @details お客様へのキャンセル条件の周知とトラブル防止を目的とした専用ページ
+  @version 1.0 - 初版作成
+-->
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta name="format-detection" content="telephone=no">
+  <meta name="mobile-web-app-capable" content="yes">
+  <!-- セキュリティ強化メタタグ -->
+  <meta http-equiv="X-Content-Type-Options" content="nosniff">
+  <meta name="referrer" content="strict-origin-when-cross-origin">
+  <!-- HTTPS リダイレクト強制 -->
+  <script>
+    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+      location.replace('https:' + window.location.href.substring(window.location.protocol.length));
+    }
+  </script>
+  <title>キャンセルポリシー - テイクアウト予約フォーム</title>
+  
+  <style>
+  /* =============================
+    レスポンシブデザイン用CSS
+  ============================= */
+  * {
+    box-sizing: border-box !important;
+  }
+  html {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+    margin: 0 !important;
+    padding: 0 !important;
+  }
+  body {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    min-height: 100vh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    font-family: 'Segoe UI', 'Meiryo', sans-serif;
+    background: #f7f7f7;
+    line-height: 1.6;
+    -webkit-text-size-adjust: 100%;
+    overflow-x: hidden !important;
+  }
+  
+  .container {
+    max-width: 800px;
+    margin: 40px auto;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 40px 32px;
+  }
+  
+  .header {
+    text-align: center;
+    margin-bottom: 40px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid #3498db;
+  }
+  
+  h1 {
+    color: #2c3e50;
+    font-size: 2.2em;
+    margin-bottom: 16px;
+    font-weight: bold;
+  }
+  
+  .header-subtitle {
+    color: #7f8c8d;
+    font-size: 1.1em;
+    margin-bottom: 0;
+  }
+  
+  .policy-content {
+    margin: 32px 0;
+  }
+  
+  .policy-section {
+    background: #f8f9fa;
+    border-left: 4px solid #3498db;
+    padding: 24px;
+    margin: 24px 0;
+    border-radius: 0 4px 4px 0;
+  }
+  
+  .policy-section h2 {
+    color: #2c3e50;
+    font-size: 1.4em;
+    margin-top: 0;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .policy-section h2::before {
+    content: '📋';
+    margin-right: 8px;
+    font-size: 1.2em;
+  }
+  
+  .policy-text {
+    color: #34495e;
+    font-size: 1.1em;
+    line-height: 1.8;
+    margin: 16px 0;
+  }
+  
+  .important-notice {
+    background: #fff3cd;
+    border: 2px solid #ffc107;
+    border-radius: 8px;
+    padding: 20px;
+    margin: 24px 0;
+  }
+  
+  .important-notice h3 {
+    color: #856404;
+    font-size: 1.2em;
+    margin-top: 0;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+  }
+  
+  .important-notice h3::before {
+    content: '⚠️';
+    margin-right: 8px;
+  }
+  
+  .important-notice p {
+    color: #856404;
+    margin: 8px 0;
+    font-size: 1em;
+  }
+  
+  .contact-info {
+    background: #e8f5e8;
+    border: 1px solid #c3e6c3;
+    border-radius: 8px;
+    padding: 24px;
+    margin: 32px 0;
+    text-align: center;
+  }
+  
+  .contact-info h3 {
+    color: #2d5016;
+    font-size: 1.3em;
+    margin-top: 0;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .contact-info h3::before {
+    content: '📞';
+    margin-right: 8px;
+  }
+  
+  .contact-info p {
+    color: #2d5016;
+    margin: 8px 0;
+    font-size: 1.1em;
+  }
+  
+  .phone-number {
+    font-size: 1.4em;
+    font-weight: bold;
+    color: #27ae60;
+    margin: 12px 0;
+  }
+  
+  .back-to-form {
+    text-align: center;
+    margin: 40px 0 20px 0;
+  }
+  
+  .btn {
+    display: inline-block;
+    padding: 14px 28px;
+    margin: 8px;
+    border: none;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: bold;
+  }
+  
+  .btn-primary {
+    background: #3498db;
+    color: #fff;
+  }
+  
+  .btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+  }
+  
+  .btn-secondary {
+    background: #95a5a6;
+    color: #fff;
+  }
+  
+  .btn-secondary:hover {
+    background: #7f8c8d;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(149, 165, 166, 0.3);
+  }
+  
+  .policy-highlight {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 12px 16px;
+    margin: 16px 0;
+    color: #856404;
+    font-weight: 500;
+  }
+  
+  .days-example {
+    font-weight: bold;
+    color: #e74c3c;
+  }
+  
+  @media (max-width: 768px) {
+    .container {
+      margin: 20px auto;
+      padding: 24px 16px;
+      border-radius: 0;
+      min-height: calc(100vh - 40px);
+    }
+    
+    h1 {
+      font-size: 1.8em;
+      margin-bottom: 12px;
+    }
+    
+    .header-subtitle {
+      font-size: 1em;
+    }
+    
+    .policy-section {
+      padding: 16px;
+      margin: 16px 0;
+    }
+    
+    .policy-section h2 {
+      font-size: 1.2em;
+    }
+    
+    .policy-text {
+      font-size: 1em;
+      line-height: 1.6;
+    }
+    
+    .btn {
+      display: block;
+      width: 100%;
+      margin: 8px 0;
+      padding: 16px;
+      font-size: 1em;
+    }
+    
+    .contact-info,
+    .important-notice {
+      padding: 16px;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .container {
+      margin: 10px;
+      padding: 16px 12px;
+    }
+    
+    h1 {
+      font-size: 1.5em;
+    }
+    
+    .policy-section {
+      padding: 12px;
+    }
+    
+    .policy-section h2 {
+      font-size: 1.1em;
+    }
+    
+    .phone-number {
+      font-size: 1.2em;
+    }
+  }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>キャンセルポリシー</h1>
+      <p class="header-subtitle">テイクアウト予約のキャンセルについてのご案内</p>
+    </div>
+    
+    <div class="policy-content">
+      <div class="policy-section">
+        <h2>キャンセル受付期限</h2>
+        <div class="policy-text">
+          ご予約のキャンセルは、原則として受取予定日の<span class="days-example">2日前</span>までに当社カスタマーセンターへご連絡いただいた場合に承ります。
+        </div>
+        <div class="policy-highlight">
+          期限を過ぎた場合のキャンセルはお受けできないことがございますので、あらかじめご了承ください。
+        </div>
+      </div>
+      
+      <div class="policy-section">
+        <h2>キャンセル手続き</h2>
+        <div class="policy-text">
+          キャンセルのご連絡をいただいた際は、当社のキャンセル規定に基づき対応させていただきます。
+        </div>
+      </div>
+      
+      <div class="policy-section">
+        <h2>返金について</h2>
+        <div class="policy-text">
+          キャンセルが承認された場合、決済済みの代金は返金いたします。<br>
+          なお、返金に伴う決済手数料は誠に恐縮ですがお客様にご負担いただいております。<br>
+          ご理解のほどよろしくお願いいたします。
+        </div>
+      </div>
+      
+      <div class="policy-section">
+        <h2>受取日時の変更</h2>
+        <div class="policy-text">
+          受取日時の変更は<span class="days-example">2日前</span>までにご連絡いただければ、可能な限り対応いたします。<br>
+          準備状況により対応できない場合もございますのでご了承ください。
+        </div>
+      </div>
+      
+      <div class="important-notice">
+        <h3>重要なお知らせ</h3>
+        <p>無断キャンセルや受取日時の大幅な遅延が続く場合、今後のご利用をお断りすることがございます。</p>
+      </div>
+      
+      <div class="contact-info">
+        <h3>キャンセルのご連絡先</h3>
+        <p>キャンセル・変更のご連絡は下記までお電話ください</p>
+        <div class="phone-number">026-242-3030</div>
+        <p><small>※受付時間：平日9:00～17:00</small></p>
+        <p><small>※土日祝日・営業時間外のご連絡は翌営業日の対応となります</small></p>
+      </div>
+    </div>
+    
+    <div class="back-to-form">
+      <a href="index.html" class="btn btn-primary">📝 予約フォームに戻る</a>
+      <button onclick="window.close()" class="btn btn-secondary">🔒 このページを閉じる</button>
+    </div>
+    
+    <div style="text-align: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid #ecf0f1; color: #7f8c8d; font-size: 0.9em;">
+      <p>最終更新日：2024年12月20日</p>
+      <p>株式会社あっぷるアイビー</p>
+    </div>
+  </div>
+
+  <script>
+    // ページ読み込み時の処理
+    window.addEventListener('DOMContentLoaded', function() {
+      // URLパラメータを確認してreferrer情報を表示（デバッグ用）
+      const urlParams = new URLSearchParams(window.location.search);
+      const from = urlParams.get('from');
+      
+      if (from === 'form') {
+        console.log('予約フォームからのアクセス');
+      } else if (from === 'email') {
+        console.log('メールからのアクセス');
+      }
+      
+      // スムーズスクロール設定
+      document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+        anchor.addEventListener('click', function (e) {
+          e.preventDefault();
+          const target = document.querySelector(this.getAttribute('href'));
+          if (target) {
+            target.scrollIntoView({
+              behavior: 'smooth',
+              block: 'start'
+            });
+          }
+        });
+      });
+    });
+  </script>
+</body>
+</html> 
