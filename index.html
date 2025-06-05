@@ -83,6 +83,10 @@
     box-sizing: border-box;
   }
   
+  input:invalid, select:invalid, textarea:invalid {
+    border-color: #e74c3c;
+  }
+  
   button {
     margin-top: 24px;
     width: 100%;
@@ -93,6 +97,7 @@
     border-radius: 4px;
     font-size: 1.1em;
     cursor: pointer;
+    transition: background 0.2s;
   }
   
   button:disabled {
@@ -125,12 +130,15 @@
     padding: 4px 8px;
     margin-top: 0;
     width: auto;
+    font-size: 0.9em;
   }
   
   .add-product-btn {
     background: #3498db;
     color: white;
     margin-top: 12px;
+    padding: 8px 12px;
+    font-size: 1em;
   }
   
   .loading {
@@ -152,7 +160,246 @@
     margin-left: 4px;
   }
   
-  /* モバイル向けCritical CSS */
+  /* プライバシーポリシー関連 */
+  .privacy-section {
+    margin-top: 20px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 4px;
+    border-left: 4px solid #3498db;
+  }
+  
+  .privacy-toggle {
+    background: none;
+    border: none;
+    color: #3498db;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.9em;
+    padding: 0;
+    margin-left: 4px;
+  }
+  
+  .privacy-toggle:hover {
+    color: #2980b9;
+  }
+  
+  .privacy-content {
+    display: none !important;
+    margin-top: 10px;
+    padding: 10px;
+    background: #fff;
+    border-radius: 4px;
+    font-size: 0.85em;
+    line-height: 1.4;
+    border: 1px solid #e0e0e0;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  
+  .privacy-content.show {
+    display: block !important;
+  }
+  
+  .privacy-content h3 {
+    margin-top: 0;
+    margin-bottom: 8px;
+    font-size: 1em;
+    color: #333;
+  }
+  
+  .consent-checkbox {
+    margin-top: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .consent-checkbox input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  
+  .consent-checkbox label {
+    font-size: 0.9em;
+    margin: 0;
+    cursor: pointer;
+    line-height: 1.3;
+    font-weight: normal;
+  }
+  
+  /* 決済・予約ボタン */
+  .reservation-buttons {
+    margin-top: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .normal-reservation-btn {
+    background: #2ecc71;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+    margin: 0;
+  }
+  
+  .normal-reservation-btn:hover {
+    background: #27ae60;
+  }
+  
+  .payment-reservation-btn {
+    background: #9b59b6;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    padding: 14px 16px;
+    font-size: 1.1em;
+    cursor: pointer;
+    transition: background 0.2s;
+    width: 100%;
+    margin: 0;
+    display: block;
+  }
+  
+  .payment-reservation-btn:hover {
+    background: #8e44ad;
+  }
+  
+  .payment-reservation-btn:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+  }
+  
+  /* 合計金額表示 */
+  .total-amount-section {
+    margin-top: 24px;
+    margin-bottom: 20px;
+  }
+  
+  .total-amount-display {
+    background: #f8f9fa;
+    border: 2px solid #e9ecef;
+    border-radius: 8px;
+    padding: 16px;
+    text-align: center;
+  }
+  
+  .total-amount-display h3 {
+    margin: 0 0 12px 0;
+    color: #495057;
+    font-size: 1.1em;
+  }
+  
+  .total-amount {
+    font-size: 2em;
+    font-weight: bold;
+    color: #2ecc71;
+    margin: 8px 0;
+  }
+  
+  .items-summary {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 8px;
+    line-height: 1.3;
+  }
+  
+  /* モーダル */
+  #custom-modal {
+    display: none !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  #custom-modal.show {
+    display: flex !important;
+  }
+  
+  #custom-modal > div {
+    background: #fff;
+    padding: 32px 24px;
+    border-radius: 8px;
+    text-align: center;
+    max-width: 400px;
+    width: 80%;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+  
+  #custom-modal h2 {
+    margin-top: 0;
+    color: #27ae60;
+  }
+  
+  #custom-modal button {
+    margin-top: 16px;
+    padding: 12px 24px;
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 1em;
+  }
+  
+  #final-message {
+    display: none !important;
+    text-align: center;
+    font-size: 1.2em;
+    color: #27ae60;
+    margin-top: 40px;
+  }
+  
+  #final-message.show {
+    display: block !important;
+  }
+  
+  /* セキュリティ・警告 */
+  .security-notice {
+    background: #e8f5e8;
+    border: 1px solid #c3e6c3;
+    border-radius: 4px;
+    padding: 8px 12px;
+    margin-top: 8px;
+    color: #2d5016;
+    font-size: 0.85em;
+    text-align: center;
+  }
+  
+  .rate-limit-warning {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 4px;
+    padding: 12px;
+    margin-top: 16px;
+    color: #856404;
+    font-size: 0.9em;
+    display: none;
+  }
+  
+  /* 商品説明 */
+  .product-desc {
+    font-size: 0.9em;
+    color: #666;
+    margin-top: 4px;
+    margin-left: 8px;
+  }
+  
+  /* モバイル向け */
   @media (max-width: 600px) {
     html, body {
       background: #fff !important;
@@ -198,6 +445,26 @@
       width: auto !important;
       max-width: 150px !important;
       align-self: flex-end !important;
+    }
+    #custom-modal > div {
+      width: 90vw !important;
+      max-width: 90vw !important;
+      padding: 20px 12px !important;
+      margin: 0 auto !important;
+    }
+    .consent-checkbox {
+      flex-direction: column;
+      gap: 4px;
+    }
+    .consent-checkbox input[type="checkbox"] {
+      margin-top: 0;
+    }
+    .privacy-content {
+      font-size: 0.8em;
+      max-height: 150px;
+    }
+    .total-amount {
+      font-size: 1.8em;
     }
   }
   </style>
@@ -921,7 +1188,7 @@
           document.getElementById('result').innerHTML = '<span style="color:#27ae60;">予約完了しました！<br>合計金額：' + result.total + '円</span>';
           // カスタムモーダル表示
           document.getElementById('modal-message').innerHTML = '予約完了しました！<br>合計金額：' + result.total + '円';
-          document.getElementById('custom-modal').style.display = 'flex';
+          document.getElementById('custom-modal').classList.add('show');
           // フォームをリセットし、送信不可に
           document.getElementById('reserveForm').reset();
           document.getElementById('reserveForm').querySelectorAll('input, select, textarea, button').forEach(function(el){ el.disabled = true; });
@@ -1597,12 +1864,12 @@
       const content = document.getElementById('privacy-content');
       const button = document.querySelector('.privacy-toggle');
       
-      if (content.style.display === 'none' || content.style.display === '') {
-        content.style.display = 'block';
-        button.textContent = '詳細を非表示';
-      } else {
-        content.style.display = 'none';
+      if (content.classList.contains('show')) {
+        content.classList.remove('show');
         button.textContent = '詳細を表示';
+      } else {
+        content.classList.add('show');
+        button.textContent = '詳細を非表示';
       }
     }
     
@@ -1797,8 +2064,8 @@
 
     // カスタムモーダルの「画面を閉じる」ボタン
     document.getElementById('modal-close-btn').onclick = function(){
-      document.getElementById('custom-modal').style.display = 'none';
-      document.getElementById('final-message').style.display = 'block';
+      document.getElementById('custom-modal').classList.remove('show');
+      document.getElementById('final-message').classList.add('show');
       document.getElementById('final-message').innerHTML = 'ご予約ありがとうございました。<br>この画面は閉じてください。';
       // それ以上の操作ができないようにフォーム・ボタンを非表示
       document.getElementById('reserveForm').style.display = 'none';
@@ -1914,38 +2181,18 @@
           `• ${item.name} × ${item.qty} = ${item.subtotal.toLocaleString()}円`
         ).join('<br>');
         
-        // 決済機能が有効の場合は決済ボタンを表示
-        if (typeof isPaymentEnabled === 'function' && isPaymentEnabled()) {
-          paymentBtn.style.display = 'block';
-          
-          // 🚀 高速化: 決済機能表示時にStripe設定を遅延読み込み
-          loadStripeIfNeeded().catch(error => {
-            console.warn('Stripe設定読み込み失敗:', error);
-          });
-          
-          // テストモード表示
-          if (typeof isTestMode === 'function' && isTestMode()) {
-            // テストモード通知を表示
-            let testIndicator = document.getElementById('test-mode-indicator');
-            if (!testIndicator) {
-              testIndicator = document.createElement('div');
-              testIndicator.id = 'test-mode-indicator';
-              testIndicator.className = 'test-mode-indicator';
-              testIndicator.innerHTML = '⚠️ テストモード: 実際の課金は発生しません';
-              totalSection.appendChild(testIndicator);
-            }
-          }
-        } else {
-          paymentBtn.style.display = 'none';
-        }
+        // 決済ボタンを常に表示
+        paymentBtn.style.display = 'block';
+        
+        // 🚀 高速化: 決済機能表示時にStripe設定を遅延読み込み
+        loadStripeIfNeeded().catch(error => {
+          console.warn('Stripe設定読み込み失敗:', error);
+        });
+        
       } else {
         totalSection.style.display = 'none';
-        // 決済機能が有効の場合は商品未選択でもボタンを表示
-        if (typeof isPaymentEnabled === 'function' && isPaymentEnabled()) {
-          paymentBtn.style.display = 'block';
-        } else {
-          paymentBtn.style.display = 'none';
-        }
+        // 商品未選択でも決済ボタンを表示
+        paymentBtn.style.display = 'block';
       }
     }
     
