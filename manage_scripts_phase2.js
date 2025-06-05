@@ -245,22 +245,9 @@ function loadReservationsFromGAS(isBackgroundUpdate = false) {
       try {
         if (data && data.success) {
           console.log('予約データ取得成功:', data.data.length + '件');
-          let newData = data.data || [];
           
-          // Excel日付エラーの修正処理
-          newData = newData.map(reservation => {
-            if (reservation.pickupTime && typeof reservation.pickupTime === 'string' && reservation.pickupTime.includes('1899-12-30T')) {
-              console.log('Excel日付エラー修正:', reservation.pickupTime);
-              const timeMatch = reservation.pickupTime.match(/T(\d{2}):(\d{2}):(\d{2})/);
-              if (timeMatch) {
-                const hour = parseInt(timeMatch[1]);
-                const minute = parseInt(timeMatch[2]);
-                reservation.pickupTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                console.log('修正後の時刻:', reservation.pickupTime);
-              }
-            }
-            return reservation;
-          });
+          // GASから受信したデータをそのまま使用（元のmanage.html方式）
+          const newData = data.data || [];
           
           // データハッシュ比較（差分チェック）
           const newHash = calculateDataHash(newData);
@@ -431,58 +418,45 @@ function escapeHtml(unsafe) {
     .replace(/'/g, "&#039;");
 }
 
-// 日付時刻フォーマット関数
-function formatPickupDateTime(pickupDate, pickupTime) {
+// 日時を読みやすい日本語形式にフォーマット（元のmanage.html方式）
+function formatPickupDateTime(dateStr, timeStr) {
   try {
-    console.log('日付フォーマット入力:', {pickupDate, pickupTime});
+    // 日付を解析
+    const date = new Date(dateStr);
+    const year = date.getFullYear();
+    const month = date.getMonth() + 1;
+    const day = date.getDate();
     
-    // 1899-12-30T...形式のExcel日付エラーをチェック
-    if (pickupTime && typeof pickupTime === 'string' && pickupTime.includes('1899-12-30T')) {
-      console.log('Excel日付エラーを検出、時刻部分を抽出:', pickupTime);
-      // ISO形式から時刻部分を抽出
-      const timeMatch = pickupTime.match(/T(\d{2}):(\d{2}):(\d{2})/);
-      if (timeMatch) {
-        const hour = parseInt(timeMatch[1]);
-        const minute = parseInt(timeMatch[2]);
-        pickupTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        console.log('抽出された時刻:', pickupTime);
+    // 曜日を取得
+    const dayNames = ['日', '月', '火', '水', '木', '金', '土'];
+    const dayOfWeek = dayNames[date.getDay()];
+    
+    // 時刻を解析・フォーマット
+    let formattedTime = '';
+    
+    if (timeStr) {
+      // ISO形式の場合（例：1899-12-30T03:30:00.000Z）
+      if (timeStr.includes('T') && timeStr.includes('Z')) {
+        const timeDate = new Date(timeStr);
+        const hours = timeDate.getHours().toString().padStart(2, '0');
+        const minutes = timeDate.getMinutes().toString().padStart(2, '0');
+        formattedTime = `${hours}:${minutes}`;
+      }
+      // すでにHH:MM形式の場合
+      else if (timeStr.match(/^\d{1,2}:\d{2}$/)) {
+        formattedTime = timeStr;
+      }
+      // その他の形式の場合は文字列をそのまま使用
+      else {
+        formattedTime = timeStr;
       }
     }
     
-    // 日付をフォーマット
-    let formattedDate = pickupDate;
-    if (pickupDate && pickupDate.includes('-')) {
-      const dateParts = pickupDate.split('-');
-      if (dateParts.length === 3) {
-        formattedDate = `${dateParts[0]}年${parseInt(dateParts[1])}月${parseInt(dateParts[2])}日`;
-      }
-    }
+    return `${year}年${month}月${day}日（${dayOfWeek}） ${formattedTime}`;
     
-    // 時刻をフォーマット（時間のバリデーション追加）
-    let formattedTime = pickupTime;
-    if (pickupTime && pickupTime.includes(':')) {
-      const timeParts = pickupTime.split(':');
-      if (timeParts.length >= 2) {
-        let hour = parseInt(timeParts[0]);
-        let minute = parseInt(timeParts[1]);
-        
-        // 時間の範囲チェック（0-23時）
-        if (hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59) {
-          formattedTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-        } else {
-          console.warn('無効な時刻:', {hour, minute, original: pickupTime});
-          // 異常な時刻の場合は元の値をそのまま使用
-          formattedTime = pickupTime;
-        }
-      }
-    }
-    
-    const result = `${formattedDate} ${formattedTime}`;
-    console.log('日付フォーマット結果:', result);
-    return result;
   } catch (error) {
-    console.warn('日付フォーマットエラー:', error);
-    return `${pickupDate} ${pickupTime}`;
+    console.warn('日時フォーマットエラー:', error, {dateStr, timeStr});
+    return `${dateStr} ${timeStr}`;
   }
 }
 
@@ -1081,22 +1055,7 @@ function loadPast7DaysFromGAS(isBackgroundUpdate = false) {
       try {
         if (data && data.success) {
           console.log('過去7日間データ取得成功:', data.data.length + '件');
-          let rawData = data.data || [];
-          
-          // Excel日付エラーの修正処理
-          allReservations = rawData.map(reservation => {
-            if (reservation.pickupTime && typeof reservation.pickupTime === 'string' && reservation.pickupTime.includes('1899-12-30T')) {
-              console.log('過去7日間 Excel日付エラー修正:', reservation.pickupTime);
-              const timeMatch = reservation.pickupTime.match(/T(\d{2}):(\d{2}):(\d{2})/);
-              if (timeMatch) {
-                const hour = parseInt(timeMatch[1]);
-                const minute = parseInt(timeMatch[2]);
-                reservation.pickupTime = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
-                console.log('過去7日間 修正後の時刻:', reservation.pickupTime);
-              }
-            }
-            return reservation;
-          });
+          allReservations = data.data || [];
           
           // 過去7日間キャッシュ保存
           const cacheData = {
