@@ -26,6 +26,88 @@ const CACHE_DURATION = 30000; // 30秒キャッシュ
 const CACHE_KEY_PREFIX = 'reservation_cache_';
 
 // ============================================
+// Phase 2: メモリークリーンアップ機能
+// ============================================
+
+let cleanupInterval = null;
+
+// 定期的なメモリークリーンアップを開始
+function startMemoryCleanup() {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+  }
+  
+  cleanupInterval = setInterval(() => {
+    console.log('=== 定期メモリークリーンアップ実行 ===');
+    
+    // 1. 古いJSONPスクリプトのクリーンアップ
+    const oldJsonpScripts = document.querySelectorAll('script[data-jsonp="true"]');
+    if (oldJsonpScripts.length > 5) {
+      Array.from(oldJsonpScripts).slice(0, oldJsonpScripts.length - 3).forEach(script => {
+        try {
+          script.remove();
+        } catch (e) {
+          console.warn('古いJSONPスクリプト削除エラー:', e);
+        }
+      });
+    }
+    
+    // 2. 古いコールバック関数のクリーンアップ
+    const callbackPattern = /^(updateCallback|loadCallback)/;
+    Object.keys(window).forEach(key => {
+      if (callbackPattern.test(key)) {
+        // 古いコールバック（30秒以上前）を削除
+        const timestamp = key.match(/\d+$/);
+        if (timestamp && (Date.now() - parseInt(timestamp[0]) > 30000)) {
+          try {
+            delete window[key];
+            console.log('古いコールバック削除:', key);
+          } catch (e) {
+            console.warn('コールバック削除エラー:', key, e);
+          }
+        }
+      }
+    });
+    
+    // 3. キャッシュの整理
+    try {
+      if (localStorage.length > 50) { // LocalStorageが50個以上の場合
+        const keys = Object.keys(localStorage);
+        const cacheKeys = keys.filter(key => key.startsWith(CACHE_KEY_PREFIX));
+        if (cacheKeys.length > 10) {
+          // 古いキャッシュを削除
+          cacheKeys.slice(0, cacheKeys.length - 5).forEach(key => {
+            localStorage.removeItem(key);
+          });
+          console.log('古いキャッシュを削除しました');
+        }
+      }
+    } catch (e) {
+      console.warn('キャッシュクリーンアップエラー:', e);
+    }
+    
+    console.log('メモリークリーンアップ完了');
+    
+    // リソース監視も同時実行
+    monitorResources();
+  }, 300000); // 5分間隔
+}
+
+// メモリークリーンアップを停止
+function stopMemoryCleanup() {
+  if (cleanupInterval) {
+    clearInterval(cleanupInterval);
+    cleanupInterval = null;
+    console.log('メモリークリーンアップを停止しました');
+  }
+}
+
+// ページ離脱時のクリーンアップ
+window.addEventListener('beforeunload', function() {
+  stopMemoryCleanup();
+});
+
+// ============================================
 // Phase 2: キャッシュ管理システム
 // ============================================
 
@@ -172,6 +254,10 @@ window.addEventListener('DOMContentLoaded', function() {
   // Phase 2: 高速化読み込み開始
   console.log('Phase 2 高速データ読み込み開始');
   loadReservationsPhase2();
+  
+  // メモリークリーンアップ開始
+  startMemoryCleanup();
+  console.log('メモリークリーンアップ機能を開始しました');
 });
 
 function showAuthError() {
@@ -188,9 +274,27 @@ function cleanupJSONP(callbackName) {
     delete window[callbackName];
   }
   
-  const script = document.querySelector(`script[data-callback="${callbackName}"]`);
-  if (script) {
-    script.remove();
+  // 既存のスクリプトタグをより確実に削除
+  const scripts = document.querySelectorAll(`script[data-callback="${callbackName}"]`);
+  scripts.forEach(script => {
+    try {
+      script.remove();
+    } catch (e) {
+      console.warn('スクリプト削除エラー:', e);
+    }
+  });
+  
+  // 古いスクリプトタグも定期的にクリーンアップ（メモリーリーク対策）
+  const allJsonpScripts = document.querySelectorAll('script[data-jsonp="true"]');
+  if (allJsonpScripts.length > 10) { // 10個以上溜まったら古いものを削除
+    console.warn('JSONP スクリプトが蓄積されています。古いものを削除します。');
+    Array.from(allJsonpScripts).slice(0, allJsonpScripts.length - 5).forEach(script => {
+      try {
+        script.remove();
+      } catch (e) {
+        console.warn('古いスクリプト削除エラー:', e);
+      }
+    });
   }
 }
 
@@ -650,553 +754,58 @@ function handleToggleChange(rowId, toggleElement) {
 function saveMemo(rowId, event) {
   console.log('=== メモ保存 ===', {rowId});
   const memoInput = document.getElementById(`memo-${rowId}`);
-  const memo = memoInput.value.trim();
-  
+  const memo = memoInput ? memoInput.value : '';
   updateReservationPhase2(rowId, null, memo, event, null);
 }
 
-// Phase 2: 高速更新（キャッシュ無効化 + 楽観的更新）
-function updateReservationPhase2(rowId, checked, memo, event, staffName) {
-  console.log('=== Phase 2 updateReservation開始 ===', {rowId, checked, memo, staffName});
-  
-  // キャッシュ無効化
-  const cacheKey = CACHE_KEY_PREFIX + SHOP_SECRET;
-  localStorage.removeItem(cacheKey);
-  
-  let originalButton = null;
-  let autoSaveMessage = null;
-  
-  if (event && event.target) {
-    originalButton = event.target;
-    
-    if (checked !== null && event.target.type === 'checkbox') {
-      const orderId = event.target.id.replace('check-', '');
-      autoSaveMessage = document.getElementById(`save-msg-${orderId}`);
-      if (autoSaveMessage) {
-        autoSaveMessage.style.display = 'inline';
-      }
-    }
-  }
-  
-  try {
-    if (checked !== null) {
-      const currentReservation = allReservations.find(r => r.rowId === parseInt(rowId));
-      if (currentReservation) {
-        const sameOrderRows = allReservations
-          .filter(r => r.orderId === currentReservation.orderId)
-          .map(r => r.rowId);
-        
-        console.log('同一注文ID行一括更新:', {orderId: currentReservation.orderId, rows: sameOrderRows});
-        
-        updateMultipleRowsPhase2(sameOrderRows, checked, memo, staffName);
-        return;
-      }
-    }
-    
-    updateSingleRowPhase2(rowId, checked, memo, originalButton, autoSaveMessage, staffName);
-    
-  } catch (error) {
-    console.error('Update初期化エラー:', error);
-    showError('更新処理の初期化に失敗しました: ' + error.message);
-    
-    if (originalButton) {
-      originalButton.disabled = false;
-      if (memo !== null) {
-        const textSpan = originalButton.querySelector('.save-btn-text');
-        if (textSpan) {
-          textSpan.textContent = 'メモ保存';
-        } else {
-          originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
-        }
-      }
-    }
-    
-    if (autoSaveMessage) {
-      autoSaveMessage.style.display = 'none';
-    }
-  }
-}
+// ============================================
+// Phase 2: リソース監視機能
+// ============================================
 
-function updateMultipleRowsPhase2(rowIds, checked, memo, staffName) {
-  let completedCount = 0;
-  let totalCount = rowIds.length;
-  let hasError = false;
-
-  console.log('Phase 2 複数行更新開始:', {rowIds, checked, memo, totalCount});
-
-  rowIds.forEach((rowId, index) => {
-    setTimeout(() => {
-      updateSingleRowInternal(rowId, checked, memo, staffName, (success) => {
-        completedCount++;
-        if (!success) hasError = true;
-
-        console.log('行更新完了:', {rowId, success, completedCount, totalCount});
-
-        if (completedCount >= totalCount) {
-          if (hasError) {
-            showError('一部の更新に失敗しました');
-          } else {
-            console.log('全行更新完了');
-          }
-          // Phase 2: 高速リロード
-          setTimeout(() => {
-            loadReservationsPhase2();
-          }, 200); // 短縮
-        }
-      });
-    }, index * 100); // 間隔短縮
-  });
-}
-
-function updateSingleRowInternal(rowId, checked, memo, staffName, callback) {
-  try {
-    const callbackName = 'updateCallback' + Date.now() + '_' + rowId;
-    console.log('単一行更新開始:', {rowId, callbackName});
-
-    window[callbackName] = function(result) {
-      console.log('=== 単一行Response受信 ===', {rowId, result});
-      
-      try {
-        const success = result && result.success;
-        if (success) {
-          console.log('単一行更新成功:', rowId);
-        } else {
-          console.error('単一行更新失敗:', {rowId, result});
-        }
-        if (callback) callback(success);
-      } catch (error) {
-        console.error('単一行処理エラー:', error);
-        if (callback) callback(false);
-      } finally {
-        cleanupJSONP(callbackName);
-      }
-    };
-
-    const params = new URLSearchParams({
-      action: 'updateReservation',
-      shop: SHOP_SECRET,
-      rowId: parseInt(rowId),
-      callback: callbackName,
-      _t: Date.now()
+// リソース使用状況の監視
+function monitorResources() {
+  if (performance && performance.memory) {
+    const memory = performance.memory;
+    console.log('=== リソース監視 ===', {
+      メモリ使用量: Math.round(memory.usedJSHeapSize / 1024 / 1024) + 'MB',
+      メモリ制限: Math.round(memory.jsHeapSizeLimit / 1024 / 1024) + 'MB',
+      メモリ比率: Math.round((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100) + '%',
+      JONPスクリプト数: document.querySelectorAll('script[data-jsonp="true"]').length,
+      キャッシュ数: Object.keys(localStorage).filter(key => key.startsWith(CACHE_KEY_PREFIX)).length
     });
-
-    if (checked !== null && checked !== undefined) {
-      params.append('checked', checked ? '1' : '0');
-    }
-    if (memo !== null && memo !== undefined) {
-      params.append('memo', memo);
-    }
-    if (staffName !== null && staffName !== undefined) {
-      params.append('staffName', staffName);
-    }
-
-    const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
-
-    const script = document.createElement('script');
-    script.src = jsonpUrl;
-    script.setAttribute('data-jsonp', 'true');
-    script.setAttribute('data-callback', callbackName);
-
-    script.onerror = function(error) {
-      console.error('単一行JSONP読み込みエラー:', {rowId, error});
-      if (callback) callback(false);
-      cleanupJSONP(callbackName);
-    };
-
-    document.head.appendChild(script);
-
-    setTimeout(() => {
-      if (window[callbackName]) {
-        console.warn('単一行JSONP タイムアウト:', rowId);
-        if (callback) callback(false);
-        cleanupJSONP(callbackName);
-      }
-    }, 3000); // タイムアウト短縮
-
-  } catch (error) {
-    console.error('単一行更新初期化エラー:', error);
-    if (callback) callback(false);
-  }
-}
-
-function updateSingleRowPhase2(rowId, checked, memo, originalButton, autoSaveMessage, staffName) {
-  try {
-    if (originalButton) {
-      originalButton.disabled = true;
-      if (memo !== null) {
-        const textSpan = originalButton.querySelector('.save-btn-text');
-        if (textSpan) {
-          textSpan.textContent = '更新中...';
-        } else {
-          originalButton.innerHTML = '📝 更新中...';
-        }
-      }
-    }
-
-    const callbackName = 'updateCallback' + Date.now() + '_single';
-
-    window[callbackName] = function(result) {
-      console.log('=== Phase 2 単一行UI Response受信 ===', {rowId, result});
-      
-      try {
-        if (result && result.success) {
-          console.log('単一行UI更新成功:', rowId);
-          // Phase 2: 高速リロード
-          setTimeout(() => {
-            loadReservationsPhase2();
-          }, 200);
-        } else {
-          console.error('単一行UI更新失敗:', {rowId, result});
-          showError(result ? result.error : '更新に失敗しました');
-        }
-      } catch (error) {
-        console.error('単一行UI処理エラー:', error);
-        showError('更新処理中にエラーが発生しました: ' + error.message);
-      } finally {
-        cleanupJSONP(callbackName);
-        
-        if (originalButton) {
-          originalButton.disabled = false;
-          if (memo !== null) {
-            const textSpan = originalButton.querySelector('.save-btn-text');
-            if (textSpan) {
-              textSpan.textContent = 'メモ保存';
-            } else {
-              originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
-            }
-          }
-        }
-        
-        if (autoSaveMessage) {
-          setTimeout(() => {
-            autoSaveMessage.style.display = 'none';
-          }, 1000);
-        }
-      }
-    };
-
-    const params = new URLSearchParams({
-      action: 'updateReservation',
-      shop: SHOP_SECRET,
-      rowId: parseInt(rowId),
-      callback: callbackName,
-      _t: Date.now()
-    });
-
-    if (checked !== null && checked !== undefined) {
-      params.append('checked', checked ? '1' : '0');
-    }
-    if (memo !== null && memo !== undefined) {
-      params.append('memo', memo);
-    }
-    if (staffName !== null && staffName !== undefined) {
-      params.append('staffName', staffName);
-    }
-
-    const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
-
-    const script = document.createElement('script');
-    script.src = jsonpUrl;
-    script.setAttribute('data-jsonp', 'true');
-    script.setAttribute('data-callback', callbackName);
-
-    script.onerror = function(error) {
-      console.error('JSONP読み込みエラー:', {rowId, error});
-      showError('ネットワークエラーが発生しました');
-      cleanupJSONP(callbackName);
-      
-      if (originalButton) {
-        originalButton.disabled = false;
-        if (memo !== null) {
-          const textSpan = originalButton.querySelector('.save-btn-text');
-          if (textSpan) {
-            textSpan.textContent = 'メモ保存';
-          } else {
-            originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
-          }
-        }
-      }
-      
-      if (autoSaveMessage) {
-        autoSaveMessage.style.display = 'none';
-      }
-    };
-
-    document.head.appendChild(script);
-
-    setTimeout(() => {
-      if (window[callbackName]) {
-        console.warn('JSONP タイムアウト');
-        showError('リクエストがタイムアウトしました');
-        cleanupJSONP(callbackName);
-        
-        if (originalButton) {
-          originalButton.disabled = false;
-          if (memo !== null) {
-            const textSpan = originalButton.querySelector('.save-btn-text');
-            if (textSpan) {
-              textSpan.textContent = 'メモ保存';
-            } else {
-              originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
-            }
-          }
-        }
-        
-        if (autoSaveMessage) {
-          autoSaveMessage.style.display = 'none';
-        }
-      }
-    }, 5000); // タイムアウト短縮
-
-  } catch (error) {
-    console.error('更新初期化エラー:', error);
-    showError('更新処理の初期化に失敗しました: ' + error.message);
     
-    if (originalButton) {
-      originalButton.disabled = false;
-      if (memo !== null) {
-        const textSpan = originalButton.querySelector('.save-btn-text');
-        if (textSpan) {
-          textSpan.textContent = 'メモ保存';
-        } else {
-          originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
-        }
-      }
-    }
-    
-    if (autoSaveMessage) {
-      autoSaveMessage.style.display = 'none';
+    // メモリ使用量が80%を超えた場合の警告
+    if ((memory.usedJSHeapSize / memory.jsHeapSizeLimit) > 0.8) {
+      console.warn('⚠️ メモリ使用量が高くなっています。強制クリーンアップを実行します。');
+      forceMemoryCleanup();
     }
   }
 }
 
-// ============================================
-// モーダル・担当者名入力（変更なし）
-// ============================================
-
-function confirmStaffInput() {
-  const staffName = document.getElementById('staff-name-input').value.trim();
+// 強制メモリークリーンアップ
+function forceMemoryCleanup() {
+  console.log('🧹 強制メモリークリーンアップ実行');
   
-  if (!staffName) {
-    alert('担当者名を入力してください。');
-    return;
-  }
-  
-  console.log('担当者名確定:', staffName);
-  
-  document.getElementById('staff-modal').style.display = 'none';
-  document.getElementById('staff-name-input').value = '';
-  
-  if (pendingToggleRowId !== null) {
-    updateReservationPhase2(pendingToggleRowId, true, null, {target: pendingToggleElement}, staffName);
-  }
-  
-  pendingToggleRowId = null;
-  pendingToggleElement = null;
-}
-
-function cancelStaffInput() {
-  document.getElementById('staff-modal').style.display = 'none';
-  
-  if (pendingToggleElement) {
-    pendingToggleElement.checked = false;
-  }
-  
-  pendingToggleRowId = null;
-  pendingToggleElement = null;
-}
-
-// ============================================
-// Phase 2: 過去7日間データ高速読み込み
-// ============================================
-
-function loadPast7Days() {
-  console.log('=== Phase 2 過去7日間データ読み込み開始 ===');
-  
-  // 過去7日間専用キャッシュチェック
-  const past7daysCache = localStorage.getItem(CACHE_KEY_PREFIX + SHOP_SECRET + '_past7days');
-  if (past7daysCache) {
-    try {
-      const cacheData = JSON.parse(past7daysCache);
-      if (Date.now() - cacheData.timestamp < CACHE_DURATION) {
-        console.log('過去7日間キャッシュヒット');
-        allReservations = cacheData.data;
-        updateStats(allReservations);
-        displayReservations(allReservations);
-        updateFilterButtons('past7days');
-        addPastReservationStyles();
-        
-        // バックグラウンド更新
-        setTimeout(() => {
-          loadPast7DaysFromGAS(true);
-        }, 100);
-        return;
-      }
-    } catch (error) {
-      console.warn('過去7日間キャッシュエラー:', error);
-    }
-  }
-  
-  showLoading(true);
-  hideError();
-  loadPast7DaysFromGAS(false);
-}
-
-function loadPast7DaysFromGAS(isBackgroundUpdate = false) {
-  try {
-    const callbackName = 'past7daysCallback' + Date.now();
-    
-    const existingScripts = document.querySelectorAll('script[data-jsonp="true"]');
-    existingScripts.forEach(script => script.remove());
-    
-    window[callbackName] = function(data) {
-      console.log('=== Phase 2 過去7日間Response受信 ===', data);
-      
-      try {
-        if (data && data.success) {
-          console.log('過去7日間データ取得成功:', data.data.length + '件');
-          allReservations = data.data || [];
-          
-          // 過去7日間キャッシュ保存
-          const cacheData = {
-            data: allReservations,
-            timestamp: Date.now()
-          };
-          localStorage.setItem(CACHE_KEY_PREFIX + SHOP_SECRET + '_past7days', JSON.stringify(cacheData));
-          
-          if (data.storeName) {
-            updateStoreNameHeader(data.storeName, 'past7days');
-          }
-          
-          addPastReservationStyles();
-          updateStats(allReservations);
-          displayReservations(allReservations);
-          updateFilterButtons('past7days');
-          
-        } else {
-          console.error('過去7日間データ取得失敗:', data);
-          if (data && data.error && data.error.includes('アクセス権限')) {
-            showAuthError();
-          } else {
-            showError(data ? data.error : '過去7日間データの読み込みに失敗しました');
-          }
-        }
-      } catch (error) {
-        console.error('過去7日間データ処理エラー:', error);
-        showError('過去7日間データの処理中にエラーが発生しました: ' + error.message);
-      } finally {
-        cleanupJSONP(callbackName);
-        if (!isBackgroundUpdate) {
-          showLoading(false);
-        }
-      }
-    };
-    
-    const jsonpUrl = `${GAS_API_URL}?action=getReservations&shop=${encodeURIComponent(SHOP_SECRET)}&dateRange=past_7days&callback=${callbackName}&_t=${Date.now()}`;
-    
-    const script = document.createElement('script');
-    script.src = jsonpUrl;
-    script.setAttribute('data-jsonp', 'true');
-    script.setAttribute('data-callback', callbackName);
-    
-    script.onerror = function(error) {
-      console.error('過去7日間JSONP読み込みエラー:', error);
-      showError('ネットワークエラーが発生しました。GASのURLまたはデプロイを確認してください。');
-      cleanupJSONP(callbackName);
-      if (!isBackgroundUpdate) {
-        showLoading(false);
-      }
-    };
-    
-    document.head.appendChild(script);
-    
-    setTimeout(() => {
-      if (window[callbackName]) {
-        console.warn('過去7日間JSONP タイムアウト');
-        showError('過去7日間データのリクエストがタイムアウトしました。再度お試しください。');
-        cleanupJSONP(callbackName);
-        if (!isBackgroundUpdate) {
-          showLoading(false);
-        }
-      }
-    }, 8000); // タイムアウト短縮
-    
-  } catch (error) {
-    console.error('過去7日間JSONP初期化エラー:', error);
-    showError('過去7日間データの読み込み初期化に失敗しました: ' + error.message);
-    if (!isBackgroundUpdate) {
-      showLoading(false);
-    }
-  }
-}
-
-function addPastReservationStyles() {
-  const existingStyle = document.getElementById('past-reservation-styles');
-  if (existingStyle) {
-    existingStyle.remove();
-  }
-  
-  const style = document.createElement('style');
-  style.id = 'past-reservation-styles';
-  style.textContent = `
-    .reservation-card.past {
-      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
-      border-left: 6px solid #6c757d;
-      opacity: 0.8;
-    }
-    .reservation-card.past .card-header {
-      opacity: 0.9;
-    }
-    .reservation-card.past .pickup-info::before {
-      content: "📅 ";
-      color: #6c757d;
-    }
-  `;
-  document.head.appendChild(style);
-}
-
-// ============================================
-// ヘルパー関数（変更なし）
-// ============================================
-
-function updateFilterButtons(activeFilter) {
-  document.querySelectorAll('.controls .btn').forEach(btn => {
-    btn.classList.remove('active');
+  // 1. 全てのJSONPスクリプトを削除
+  document.querySelectorAll('script[data-jsonp="true"]').forEach(script => {
+    script.remove();
   });
   
-  let activeButtonId = '';
-  switch (activeFilter) {
-    case 'all':
-      activeButtonId = 'filter-all';
-      break;
-    case 'today':
-      activeButtonId = 'filter-today';
-      break;
-    case 'pending':
-      activeButtonId = 'filter-pending';
-      break;
-    case 'completed':
-      activeButtonId = 'filter-completed';
-      break;
-    case 'past7days':
-      activeButtonId = 'filter-past7days';
-      break;
-  }
-  
-  if (activeButtonId) {
-    const activeButton = document.getElementById(activeButtonId);
-    if (activeButton) {
-      activeButton.classList.add('active');
+  // 2. 古いコールバック関数を全て削除
+  Object.keys(window).forEach(key => {
+    if (/^(updateCallback|loadCallback)/.test(key)) {
+      delete window[key];
     }
-  }
-}
-
-function updateStoreNameHeader(storeName, mode) {
-  const subtitle = document.querySelector('.header .subtitle');
+  });
   
-  if (mode === 'past7days') {
-    subtitle.textContent = `過去7日間の予約履歴（${storeName}）`;
-  } else {
-    subtitle.textContent = `本日以降の予約一覧（${storeName}）`;
+  // 3. 古いキャッシュを削除
+  const keys = Object.keys(localStorage);
+  const cacheKeys = keys.filter(key => key.startsWith(CACHE_KEY_PREFIX));
+  if (cacheKeys.length > 3) {
+    cacheKeys.slice(0, cacheKeys.length - 2).forEach(key => {
+      localStorage.removeItem(key);
+    });
   }
-} 
+  
+  console.log('強制メモリークリーンアップ完了');
+}
