@@ -176,6 +176,18 @@ function getTodayString() {
   return `${year}-${month}-${day}`;
 }
 
+// 店舗名をヘッダーに表示
+function updateStoreNameHeader(storeName, mode) {
+  const header = document.querySelector('.header');
+  const subtitle = document.querySelector('.header .subtitle');
+  
+  if (mode === 'past7days') {
+    subtitle.textContent = `過去7日間の予約履歴（${storeName}）`;
+  } else {
+    subtitle.textContent = `本日以降の予約一覧（${storeName}）`;
+  }
+}
+
 function normalizeDateString(dateStr) {
   if (!dateStr) return '';
   
@@ -808,4 +820,518 @@ function forceMemoryCleanup() {
   }
   
   console.log('強制メモリークリーンアップ完了');
+}
+
+// ============================================
+// フィルター・表示機能
+// ============================================
+
+// フィルターボタンのアクティブ状態を更新
+function updateFilterButtons(activeFilter) {
+  // すべてのフィルターボタンからactiveクラスを削除
+  document.querySelectorAll('.controls .btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  
+  // アクティブなフィルターボタンにactiveクラスを追加
+  let activeButtonId = '';
+  switch (activeFilter) {
+    case 'all':
+      activeButtonId = 'filter-all';
+      break;
+    case 'today':
+      activeButtonId = 'filter-today';
+      break;
+    case 'pending':
+      activeButtonId = 'filter-pending';
+      break;
+    case 'completed':
+      activeButtonId = 'filter-completed';
+      break;
+    case 'past7days':
+      activeButtonId = 'filter-past7days';
+      break;
+  }
+  
+  if (activeButtonId) {
+    const activeButton = document.getElementById(activeButtonId);
+    if (activeButton) {
+      activeButton.classList.add('active');
+    }
+  }
+}
+
+// 過去の予約カード用のスタイルを追加
+function addPastReservationStyles() {
+  // 既存のスタイルがあれば削除
+  const existingStyle = document.getElementById('past-reservation-styles');
+  if (existingStyle) {
+    existingStyle.remove();
+  }
+  
+  // 新しいスタイルを追加
+  const style = document.createElement('style');
+  style.id = 'past-reservation-styles';
+  style.textContent = `
+    .reservation-card.past {
+      background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+      border-left: 6px solid #6c757d;
+      opacity: 0.8;
+    }
+    .reservation-card.past .card-header {
+      opacity: 0.9;
+    }
+    .reservation-card.past .pickup-info::before {
+      content: "📅 ";
+      color: #6c757d;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+// ============================================
+// Phase 2: 過去7日間データ読み込み
+// ============================================
+
+// 過去7日間のデータを読み込み（Phase 2対応）
+function loadPast7Days() {
+  console.log('=== 過去7日間データ読み込み開始（Phase 2） ===');
+  showLoading(true);
+  hideError();
+
+  try {
+    // JSONP方式でGASから過去7日間データを取得
+    const callbackName = 'past7daysCallback' + Date.now();
+    console.log('JSONP Callback名（過去7日間）:', callbackName);
+    
+    // 既存のスクリプトタグを削除（クリーンアップ）
+    const existingScripts = document.querySelectorAll('script[data-jsonp="true"]');
+    existingScripts.forEach(script => script.remove());
+    
+    // グローバルコールバック関数を定義
+    window[callbackName] = function(data) {
+      console.log('=== 過去7日間 JSONP Response受信 ===', data);
+      
+      try {
+        if (data && data.success) {
+          console.log('過去7日間データ取得成功:', data.data.length + '件');
+          allReservations = data.data || [];
+          
+          // 店舗名をヘッダーに表示（過去7日間モード）
+          if (data.storeName) {
+            updateStoreNameHeader(data.storeName, 'past7days');
+          }
+          
+          // 過去の予約カードに背景色を設定するためのスタイルを追加
+          addPastReservationStyles();
+          
+          // 統計情報を更新
+          updateStats(allReservations);
+          
+          // 予約一覧を表示（過去の予約も含む）
+          displayReservations(allReservations);
+          
+          // フィルターボタンのアクティブ状態を更新
+          updateFilterButtons('past7days');
+          
+          console.log('過去7日間表示完了');
+          
+        } else {
+          console.error('過去7日間データ取得失敗:', data);
+          if (data && data.error && data.error.includes('アクセス権限')) {
+            showAuthError();
+          } else {
+            showError(data ? data.error : '過去7日間データの読み込みに失敗しました');
+          }
+        }
+      } catch (error) {
+        console.error('過去7日間データ処理エラー:', error);
+        showError('過去7日間データの処理中にエラーが発生しました: ' + error.message);
+      } finally {
+        // クリーンアップ
+        cleanupJSONP(callbackName);
+        showLoading(false);
+      }
+    };
+    
+    // JSONPリクエストURL作成（dateRange=past_7daysパラメータを追加）
+    const jsonpUrl = `${GAS_API_URL}?action=getReservations&shop=${encodeURIComponent(SHOP_SECRET)}&dateRange=past_7days&callback=${callbackName}&_t=${Date.now()}`;
+    console.log('過去7日間 JSONP URL:', jsonpUrl);
+    
+    // スクリプトタグを作成
+    const script = document.createElement('script');
+    script.src = jsonpUrl;
+    script.setAttribute('data-jsonp', 'true');
+    script.setAttribute('data-callback', callbackName);
+    
+    // エラーハンドリング
+    script.onerror = function(error) {
+      console.error('過去7日間 JSONP読み込みエラー:', error);
+      showError('ネットワークエラーが発生しました。GASのURLまたはデプロイを確認してください。');
+      cleanupJSONP(callbackName);
+      showLoading(false);
+    };
+    
+    script.onload = function() {
+      console.log('過去7日間 JSONPスクリプト読み込み完了');
+    };
+    
+    // スクリプトタグを追加してリクエスト実行
+    document.head.appendChild(script);
+    
+    // タイムアウト設定（10秒）
+    setTimeout(() => {
+      if (window[callbackName]) {
+        console.warn('過去7日間 JSONP タイムアウト');
+        showError('過去7日間データのリクエストがタイムアウトしました。再度お試しください。');
+        cleanupJSONP(callbackName);
+        showLoading(false);
+      }
+    }, 10000);
+    
+  } catch (error) {
+    console.error('過去7日間 JSONP初期化エラー:', error);
+    showError('過去7日間データの読み込み初期化に失敗しました: ' + error.message);
+    showLoading(false);
+  }
+}
+
+// ============================================
+// Phase 2: 担当者入力モーダル機能
+// ============================================
+
+// 担当者名入力確定
+function confirmStaffInput() {
+  const staffName = document.getElementById('staff-name-input').value.trim();
+  
+  if (!staffName) {
+    alert('担当者名を入力してください');
+    return;
+  }
+  
+  // モーダルを閉じる
+  document.getElementById('staff-modal').style.display = 'none';
+  
+  // 予約更新を実行
+  if (pendingToggleRowId && pendingToggleElement) {
+    updateReservationPhase2(pendingToggleRowId, true, null, {target: pendingToggleElement}, staffName);
+  }
+  
+  // 変数をクリア
+  pendingToggleRowId = null;
+  pendingToggleElement = null;
+  document.getElementById('staff-name-input').value = '';
+}
+
+// 担当者名入力キャンセル
+function cancelStaffInput() {
+  // モーダルを閉じる
+  document.getElementById('staff-modal').style.display = 'none';
+  
+  // トグルを元に戻す
+  if (pendingToggleElement) {
+    pendingToggleElement.checked = false;
+  }
+  
+  // 変数をクリア
+  pendingToggleRowId = null;
+  pendingToggleElement = null;
+  document.getElementById('staff-name-input').value = '';
+}
+
+// ============================================
+// Phase 2: データ更新機能（完全版）
+// ============================================
+
+// 予約データ更新（統合版）- Phase 2対応
+function updateReservation(rowId, checked, memo, event, staffName) {
+  console.log('=== updateReservation開始 ===', {rowId, checked, memo, staffName});
+  
+  // ボタンの参照を取得
+  let originalButton = null;
+  let autoSaveMessage = null;
+  
+  if (event && event.target) {
+    originalButton = event.target;
+    
+    // チェックボックスの場合は自動保存メッセージを表示
+    if (checked !== null && event.target.type === 'checkbox') {
+      const orderId = event.target.id.replace('check-', '');
+      autoSaveMessage = document.getElementById(`save-msg-${orderId}`);
+      if (autoSaveMessage) {
+        autoSaveMessage.style.display = 'inline';
+      }
+    }
+  }
+  
+  try {
+    // チェックボックス更新の場合は、同一注文IDの全行を更新
+    if (checked !== null) {
+      // 現在の行から注文IDを取得
+      const currentReservation = allReservations.find(r => r.rowId === parseInt(rowId));
+      if (currentReservation) {
+        // 同一注文IDの全行を更新
+        const sameOrderRows = allReservations
+          .filter(r => r.orderId === currentReservation.orderId)
+          .map(r => r.rowId);
+        
+        console.log('同一注文ID行一括更新:', {orderId: currentReservation.orderId, rows: sameOrderRows});
+        
+        // 各行を順次更新
+        updateMultipleRows(sameOrderRows, checked, memo, staffName);
+        return;
+      }
+    }
+    
+    // メモ更新の場合は単一行のみ更新
+    updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage, staffName);
+    
+  } catch (error) {
+    console.error('updateReservation処理エラー:', error);
+    showError('予約データの更新中にエラーが発生しました: ' + error.message);
+  }
+}
+
+// 複数行を順次更新する関数
+function updateMultipleRows(rowIds, checked, memo, staffName) {
+  let completedCount = 0;
+  let totalCount = rowIds.length;
+  let hasError = false;
+
+  console.log('複数行更新開始:', {rowIds, checked, memo, totalCount});
+
+  rowIds.forEach((rowId, index) => {
+    setTimeout(() => {
+      updateSingleRowInternal(rowId, checked, memo, staffName, (success) => {
+        completedCount++;
+        if (!success) hasError = true;
+
+        console.log('行更新完了:', {rowId, success, completedCount, totalCount});
+
+        // 全行の更新が完了した場合
+        if (completedCount >= totalCount) {
+          if (hasError) {
+            showError('一部の更新に失敗しました');
+          } else {
+            console.log('全行更新完了');
+          }
+          // 全て完了後にリロード
+          setTimeout(() => {
+            loadReservationsPhase2();
+          }, 500);
+        }
+      });
+    }, index * 200); // 200ms間隔で順次実行
+  });
+}
+
+// 単一行更新の内部関数
+function updateSingleRowInternal(rowId, checked, memo, staffName, callback) {
+  try {
+    const callbackName = 'updateCallback' + Date.now() + '_' + rowId;
+    console.log('単一行更新開始:', {rowId, callbackName});
+
+    // グローバルコールバック関数を定義
+    window[callbackName] = function(result) {
+      console.log('=== 単一行Response受信 ===', {rowId, result});
+      
+      try {
+        const success = result && result.success;
+        if (success) {
+          console.log('単一行更新成功:', rowId);
+          console.log('サーバーレスポンス詳細:', result);
+        } else {
+          console.error('単一行更新失敗:', {rowId, result});
+          console.log('エラー詳細:', result ? result.error : 'レスポンスなし');
+        }
+        if (callback) callback(success);
+      } catch (error) {
+        console.error('単一行処理エラー:', error);
+        if (callback) callback(false);
+      } finally {
+        cleanupJSONP(callbackName);
+      }
+    };
+
+    // JSONP URLを作成
+    const params = new URLSearchParams({
+      action: 'updateReservation',
+      shop: SHOP_SECRET,
+      rowId: parseInt(rowId),
+      callback: callbackName,
+      _t: Date.now()
+    });
+
+    if (checked !== null && checked !== undefined) {
+      params.append('checked', checked ? '1' : '0');
+      console.log('チェック状態送信:', checked ? '1' : '0');
+    }
+    if (memo !== null && memo !== undefined) {
+      params.append('memo', memo);
+      console.log('メモ送信:', memo);
+    }
+    if (staffName !== null && staffName !== undefined) {
+      params.append('staffName', staffName);
+      console.log('担当者名送信:', staffName);
+    }
+
+    const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
+    console.log('送信URL:', jsonpUrl);
+
+    // スクリプトタグを作成・実行
+    const script = document.createElement('script');
+    script.src = jsonpUrl;
+    script.setAttribute('data-jsonp', 'true');
+    script.setAttribute('data-callback', callbackName);
+    
+    // エラーハンドリング
+    script.onerror = function() {
+      console.error('JSONP読み込みエラー:', jsonpUrl);
+      if (callback) callback(false);
+      cleanupJSONP(callbackName);
+    };
+    
+    document.head.appendChild(script);
+    
+    // タイムアウト設定
+    setTimeout(() => {
+      if (window[callbackName]) {
+        console.warn('JSONP タイムアウト:', callbackName);
+        if (callback) callback(false);
+        cleanupJSONP(callbackName);
+      }
+    }, 10000);
+    
+  } catch (error) {
+    console.error('updateSingleRowInternal エラー:', error);
+    if (callback) callback(false);
+  }
+}
+
+// 単一行更新関数（UI付き）
+function updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage, staffName) {
+  try {
+    // ローディング表示
+    if (originalButton) {
+      originalButton.disabled = true;
+      if (memo !== null) {
+        const textSpan = originalButton.querySelector('.save-btn-text');
+        if (textSpan) {
+          textSpan.textContent = '更新中...';
+        } else {
+          originalButton.innerHTML = '📝 更新中...';
+        }
+      }
+    }
+
+    const callbackName = 'updateCallback' + Date.now() + '_single';
+    console.log('単一行UI更新開始:', {rowId, callbackName});
+
+    // グローバルコールバック関数を定義
+    window[callbackName] = function(result) {
+      console.log('=== 単一行UI Response受信 ===', {rowId, result});
+      
+      try {
+        if (result && result.success) {
+          console.log('単一行UI更新成功:', rowId);
+          console.log('サーバーレスポンス詳細:', result);
+          // 更新成功時に再読み込み
+          setTimeout(() => {
+            loadReservationsPhase2();
+          }, 500);
+        } else {
+          console.error('単一行UI更新失敗:', {rowId, result});
+          console.log('エラー詳細:', result ? result.error : 'レスポンスなし');
+          showError(result ? result.error : '更新に失敗しました');
+        }
+      } catch (error) {
+        console.error('単一行UI処理エラー:', error);
+        showError('更新処理中にエラーが発生しました: ' + error.message);
+      } finally {
+        // クリーンアップ
+        cleanupJSONP(callbackName);
+        
+        // ボタンを元に戻す
+        if (originalButton) {
+          originalButton.disabled = false;
+          if (memo !== null) {
+            const textSpan = originalButton.querySelector('.save-btn-text');
+            if (textSpan) {
+              textSpan.textContent = 'メモ保存';
+            } else {
+              originalButton.innerHTML = '📝 <span class="save-btn-text">メモ保存</span>';
+            }
+          }
+        }
+        
+        // 自動保存メッセージを非表示
+        if (autoSaveMessage) {
+          setTimeout(() => {
+            autoSaveMessage.style.display = 'none';
+          }, 1000);
+        }
+      }
+    };
+
+    // JSONP URLを作成
+    const params = new URLSearchParams({
+      action: 'updateReservation',
+      shop: SHOP_SECRET,
+      rowId: parseInt(rowId),
+      callback: callbackName,
+      _t: Date.now()
+    });
+
+    if (checked !== null && checked !== undefined) {
+      params.append('checked', checked ? '1' : '0');
+      console.log('チェック状態送信:', checked ? '1' : '0');
+    }
+    if (memo !== null && memo !== undefined) {
+      params.append('memo', memo);
+      console.log('メモ送信:', memo);
+    }
+    if (staffName !== null && staffName !== undefined) {
+      params.append('staffName', staffName);
+      console.log('担当者名送信:', staffName);
+    }
+
+    const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
+    console.log('送信URL:', jsonpUrl);
+
+    // スクリプトタグを作成・実行
+    const script = document.createElement('script');
+    script.src = jsonpUrl;
+    script.setAttribute('data-jsonp', 'true');
+    script.setAttribute('data-callback', callbackName);
+    
+    // エラーハンドリング
+    script.onerror = function() {
+      console.error('JSONP読み込みエラー:', jsonpUrl);
+      showError('ネットワークエラーが発生しました');
+      cleanupJSONP(callbackName);
+    };
+    
+    document.head.appendChild(script);
+    
+    // タイムアウト設定
+    setTimeout(() => {
+      if (window[callbackName]) {
+        console.warn('JSONP タイムアウト:', callbackName);
+        showError('リクエストがタイムアウトしました');
+        cleanupJSONP(callbackName);
+      }
+    }, 10000);
+    
+  } catch (error) {
+    console.error('updateSingleRow エラー:', error);
+    showError('更新処理初期化に失敗しました: ' + error.message);
+  }
+}
+
+// Phase 2版のデータ更新関数（後方互換性のため保持）
+function updateReservationPhase2(rowId, checked, memo, event, staffName) {
+  console.log('=== Phase 2: データ更新開始 ===', {rowId, checked, memo, staffName});
+  
+  // 統合された updateReservation 関数を呼び出し
+  updateReservation(rowId, checked, memo, event, staffName);
 }
