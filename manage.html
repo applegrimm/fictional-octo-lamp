@@ -1,5 +1,5 @@
 <!--
-  @file manage_phase2.html
+  @file manage.html
   @brief 店舗管理画面 - テイクアウト予約管理システム（Phase 2最終高速化版）
   @details GAS通信高速化：キャッシュ、並列処理、差分更新実装版
   @version 2.0 - Phase 2: GAS通信完全高速化
@@ -113,7 +113,18 @@
     </div>
   </div>
 
+  <!-- 保存中モーダル -->
+  <div id="saving-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-content saving">
+      <div class="saving-spinner">
+        <div class="spinner"></div>
+      </div>
+      <h3>💾 保存中...</h3>
+      <p>受渡し状況を更新しています。<br>少々お待ちください。</p>
+    </div>
+  </div>
+
   <!-- Phase 2: 高速化JavaScript読み込み -->
-  <script src="manage_scripts_phase2.js"></script>
+  <script src="manage_scripts_phase2.js?v=20241221"></script>
 </body>
 </html> 
