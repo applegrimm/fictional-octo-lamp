@@ -678,7 +678,7 @@ function displayReservations(reservations) {
           <div class="memo-area">
             <input type="text" class="memo-input" id="memo-${group.orderId}" 
                    value="${escapeHtml(customer.memo || '')}" placeholder="スタッフメモを入力..." maxlength="200">
-            <button class="save-btn" onclick="updateReservationPhase2('${group.items[0].rowId}', null, document.getElementById('memo-${group.orderId}').value)">
+            <button class="save-btn" onclick="showSavingModal(); updateReservationPhase2('${group.items[0].rowId}', null, document.getElementById('memo-${group.orderId}').value)">
               📝 <span class="save-btn-text">メモ保存</span>
             </button>
           </div>
@@ -742,6 +742,8 @@ function toggleCompletion(rowId, checked, event) {
     document.getElementById('staff-modal').style.display = 'flex';
     document.getElementById('staff-name-input').focus();
   } else {
+    // チェックOFF（未完了に戻す）の場合も保存中モーダルを表示
+    showSavingModal();
     updateReservationPhase2(rowId, checked, null, event, null);
   }
 }
@@ -758,7 +760,8 @@ function handleToggleChange(rowId, toggleElement) {
     document.getElementById('staff-modal').style.display = 'flex';
     document.getElementById('staff-name-input').focus();
   } else {
-    // チェックOFFの場合は直接更新
+    // チェックOFFの場合は保存中モーダルを表示して直接更新
+    showSavingModal();
     updateReservationPhase2(rowId, checked, null, {target: toggleElement}, null);
   }
 }
@@ -767,6 +770,7 @@ function saveMemo(rowId, event) {
   console.log('=== メモ保存 ===', {rowId});
   const memoInput = document.getElementById(`memo-${rowId}`);
   const memo = memoInput ? memoInput.value : '';
+  showSavingModal();
   updateReservationPhase2(rowId, null, memo, event, null);
 }
 
@@ -1012,6 +1016,9 @@ function confirmStaffInput() {
   // モーダルを閉じる
   document.getElementById('staff-modal').style.display = 'none';
   
+  // 保存中モーダルを表示
+  showSavingModal();
+  
   // 予約更新を実行
   if (pendingToggleRowId && pendingToggleElement) {
     updateReservationPhase2(pendingToggleRowId, true, null, {target: pendingToggleElement}, staffName);
@@ -1037,6 +1044,28 @@ function cancelStaffInput() {
   pendingToggleRowId = null;
   pendingToggleElement = null;
   document.getElementById('staff-name-input').value = '';
+}
+
+// ============================================
+// 保存中モーダル制御
+// ============================================
+
+// 保存中モーダルを表示
+function showSavingModal() {
+  console.log('保存中モーダル表示');
+  const modal = document.getElementById('saving-modal');
+  if (modal) {
+    modal.style.display = 'flex';
+  }
+}
+
+// 保存中モーダルを非表示
+function hideSavingModal() {
+  console.log('保存中モーダル非表示');
+  const modal = document.getElementById('saving-modal');
+  if (modal) {
+    modal.style.display = 'none';
+  }
 }
 
 // ============================================
@@ -1088,6 +1117,7 @@ function updateReservation(rowId, checked, memo, event, staffName) {
     
   } catch (error) {
     console.error('updateReservation処理エラー:', error);
+    hideSavingModal();
     showError('予約データの更新中にエラーが発生しました: ' + error.message);
   }
 }
@@ -1115,10 +1145,11 @@ function updateMultipleRows(rowIds, checked, memo, staffName) {
           } else {
             console.log('全行更新完了');
           }
-          // 全て完了後にリロード
-          setTimeout(() => {
-            loadReservationsPhase2();
-          }, 500);
+                  // 全て完了後にリロード
+        setTimeout(() => {
+          hideSavingModal();
+          loadReservationsPhase2();
+        }, 500);
         }
       });
     }, index * 200); // 200ms間隔で順次実行
@@ -1237,15 +1268,18 @@ function updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage, 
           console.log('サーバーレスポンス詳細:', result);
           // 更新成功時に再読み込み
           setTimeout(() => {
+            hideSavingModal();
             loadReservationsPhase2();
           }, 500);
         } else {
           console.error('単一行UI更新失敗:', {rowId, result});
           console.log('エラー詳細:', result ? result.error : 'レスポンスなし');
+          hideSavingModal();
           showError(result ? result.error : '更新に失敗しました');
         }
       } catch (error) {
         console.error('単一行UI処理エラー:', error);
+        hideSavingModal();
         showError('更新処理中にエラーが発生しました: ' + error.message);
       } finally {
         // クリーンアップ
@@ -1307,6 +1341,7 @@ function updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage, 
     // エラーハンドリング
     script.onerror = function() {
       console.error('JSONP読み込みエラー:', jsonpUrl);
+      hideSavingModal();
       showError('ネットワークエラーが発生しました');
       cleanupJSONP(callbackName);
     };
@@ -1317,6 +1352,7 @@ function updateSingleRow(rowId, checked, memo, originalButton, autoSaveMessage, 
     setTimeout(() => {
       if (window[callbackName]) {
         console.warn('JSONP タイムアウト:', callbackName);
+        hideSavingModal();
         showError('リクエストがタイムアウトしました');
         cleanupJSONP(callbackName);
       }
