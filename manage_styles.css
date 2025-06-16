@@ -822,4 +822,54 @@ input:checked + .toggle-slider:before {
 .reservation-card.past .pickup-info::before {
   content: "📅 ";
   color: #6c757d;
+}
+
+/* ============================================
+   保存中モーダル
+   ============================================ */
+.modal-content.saving {
+  text-align: center;
+  animation: modalFadeIn 0.3s ease-out;
+}
+
+.saving-spinner {
+  margin-bottom: 20px;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  animation: spinnerRotate 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spinnerRotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes modalFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.modal-content.saving h3 {
+  color: #3498db;
+  margin: 16px 0 12px 0;
+  font-size: 1.4em;
+}
+
+.modal-content.saving p {
+  color: #666;
+  line-height: 1.6;
+  margin: 0;
 } 
