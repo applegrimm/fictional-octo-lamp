@@ -26,6 +26,140 @@ const CACHE_DURATION = 30000; // 30秒キャッシュ
 const CACHE_KEY_PREFIX = 'reservation_cache_';
 
 // ============================================
+// 🛡️ セキュリティ強化：ワンタイムトークンシステム
+// ============================================
+
+// セッション管理変数
+let sessionToken = null;
+let tokenExpiry = 0;
+const TOKEN_VALIDITY = 300000; // 5分間有効
+
+/**
+ * セキュアなワンタイムトークンを生成
+ * @return {Object} トークンデータ
+ */
+async function generateSecureToken() {
+  const timestamp = Date.now();
+  const randomBytes = new Uint8Array(16);
+  crypto.getRandomValues(randomBytes);
+  const randomHex = Array.from(randomBytes, byte => byte.toString(16).padStart(2, '0')).join('');
+  
+  // 店舗シークレット + タイムスタンプ + ランダム値でHMAC生成
+  const message = SHOP_SECRET + ':' + timestamp + ':' + randomHex;
+  const encoder = new TextEncoder();
+  const key = await crypto.subtle.importKey(
+    'raw',
+    encoder.encode(SHOP_SECRET),
+    { name: 'HMAC', hash: 'SHA-256' },
+    false,
+    ['sign']
+  );
+  
+  const signature = await crypto.subtle.sign('HMAC', key, encoder.encode(message));
+  const signatureHex = Array.from(new Uint8Array(signature), byte => 
+    byte.toString(16).padStart(2, '0')).join('');
+  
+  return {
+    token: `${timestamp}.${randomHex}.${signatureHex}`,
+    expiry: timestamp + TOKEN_VALIDITY
+  };
+}
+
+/**
+ * 有効なトークンを取得（期限切れなら新規生成）
+ * @return {string} 有効なトークン
+ */
+async function getValidToken() {
+  const now = Date.now();
+  
+  // トークンが存在し、まだ有効な場合
+  if (sessionToken && now < tokenExpiry) {
+    return sessionToken;
+  }
+  
+  // 新しいトークンを生成
+  const tokenData = await generateSecureToken();
+  sessionToken = tokenData.token;
+  tokenExpiry = tokenData.expiry;
+  
+  console.log('🔐 新しいセキュリティトークンを生成しました');
+  return sessionToken;
+}
+
+/**
+ * チェックサム生成（データ整合性確認用）
+ * @param {string} secret - 店舗シークレット
+ * @param {number} timestamp - タイムスタンプ
+ * @return {string} チェックサム
+ */
+async function generateChecksum(secret, timestamp) {
+  const data = `${secret}:${timestamp}:${navigator.userAgent.substring(0, 50)}`;
+  const encoder = new TextEncoder();
+  const hash = await crypto.subtle.digest('SHA-256', encoder.encode(data));
+  return Array.from(new Uint8Array(hash), byte => 
+    byte.toString(16).padStart(2, '0')).join('').substring(0, 16);
+}
+
+/**
+ * クライアント固有ID生成
+ * @return {string} クライアントID
+ */
+function generateClientId() {
+  if (!localStorage.getItem('clientId')) {
+    const randomBytes = new Uint8Array(8);
+    crypto.getRandomValues(randomBytes);
+    const clientId = Array.from(randomBytes, byte => 
+      byte.toString(16).padStart(2, '0')).join('');
+    localStorage.setItem('clientId', clientId);
+  }
+  return localStorage.getItem('clientId');
+}
+
+/**
+ * セキュアなGASリクエスト用URLを構築
+ * @param {string} action - アクション名
+ * @param {string} callbackName - コールバック関数名
+ * @param {Object} additionalParams - 追加パラメータ
+ * @return {string} セキュアなURL
+ */
+async function buildSecureUrl(action, callbackName, additionalParams = {}) {
+  try {
+    // セキュアトークンを取得
+    const secureToken = await getValidToken();
+    const timestamp = Date.now();
+    
+    // 基本パラメータ
+    const baseParams = {
+      action: action,
+      shop: SHOP_SECRET,
+      callback: callbackName,
+      token: secureToken,
+      timestamp: timestamp,
+      clientId: generateClientId(),
+      checksum: await generateChecksum(SHOP_SECRET, timestamp),
+      _t: timestamp
+    };
+    
+    // 追加パラメータをマージ
+    const allParams = { ...baseParams, ...additionalParams };
+    
+    // URLを構築
+    const params = new URLSearchParams();
+    Object.entries(allParams).forEach(([key, value]) => {
+      if (value !== null && value !== undefined) {
+        params.append(key, value);
+      }
+    });
+    
+    return `${GAS_API_URL}?${params.toString()}`;
+    
+  } catch (error) {
+    console.error('セキュアURL構築エラー:', error);
+    throw new Error('セキュリティ検証に失敗しました');
+  }
+}
+
+// ============================================
 // Phase 2: メモリークリーンアップ機能
 // ============================================
 
@@ -339,9 +473,9 @@ function loadReservationsPhase2() {
   loadReservationsFromGAS(false);
 }
 
-// GASからデータを読み込み
-function loadReservationsFromGAS(isBackgroundUpdate = false) {
-  console.log('=== GASからデータ読み込み ===', {isBackgroundUpdate});
+// 🛡️ セキュア版：GASからデータを読み込み
+async function loadReservationsFromGAS(isBackgroundUpdate = false) {
+  console.log('=== セキュアGASデータ読み込み ===', {isBackgroundUpdate});
   
   if (!isBackgroundUpdate) {
     showLoading(true);
@@ -356,7 +490,7 @@ function loadReservationsFromGAS(isBackgroundUpdate = false) {
     existingScripts.forEach(script => script.remove());
     
     window[callbackName] = function(data) {
-      console.log('=== JSONP Response受信 ===', data);
+      console.log('=== セキュアJSONP Response受信 ===', data);
       
       try {
         if (data && data.success) {
@@ -390,7 +524,16 @@ function loadReservationsFromGAS(isBackgroundUpdate = false) {
           
         } else {
           console.error('APIエラー:', data);
-          if (data && data.error && data.error.includes('アクセス権限')) {
+          if (data && data.error && data.error.includes('認証トークンが無効')) {
+            // トークンエラーの場合は再生成して再試行
+            console.log('🔐 トークンエラー検出 - トークン再生成');
+            sessionToken = null;
+            tokenExpiry = 0;
+            if (!isBackgroundUpdate) {
+              setTimeout(() => loadReservationsFromGAS(isBackgroundUpdate), 1000);
+            }
+            return;
+          } else if (data && data.error && data.error.includes('アクセス権限')) {
             showAuthError();
           } else {
             showError(data ? data.error : '予約データの読み込みに失敗しました');
@@ -407,8 +550,9 @@ function loadReservationsFromGAS(isBackgroundUpdate = false) {
       }
     };
     
-    const jsonpUrl = `${GAS_API_URL}?action=getReservations&shop=${encodeURIComponent(SHOP_SECRET)}&callback=${callbackName}&_t=${Date.now()}`;
-    console.log('JSONP URL:', jsonpUrl);
+    // セキュアURLを構築
+    const jsonpUrl = await buildSecureUrl('getReservations', callbackName);
+    console.log('🔐 セキュアJSONP URL生成完了');
     
     const script = document.createElement('script');
     script.src = jsonpUrl;
@@ -416,8 +560,8 @@ function loadReservationsFromGAS(isBackgroundUpdate = false) {
     script.setAttribute('data-callback', callbackName);
     
     script.onerror = function(error) {
-      console.error('JSONP読み込みエラー:', error);
-      showError('ネットワークエラーが発生しました。GASのURLまたはデプロイを確認してください。');
+      console.error('セキュアJSONP読み込みエラー:', error);
+      showError('ネットワークエラーが発生しました。セキュリティ検証をご確認ください。');
       cleanupJSONP(callbackName);
       if (!isBackgroundUpdate) {
         showLoading(false);
@@ -425,14 +569,14 @@ function loadReservationsFromGAS(isBackgroundUpdate = false) {
     };
     
     script.onload = function() {
-      console.log('JSONPスクリプト読み込み完了');
+      console.log('セキュアJSONPスクリプト読み込み完了');
     };
     
     document.head.appendChild(script);
     
     setTimeout(() => {
       if (window[callbackName]) {
-        console.warn('JSONP タイムアウト');
+        console.warn('セキュアJSONP タイムアウト');
         showError('リクエストがタイムアウトしました。再度お試しください。');
         cleanupJSONP(callbackName);
         if (!isBackgroundUpdate) {
@@ -442,8 +586,8 @@ function loadReservationsFromGAS(isBackgroundUpdate = false) {
     }, 10000);
     
   } catch (error) {
-    console.error('JSONP初期化エラー:', error);
-    showError('データの読み込み初期化に失敗しました: ' + error.message);
+    console.error('セキュアJSONP初期化エラー:', error);
+    showError('セキュアな通信の初期化に失敗しました: ' + error.message);
     if (!isBackgroundUpdate) {
       showLoading(false);
     }
@@ -897,9 +1041,9 @@ function addPastReservationStyles() {
 // Phase 2: 過去7日間データ読み込み
 // ============================================
 
-// 過去7日間のデータを読み込み（Phase 2対応）
-function loadPast7Days() {
-  console.log('=== 過去7日間データ読み込み開始（Phase 2） ===');
+// 🛡️ セキュア版：過去7日間のデータを読み込み（Phase 2対応）
+async function loadPast7Days() {
+  console.log('=== セキュア過去7日間データ読み込み開始（Phase 2） ===');
   showLoading(true);
   hideError();
 
@@ -914,7 +1058,7 @@ function loadPast7Days() {
     
     // グローバルコールバック関数を定義
     window[callbackName] = function(data) {
-      console.log('=== 過去7日間 JSONP Response受信 ===', data);
+      console.log('=== セキュア過去7日間 JSONP Response受信 ===', data);
       
       try {
         if (data && data.success) {
@@ -942,7 +1086,14 @@ function loadPast7Days() {
           
         } else {
           console.error('過去7日間データ取得失敗:', data);
-          if (data && data.error && data.error.includes('アクセス権限')) {
+          if (data && data.error && data.error.includes('認証トークンが無効')) {
+            // トークンエラーの場合は再生成して再試行
+            console.log('🔐 過去7日間トークンエラー検出 - トークン再生成');
+            sessionToken = null;
+            tokenExpiry = 0;
+            setTimeout(() => loadPast7Days(), 1000);
+            return;
+          } else if (data && data.error && data.error.includes('アクセス権限')) {
             showAuthError();
           } else {
             showError(data ? data.error : '過去7日間データの読み込みに失敗しました');
@@ -958,9 +1109,9 @@ function loadPast7Days() {
       }
     };
     
-    // JSONPリクエストURL作成（dateRange=past_7daysパラメータを追加）
-    const jsonpUrl = `${GAS_API_URL}?action=getReservations&shop=${encodeURIComponent(SHOP_SECRET)}&dateRange=past_7days&callback=${callbackName}&_t=${Date.now()}`;
-    console.log('過去7日間 JSONP URL:', jsonpUrl);
+    // セキュアURLを構築（過去7日間パラメータ付き）
+    const jsonpUrl = await buildSecureUrl('getReservations', callbackName, { dateRange: 'past_7days' });
+    console.log('🔐 セキュア過去7日間URL生成完了');
     
     // スクリプトタグを作成
     const script = document.createElement('script');
@@ -970,14 +1121,14 @@ function loadPast7Days() {
     
     // エラーハンドリング
     script.onerror = function(error) {
-      console.error('過去7日間 JSONP読み込みエラー:', error);
-      showError('ネットワークエラーが発生しました。GASのURLまたはデプロイを確認してください。');
+      console.error('セキュア過去7日間 JSONP読み込みエラー:', error);
+      showError('ネットワークエラーが発生しました。セキュリティ検証をご確認ください。');
       cleanupJSONP(callbackName);
       showLoading(false);
     };
     
     script.onload = function() {
-      console.log('過去7日間 JSONPスクリプト読み込み完了');
+      console.log('セキュア過去7日間 JSONPスクリプト読み込み完了');
     };
     
     // スクリプトタグを追加してリクエスト実行
@@ -986,7 +1137,7 @@ function loadPast7Days() {
     // タイムアウト設定（10秒）
     setTimeout(() => {
       if (window[callbackName]) {
-        console.warn('過去7日間 JSONP タイムアウト');
+        console.warn('セキュア過去7日間 JSONP タイムアウト');
         showError('過去7日間データのリクエストがタイムアウトしました。再度お試しください。');
         cleanupJSONP(callbackName);
         showLoading(false);
@@ -994,8 +1145,8 @@ function loadPast7Days() {
     }, 10000);
     
   } catch (error) {
-    console.error('過去7日間 JSONP初期化エラー:', error);
-    showError('過去7日間データの読み込み初期化に失敗しました: ' + error.message);
+    console.error('セキュア過去7日間 JSONP初期化エラー:', error);
+    showError('セキュアな過去7日間データの読み込み初期化に失敗しました: ' + error.message);
     showLoading(false);
   }
 }
@@ -1157,57 +1308,64 @@ function updateMultipleRows(rowIds, checked, memo, staffName) {
 }
 
 // 単一行更新の内部関数
-function updateSingleRowInternal(rowId, checked, memo, staffName, callback) {
+// 🛡️ セキュア版：単一行更新（内部処理）
+async function updateSingleRowInternal(rowId, checked, memo, staffName, callback) {
   try {
     const callbackName = 'updateCallback' + Date.now() + '_' + rowId;
-    console.log('単一行更新開始:', {rowId, callbackName});
+    console.log('🔐 セキュア単一行更新開始:', {rowId, callbackName});
 
     // グローバルコールバック関数を定義
     window[callbackName] = function(result) {
-      console.log('=== 単一行Response受信 ===', {rowId, result});
+      console.log('=== セキュア単一行Response受信 ===', {rowId, result});
       
       try {
         const success = result && result.success;
         if (success) {
-          console.log('単一行更新成功:', rowId);
+          console.log('セキュア単一行更新成功:', rowId);
           console.log('サーバーレスポンス詳細:', result);
         } else {
-          console.error('単一行更新失敗:', {rowId, result});
+          console.error('セキュア単一行更新失敗:', {rowId, result});
           console.log('エラー詳細:', result ? result.error : 'レスポンスなし');
+          
+          // トークンエラーの場合は再生成して再試行
+          if (result && result.error && result.error.includes('認証トークンが無効')) {
+            console.log('🔐 更新時トークンエラー検出 - トークン再生成して再試行');
+            sessionToken = null;
+            tokenExpiry = 0;
+            setTimeout(() => updateSingleRowInternal(rowId, checked, memo, staffName, callback), 1000);
+            return;
+          }
         }
         if (callback) callback(success);
       } catch (error) {
-        console.error('単一行処理エラー:', error);
+        console.error('セキュア単一行処理エラー:', error);
         if (callback) callback(false);
       } finally {
         cleanupJSONP(callbackName);
       }
     };
 
-    // JSONP URLを作成
-    const params = new URLSearchParams({
-      action: 'updateReservation',
-      shop: SHOP_SECRET,
-      rowId: parseInt(rowId),
-      callback: callbackName,
-      _t: Date.now()
-    });
+    // 追加パラメータを準備
+    const additionalParams = {
+      rowId: parseInt(rowId)
+    };
 
     if (checked !== null && checked !== undefined) {
-      params.append('checked', checked ? '1' : '0');
+      additionalParams.checked = checked ? '1' : '0';
       console.log('チェック状態送信:', checked ? '1' : '0');
     }
     if (memo !== null && memo !== undefined) {
-      params.append('memo', memo);
+      additionalParams.memo = memo;
       console.log('メモ送信:', memo);
     }
     if (staffName !== null && staffName !== undefined) {
-      params.append('staffName', staffName);
+      additionalParams.staffName = staffName;
       console.log('担当者名送信:', staffName);
     }
 
-    const jsonpUrl = `${GAS_API_URL}?${params.toString()}`;
-    console.log('送信URL:', jsonpUrl);
+    // セキュアURLを構築
+    const jsonpUrl = await buildSecureUrl('updateReservation', callbackName, additionalParams);
+    console.log('🔐 セキュア更新URL生成完了');
 
     // スクリプトタグを作成・実行
     const script = document.createElement('script');
@@ -1217,7 +1375,7 @@ function updateSingleRowInternal(rowId, checked, memo, staffName, callback) {
     
     // エラーハンドリング
     script.onerror = function() {
-      console.error('JSONP読み込みエラー:', jsonpUrl);
+      console.error('セキュアJSONP読み込みエラー:', jsonpUrl);
       if (callback) callback(false);
       cleanupJSONP(callbackName);
     };
@@ -1227,14 +1385,14 @@ function updateSingleRowInternal(rowId, checked, memo, staffName, callback) {
     // タイムアウト設定
     setTimeout(() => {
       if (window[callbackName]) {
-        console.warn('JSONP タイムアウト:', callbackName);
+        console.warn('セキュアJSONP タイムアウト:', callbackName);
         if (callback) callback(false);
         cleanupJSONP(callbackName);
       }
     }, 10000);
     
   } catch (error) {
-    console.error('updateSingleRowInternal エラー:', error);
+    console.error('セキュア updateSingleRowInternal エラー:', error);
     if (callback) callback(false);
   }
 }
