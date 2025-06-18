@@ -93,7 +93,7 @@ async function getValidToken() {
  * @return {string} チェックサム
  */
 async function generateChecksum(secret, timestamp) {
-  const data = `${secret}:${timestamp}:${navigator.userAgent.substring(0, 50)}`;
+  const data = `${secret}:${timestamp}`;
   const encoder = new TextEncoder();
   const hash = await crypto.subtle.digest('SHA-256', encoder.encode(data));
   return Array.from(new Uint8Array(hash), byte => 
