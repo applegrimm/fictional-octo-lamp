@@ -2285,7 +2285,10 @@
         const paymentBtn = document.getElementById('payment-btn');
         const submitBtn = document.getElementById('submit-btn');
         paymentBtn.disabled = true;
-        submitBtn.disabled = true;
+        // submitBtnが存在する場合のみ無効化
+        if (submitBtn) {
+          submitBtn.disabled = true;
+        }
         paymentBtn.textContent = '決済処理中...';
         
         // Stripe Checkoutを開始
@@ -2299,7 +2302,10 @@
         const paymentBtn = document.getElementById('payment-btn');
         const submitBtn = document.getElementById('submit-btn');
         paymentBtn.disabled = false;
-        submitBtn.disabled = false;
+        // submitBtnが存在する場合のみ有効化
+        if (submitBtn) {
+          submitBtn.disabled = false;
+        }
         paymentBtn.textContent = '💳 事前決済で予約';
       }
     }
