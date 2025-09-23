@@ -500,6 +500,107 @@
         <span class="error-message" id="store-error"></span>
       </div>
       
+      <!-- 配送方法選択（店舗選択の後、商品選択の前） -->
+      <div>
+        <label>配送方法を選択してください <span class="required">*</span></label>
+        <div style="display:flex; gap:12px; align-items:center; margin-top:6px;">
+          <label style="font-weight:normal;"><input type="radio" name="delivery_method" value="pickup" checked> 店頭受取（従来通り）</label>
+          <label style="font-weight:normal;"><input type="radio" name="delivery_method" value="delivery"> 宅配便（送料込み価格）</label>
+        </div>
+        <span class="error-message" id="delivery_method-error"></span>
+      </div>
+
+      <!-- 注文者住所（配送選択時のみ表示） -->
+      <div id="orderer-address-section" style="display:none;">
+        <label>注文者住所 <span class="required">*</span></label>
+        <div>
+          <label for="orderer_postal">郵便番号<span class="required">*</span></label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="orderer_postal" name="orderer_postal" placeholder="123-4567" inputmode="numeric" maxlength="8">
+            <button type="button" id="orderer_zip_search" class="add-product-btn" style="margin-top:0;">住所検索</button>
+          </div>
+          <span class="error-message" id="orderer_postal-error"></span>
+        </div>
+        <div>
+          <label for="orderer_pref">都道府県<span class="required">*</span></label>
+          <input type="text" id="orderer_pref" name="orderer_pref" placeholder="長野県">
+          <span class="error-message" id="orderer_pref-error"></span>
+        </div>
+        <div>
+          <label for="orderer_city">市区町村<span class="required">*</span></label>
+          <input type="text" id="orderer_city" name="orderer_city" placeholder="長野市">
+          <span class="error-message" id="orderer_city-error"></span>
+        </div>
+        <div>
+          <label for="orderer_addr1">番地・建物名<span class="required">*</span></label>
+          <input type="text" id="orderer_addr1" name="orderer_addr1" placeholder="大字鶴賀123-4 マンションABC 101号室">
+          <span class="error-message" id="orderer_addr1-error"></span>
+        </div>
+      </div>
+
+      <!-- 配送先住所（配送選択時のみ表示） -->
+      <div id="delivery-address-section" style="display:none;">
+        <label>配送先住所 <span class="required">*</span></label>
+        <div>
+          <label for="delivery_postal">郵便番号<span class="required">*</span></label>
+          <div style="display:flex; gap:8px;">
+            <input type="text" id="delivery_postal" name="delivery_postal" placeholder="100-0001" inputmode="numeric" maxlength="8">
+            <button type="button" id="delivery_zip_search" class="add-product-btn" style="margin-top:0;">住所検索</button>
+          </div>
+          <span class="error-message" id="delivery_postal-error"></span>
+        </div>
+        <div>
+          <label for="delivery_pref">都道府県<span class="required">*</span></label>
+          <input type="text" id="delivery_pref" name="delivery_pref" placeholder="東京都">
+          <span class="error-message" id="delivery_pref-error"></span>
+        </div>
+        <div>
+          <label for="delivery_city">市区町村<span class="required">*</span></label>
+          <input type="text" id="delivery_city" name="delivery_city" placeholder="千代田区">
+          <span class="error-message" id="delivery_city-error"></span>
+        </div>
+        <div>
+          <label for="delivery_addr1">番地・建物名<span class="required">*</span></label>
+          <input type="text" id="delivery_addr1" name="delivery_addr1" placeholder="千代田1-1-1 ○○ビル 2F">
+          <span class="error-message" id="delivery_addr1-error"></span>
+        </div>
+        <div>
+          <label for="delivery_date">配送希望日<span class="required">*</span></label>
+          <input type="date" id="delivery_date" name="delivery_date" disabled>
+          <span class="error-message" id="delivery_date-error"></span>
+        </div>
+        <div>
+          <label for="delivery_time_slot">配送時間帯<span class="required">*</span></label>
+          <select id="delivery_time_slot" name="delivery_time_slot" disabled>
+            <option value="">選択してください</option>
+            <option value="08:00-12:00">08:00-12:00</option>
+            <option value="14:00-16:00">14:00-16:00</option>
+            <option value="16:00-18:00">16:00-18:00</option>
+            <option value="18:00-20:00">18:00-20:00</option>
+          </select>
+          <span class="error-message" id="delivery_time_slot-error"></span>
+        </div>
+        <div>
+          <label for="delivery_note">配送備考</label>
+          <input type="text" id="delivery_note" name="delivery_note" placeholder="宅配ボックス利用可 など（任意）" maxlength="100">
+        </div>
+      </div>
+
+      <!-- 「のし」選択（配送選択時のみ表示） -->
+      <div id="noshi-section" style="display:none;">
+        <label>「のし」について <span class="required">*</span></label>
+        <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
+          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="なし" checked> なし</label>
+          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="御歳暮"> 御歳暮</label>
+          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="御中元"> 御中元</label>
+          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="内祝い"> 内祝い</label>
+          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="お祝い"> お祝い</label>
+          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="その他"> その他</label>
+        </div>
+        <div style="font-size: 0.85em; color:#666; margin-top:4px;">※冷凍品のため略式の短冊のしのみ対応いたします</div>
+        <span class="error-message" id="noshi_option-error"></span>
+      </div>
+      
       <div>
         <label>商品・数量<span class="required">*</span></label>
         <div id="product-list-area">
@@ -715,6 +816,7 @@
     // 商品・店舗データを格納する変数
     let allProducts = [];
     let allStores = [];
+    let currentDeliveryMethod = 'pickup';
 
     // 🚀 高速化機能: reCAPTCHA v3を遅延読み込み（初期表示完了後）
     function loadRecaptchaDeferred() {
@@ -784,10 +886,22 @@
     // 商品選択欄のselectと数量inputにイベントリスナーを追加
     function attachProductSelectListener() {
       document.querySelectorAll('.product-item select').forEach(select => {
-        select.addEventListener('change', updatePickupDateControl);
+        select.addEventListener('change', () => {
+          if (currentDeliveryMethod === 'delivery') {
+            updateDeliveryDateControl();
+          } else {
+            updatePickupDateControl();
+          }
+        });
       });
       document.querySelectorAll('.product-item input[type="number"]').forEach(input => {
-        input.addEventListener('input', updatePickupDateControl);
+        input.addEventListener('input', () => {
+          if (currentDeliveryMethod === 'delivery') {
+            updateDeliveryDateControl();
+          } else {
+            updatePickupDateControl();
+          }
+        });
       });
     }
     
@@ -796,7 +910,11 @@
     addProductItem = function() {
       origAddProductItem();
       attachProductSelectListener();
-      updatePickupDateControl();
+      if (currentDeliveryMethod === 'delivery') {
+        updateDeliveryDateControl();
+      } else {
+        updatePickupDateControl();
+      }
     };
     
     // 統合された初期化処理
@@ -813,16 +931,27 @@
       
       // 店舗選択のイベントリスナー
       document.getElementById('store').addEventListener('change', function() {
-        updatePickupDateControl(); // 日付制御を更新
+        if (currentDeliveryMethod === 'delivery') {
+          updateDeliveryDateControl();
+        } else {
+          updatePickupDateControl(); // 日付制御を更新
+        }
         updatePickupTimeOptions(); // 時間選択を更新
       });
       
       // 受取日選択のイベントリスナー（validatePickupDateを使用）
       document.getElementById('pickup_date').addEventListener('change', validatePickupDate);
+      const deliveryDateEl = document.getElementById('delivery_date');
+      if (deliveryDateEl) {
+        deliveryDateEl.addEventListener('change', validateDeliveryDate);
+      }
       
       // 商品選択のイベントリスナー
       attachProductSelectListener();
       updatePickupDateControl();
+      // 配送方式UIの初期化
+      setupDeliveryMethodUI();
+      setupZipSearch();
       
       // GAS接続テストを実行
       setTimeout(async () => {
@@ -1078,6 +1207,177 @@
         descDiv.textContent = '';
       }
     }
+    
+    // ============================
+    // 配送方式 UI 切替と制御
+    // ============================
+    function setupDeliveryMethodUI() {
+      const radios = document.querySelectorAll('input[name="delivery_method"]');
+      radios.forEach(r => r.addEventListener('change', () => {
+        currentDeliveryMethod = document.querySelector('input[name="delivery_method"]:checked').value;
+        toggleDeliveryFields();
+        if (currentDeliveryMethod === 'delivery') {
+          updateDeliveryDateControl();
+        } else {
+          updatePickupDateControl();
+        }
+      }));
+      toggleDeliveryFields();
+    }
+
+    function toggleDeliveryFields() {
+      const isDelivery = currentDeliveryMethod === 'delivery';
+      document.getElementById('orderer-address-section').style.display = isDelivery ? 'block' : 'none';
+      document.getElementById('delivery-address-section').style.display = isDelivery ? 'block' : 'none';
+      document.getElementById('noshi-section').style.display = isDelivery ? 'block' : 'none';
+
+      // 受取系の有効/無効
+      document.getElementById('pickup_date').disabled = isDelivery;
+      document.getElementById('pickup_time').disabled = isDelivery;
+
+      // 配送系の有効/無効
+      document.getElementById('delivery_date').disabled = !isDelivery;
+      document.getElementById('delivery_time_slot').disabled = !isDelivery;
+    }
+
+    // ============================
+    // 郵便番号 → 住所自動補完（zipcloud）
+    // ============================
+    function setupZipSearch() {
+      const ordererBtn = document.getElementById('orderer_zip_search');
+      const deliveryBtn = document.getElementById('delivery_zip_search');
+      if (ordererBtn) {
+        ordererBtn.addEventListener('click', async () => {
+          const zip = (document.getElementById('orderer_postal').value || '').replace(/[^0-9]/g, '');
+          const res = await fetchZipcloud(zip);
+          applyZipResult('orderer', res);
+        });
+      }
+      if (deliveryBtn) {
+        deliveryBtn.addEventListener('click', async () => {
+          const zip = (document.getElementById('delivery_postal').value || '').replace(/[^0-9]/g, '');
+          const res = await fetchZipcloud(zip);
+          applyZipResult('delivery', res);
+        });
+      }
+    }
+
+    async function fetchZipcloud(zip) {
+      try {
+        if (!/^[0-9]{7}$/.test(zip)) {
+          throw new Error('郵便番号は7桁の数字で入力してください');
+        }
+        const url = `https://zipcloud.ibsnet.co.jp/api/search?zipcode=${zip}`;
+        const resp = await fetch(url);
+        const json = await resp.json();
+        if (json.status !== 200 || !json.results || json.results.length === 0) {
+          throw new Error('住所が見つかりませんでした');
+        }
+        const r = json.results[0];
+        return {
+          prefecture: r.address1,
+          city: r.address2 + (r.address3 ? r.address3 : '')
+        };
+      } catch (e) {
+        alert('住所検索に失敗しました: ' + e.message);
+        return null;
+      }
+    }
+
+    function applyZipResult(prefix, res) {
+      if (!res) return;
+      const pref = document.getElementById(`${prefix}_pref`);
+      const city = document.getElementById(`${prefix}_city`);
+      if (pref && !pref.value) pref.value = res.prefecture || '';
+      if (city && !city.value) city.value = res.city || '';
+    }
+
+    // 平日かどうか
+    function isBusinessDay(date) {
+      const d = date.getDay();
+      return d !== 0 && d !== 6;
+    }
+
+    // 配送用：最短配送日・制御
+    function updateDeliveryDateControl() {
+      const productItems = document.querySelectorAll('.product-item');
+      const dateInput = document.getElementById('delivery_date');
+      const timeSelect = document.getElementById('delivery_time_slot');
+      const noteDiv = document.getElementById('product-date-note');
+      let selectedProducts = [];
+      let allSelected = true;
+      productItems.forEach(itemDiv => {
+        const select = itemDiv.querySelector('select');
+        const qtyInput = itemDiv.querySelector('input[type="number"]');
+        if (
+          select && select.value &&
+          qtyInput && qtyInput.value && !isNaN(qtyInput.value) &&
+          parseInt(qtyInput.value) >= 1 && Number.isInteger(Number(qtyInput.value))
+        ) {
+          const prod = allProducts.find(p => p.name === select.value);
+          if (prod) selectedProducts.push(prod);
+        } else {
+          allSelected = false;
+        }
+      });
+
+      if (selectedProducts.length === 0) {
+        dateInput.value = '';
+        dateInput.disabled = true;
+        dateInput.min = '';
+        dateInput.max = '';
+        timeSelect.value = '';
+        timeSelect.disabled = true;
+        noteDiv.innerHTML = '商品を選択してください。';
+        return;
+      }
+
+      dateInput.disabled = false;
+
+      let today = getTodayJST();
+      let now = new Date();
+      let maxMinDate = null;
+      let cutoffMsg = '';
+
+      selectedProducts.forEach(prod => {
+        const minDays = prod.deliveryMinDays != null ? prod.deliveryMinDays : 7;
+        const cutoff = prod.deliveryCutoff || '12:00';
+        let prodMinDate = getBusinessDate(today, minDays);
+        if (cutoff) {
+          const [h, m] = cutoff.split(':').map(Number);
+          let cutoffDate = new Date(today);
+          cutoffDate.setHours(h, m, 0, 0);
+          if (now > cutoffDate) {
+            prodMinDate = getBusinessDate(prodMinDate, 1);
+            cutoffMsg = '※本日の配送締切を過ぎたため、翌営業日以降の配送となります。';
+          }
+        }
+        // 平日のみ許可
+        while (!isBusinessDay(prodMinDate)) {
+          prodMinDate.setDate(prodMinDate.getDate() + 1);
+        }
+        if (!maxMinDate || prodMinDate > maxMinDate) {
+          maxMinDate = prodMinDate;
+        }
+      });
+
+      // 最大30営業日後
+      let maxDate = getBusinessDate(today, 30);
+      while (!isBusinessDay(maxMinDate)) maxMinDate.setDate(maxMinDate.getDate() + 1);
+      while (!isBusinessDay(maxDate)) maxDate.setDate(maxDate.getDate() + 1);
+
+      dateInput.min = maxMinDate.toISOString().split('T')[0];
+      dateInput.max = maxDate.toISOString().split('T')[0];
+      dateInput.value = dateInput.min;
+
+      timeSelect.disabled = false;
+
+      if (selectedProducts.length > 1) {
+        noteDiv.innerHTML = '※複数商品の同時配送は、最も遅い最短配送日以降のみ指定可能です。' + (cutoffMsg ? '<br>' + cutoffMsg : '');
+      } else {
+        noteDiv.innerHTML = cutoffMsg || '';
+      }
+    }
 
     // 営業日計算関数
     function getBusinessDate(startDate, businessDays) {
@@ -1144,7 +1444,14 @@
         pickup_date: formData.get('pickup_date'),
         pickup_time: formData.get('pickup_time'),
         note: formData.get('note'),
-        items: []
+        items: [],
+        deliveryMethod: document.querySelector('input[name="delivery_method"]:checked')?.value || 'pickup',
+        ordererAddress: null,
+        deliveryAddress: null,
+        deliveryDate: document.getElementById('delivery_date') ? document.getElementById('delivery_date').value : '',
+        deliveryTimeSlot: document.getElementById('delivery_time_slot') ? document.getElementById('delivery_time_slot').value : '',
+        deliveryNote: document.getElementById('delivery_note') ? document.getElementById('delivery_note').value : '',
+        noshiOption: (document.querySelector('input[name="noshi_option"]:checked') || {}).value || 'なし'
       };
       
       // 商品データを収集
@@ -1161,6 +1468,26 @@
         }
       });
       
+      // 配送選択時は住所を格納
+      if (data.deliveryMethod === 'delivery') {
+        data.ordererAddress = {
+          postalCode: (document.getElementById('orderer_postal')?.value || ''),
+          prefecture: (document.getElementById('orderer_pref')?.value || ''),
+          city: (document.getElementById('orderer_city')?.value || ''),
+          address1: (document.getElementById('orderer_addr1')?.value || ''),
+          fullAddress: ''
+        };
+        data.ordererAddress.fullAddress = `${data.ordererAddress.prefecture}${data.ordererAddress.city}${data.ordererAddress.address1}`.trim();
+        data.deliveryAddress = {
+          postalCode: (document.getElementById('delivery_postal')?.value || ''),
+          prefecture: (document.getElementById('delivery_pref')?.value || ''),
+          city: (document.getElementById('delivery_city')?.value || ''),
+          address1: (document.getElementById('delivery_addr1')?.value || ''),
+          fullAddress: ''
+        };
+        data.deliveryAddress.fullAddress = `${data.deliveryAddress.prefecture}${data.deliveryAddress.city}${data.deliveryAddress.address1}`.trim();
+      }
+
       // 入力データをサニタイズ
       const processedData = await preprocessFormData(data);
       
@@ -1640,6 +1967,28 @@
       showError('pickup_date', '');
       updatePickupTimeOptions();
     }
+    
+    function validateDeliveryDate() {
+      const dateInput = document.getElementById('delivery_date');
+      const timeSelect = document.getElementById('delivery_time_slot');
+      if (!dateInput.value) {
+        timeSelect.value = '';
+        timeSelect.disabled = true;
+        showError('delivery_date', '配送希望日を選択してください');
+        return;
+      }
+      const d = new Date(dateInput.value);
+      if (!isBusinessDay(d)) {
+        showError('delivery_date', '配送は平日のみ対応しております');
+        // 次の平日に補正
+        while (!isBusinessDay(d)) d.setDate(d.getDate() + 1);
+        dateInput.value = formatDateForInput(d);
+        setTimeout(() => showError('delivery_date', ''), 1500);
+      } else {
+        showError('delivery_date', '');
+      }
+      timeSelect.disabled = false;
+    }
 
     /**
      * 日付文字列をYYYY-MM-DD形式に正規化
@@ -2041,12 +2390,24 @@
       const processedData = { ...data };
       
       // 文字列フィールドをサニタイズ
-      ['name', 'phone', 'email', 'store', 'note'].forEach(field => {
+      ['name', 'phone', 'email', 'store', 'note', 'deliveryMethod', 'deliveryDate', 'deliveryTimeSlot', 'deliveryNote', 'noshiOption'].forEach(field => {
         if (processedData[field]) {
           processedData[field] = sanitizeInput(processedData[field]);
         }
       });
       
+      // 住所データをサニタイズ
+      if (processedData.ordererAddress) {
+        Object.keys(processedData.ordererAddress).forEach(k => {
+          processedData.ordererAddress[k] = sanitizeInput(processedData.ordererAddress[k] || '');
+        });
+      }
+      if (processedData.deliveryAddress) {
+        Object.keys(processedData.deliveryAddress).forEach(k => {
+          processedData.deliveryAddress[k] = sanitizeInput(processedData.deliveryAddress[k] || '');
+        });
+      }
+
       // 商品データもサニタイズ
       if (processedData.items && Array.isArray(processedData.items)) {
         processedData.items = processedData.items.map(item => ({
@@ -2213,7 +2574,14 @@
         pickup_date: formData.get('pickup_date'),
         pickup_time: formData.get('pickup_time'),
         note: formData.get('note'),
-        items: []
+        items: [],
+        deliveryMethod: document.querySelector('input[name="delivery_method"]:checked')?.value || 'pickup',
+        ordererAddress: null,
+        deliveryAddress: null,
+        deliveryDate: document.getElementById('delivery_date') ? document.getElementById('delivery_date').value : '',
+        deliveryTimeSlot: document.getElementById('delivery_time_slot') ? document.getElementById('delivery_time_slot').value : '',
+        deliveryNote: document.getElementById('delivery_note') ? document.getElementById('delivery_note').value : '',
+        noshiOption: (document.querySelector('input[name="noshi_option"]:checked') || {}).value || 'なし'
       };
       
       // 商品データを収集
@@ -2234,13 +2602,57 @@
         }
       });
       
-      // バリデーション
-      if (!data.name || !data.phone || !data.email || !data.store || 
-          !data.pickup_date || !data.pickup_time || data.items.length === 0) {
+      // バリデーション（共通）
+      if (!data.name || !data.phone || !data.email || !data.store || data.items.length === 0) {
         return null;
+      }
+      if (data.deliveryMethod === 'pickup') {
+        if (!data.pickup_date || !data.pickup_time) return null;
+      } else {
+        if (!data.deliveryDate || !data.deliveryTimeSlot) return null;
+        data.ordererAddress = {
+          postalCode: (document.getElementById('orderer_postal')?.value || ''),
+          prefecture: (document.getElementById('orderer_pref')?.value || ''),
+          city: (document.getElementById('orderer_city')?.value || ''),
+          address1: (document.getElementById('orderer_addr1')?.value || ''),
+          fullAddress: ''
+        };
+        data.ordererAddress.fullAddress = `${data.ordererAddress.prefecture}${data.ordererAddress.city}${data.ordererAddress.address1}`.trim();
+        data.deliveryAddress = {
+          postalCode: (document.getElementById('delivery_postal')?.value || ''),
+          prefecture: (document.getElementById('delivery_pref')?.value || ''),
+          city: (document.getElementById('delivery_city')?.value || ''),
+          address1: (document.getElementById('delivery_addr1')?.value || ''),
+          fullAddress: ''
+        };
+        data.deliveryAddress.fullAddress = `${data.deliveryAddress.prefecture}${data.deliveryAddress.city}${data.deliveryAddress.address1}`.trim();
       }
       
       return data;
+    }
+    
+    function validateDeliveryInputs(data) {
+      const errors = [];
+      if (data.deliveryMethod !== 'delivery') return errors;
+      const pc1 = (data.ordererAddress?.postalCode || '').replace(/[^0-9]/g, '');
+      const pc2 = (data.deliveryAddress?.postalCode || '').replace(/[^0-9]/g, '');
+      if (!/^[0-9]{7}$/.test(pc1)) errors.push('注文者の郵便番号が不正です');
+      if (!/^[0-9]{7}$/.test(pc2)) errors.push('配送先の郵便番号が不正です');
+      ['prefecture','city','address1'].forEach(k => {
+        if (!data.ordererAddress?.[k]) errors.push('注文者住所を正しく入力してください');
+        if (!data.deliveryAddress?.[k]) errors.push('配送先住所を正しく入力してください');
+      });
+      if (!data.deliveryDate) errors.push('配送希望日を選択してください');
+      if (!data.deliveryTimeSlot) errors.push('配送時間帯を選択してください');
+      if (!data.noshiOption) errors.push('「のし」を選択してください');
+      const anyNoshiUnavailable = data.items.some(it => {
+        const p = allProducts.find(pp => pp.name === it.name);
+        return p && p.noshiAvailable === false;
+      });
+      if (anyNoshiUnavailable && data.noshiOption !== 'なし') {
+        errors.push('選択された商品に「のし」不可の商品が含まれます');
+      }
+      return Array.from(new Set(errors));
     }
     
     /**
@@ -2279,6 +2691,15 @@
         if (!reservationData) {
           alert('入力内容を確認してください。');
           return;
+        }
+
+        // 配送時の追加バリデーション
+        if (reservationData.deliveryMethod === 'delivery') {
+          const errors = validateDeliveryInputs(reservationData);
+          if (errors.length > 0) {
+            alert('配送先の入力に不備があります:\n' + errors.join('\n'));
+            return;
+          }
         }
         
         // ボタンを無効化
