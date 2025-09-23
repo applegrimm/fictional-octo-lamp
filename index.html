@@ -617,13 +617,13 @@
         <div id="product-date-note" style="font-size: 0.9em; color: #666; margin-top: 8px;">商品を選択してください。</div>
       </div>
       
-      <div>
+      <div id="pickup-date-section">
         <label for="pickup_date">受取希望日<span class="required">*</span></label>
         <input type="date" id="pickup_date" name="pickup_date" required disabled>
         <span class="error-message" id="pickup_date-error"></span>
       </div>
       
-      <div>
+      <div id="pickup-time-section">
         <label for="pickup_time">受取希望時間<span class="required">*</span></label>
         <select id="pickup_time" name="pickup_time" required disabled>
           <option value="">選択してください</option>
@@ -1254,13 +1254,22 @@
       const isDelivery = currentDeliveryMethod === 'delivery';
       // 表示切替
       document.getElementById('store-section').style.display = isDelivery ? 'none' : 'block';
+      document.getElementById('pickup-date-section').style.display = isDelivery ? 'none' : 'block';
+      document.getElementById('pickup-time-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('orderer-address-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('delivery-address-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('noshi-section').style.display = isDelivery ? 'block' : 'none';
 
       // 受取系の有効/無効
-      document.getElementById('pickup_date').disabled = isDelivery;
-      document.getElementById('pickup_time').disabled = isDelivery;
+      const pickupDateEl = document.getElementById('pickup_date');
+      const pickupTimeEl = document.getElementById('pickup_time');
+      pickupDateEl.disabled = isDelivery;
+      pickupTimeEl.disabled = isDelivery;
+      pickupDateEl.required = !isDelivery;
+      pickupTimeEl.required = !isDelivery;
+      // 店舗は店頭受取時のみ必須
+      const storeEl = document.getElementById('store');
+      if (storeEl) storeEl.required = !isDelivery;
 
       // 配送系の有効/無効
       document.getElementById('delivery_date').disabled = !isDelivery;
@@ -2638,11 +2647,12 @@
       });
       
       // バリデーション（共通）
-      if (!data.name || !data.phone || !data.email || !data.store || data.items.length === 0) {
+      if (!data.name || !data.phone || !data.email || data.items.length === 0) {
         return null;
       }
       if (data.deliveryMethod === 'pickup') {
-        if (!data.pickup_date || !data.pickup_time) return null;
+        // 店頭受取時のみ店舗・受取日時が必須
+        if (!data.store || !data.pickup_date || !data.pickup_time) return null;
       } else {
         if (!data.deliveryDate || !data.deliveryTimeSlot) return null;
         data.ordererAddress = {
