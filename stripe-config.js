@@ -129,8 +129,14 @@ function buildCheckoutData(orderData) {
       customer_phone: orderData.phone,
       customer_email: orderData.email,
       pickup_store: orderData.store,
-      pickup_date: orderData.pickup_date,
-      pickup_time: orderData.pickup_time,
+      pickup_date: orderData.pickup_date || '',
+      pickup_time: orderData.pickup_time || '',
+      delivery_method: orderData.deliveryMethod || 'pickup',
+      delivery_date: orderData.deliveryDate || '',
+      delivery_time_slot: orderData.deliveryTimeSlot || '',
+      noshi_option: orderData.noshiOption || 'なし',
+      orderer_address: orderData.ordererAddress ? JSON.stringify(orderData.ordererAddress) : '',
+      delivery_address: orderData.deliveryAddress ? JSON.stringify(orderData.deliveryAddress) : '',
       pickup_note: orderData.note || '',
       order_summary: generateOrderSummary(orderData),
       order_items: JSON.stringify(orderData.items), // 商品情報もJSONで格納
@@ -160,7 +166,11 @@ function generateOrderSummary(orderData) {
   const items = orderData.items.map(item => 
     `${item.name} x${item.qty}`
   ).join(', ');
-  
+
+  const isDelivery = orderData.deliveryMethod === 'delivery';
+  if (isDelivery) {
+    return `${items} (配送: ${orderData.deliveryDate} ${orderData.deliveryTimeSlot} のし:${orderData.noshiOption || 'なし'})`;
+  }
   return `${items} (受取: ${orderData.pickup_date} ${orderData.pickup_time})`;
 }
 
