@@ -1,12 +1,28 @@
 [
   {
     "id": "p1",
-    "name": "500g　ハラミ好きのための 堪能パック",
+    "name": "500g　ハラミ好きのための 堪能パック　",
     "price": 3780,
     "minDays": 5,
     "cutoff": "15:00",
     "minType": "business",
-    "description": "ご予約から5営業日後以降のお渡しとなります（15時締切）。お試し・少人数向け 500gパック(3～4人前)"
+    "description": "ご予約から5営業日後以降のお渡しとなります（15時締切）。お試し・少人数向け 500gパック(3～4人前)",
+    "deliveryAvailable": true,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": "12:00",
+    "deliveryWeight": 0.8,
+    "deliverySize": "M",
+    "deliveryFrozen": true,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": true,
+    "noshiOptions": [
+      "なし",
+      "御歳暮",
+      "御中元",
+      "内祝い",
+      "お祝い",
+      "その他"
+    ]
   },
   {
     "id": "p2",
@@ -15,7 +31,23 @@
     "minDays": 5,
     "cutoff": "15:00",
     "minType": "business",
-    "description": "ご予約から5営業日後以降のお渡しとなります（15時締切）。『たっぷりお得！ 1kgパック (500g×2)(6～8人前)』"
+    "description": "ご予約から5営業日後以降のお渡しとなります（15時締切）。『たっぷりお得！ 1kgパック (500g×2)(6～8人前)』",
+    "deliveryAvailable": true,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": "12:00",
+    "deliveryWeight": 1.6,
+    "deliverySize": "L",
+    "deliveryFrozen": true,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": true,
+    "noshiOptions": [
+      "なし",
+      "御歳暮",
+      "御中元",
+      "内祝い",
+      "お祝い",
+      "その他"
+    ]
   },
   {
     "id": "p3",
@@ -24,7 +56,23 @@
     "minDays": 5,
     "cutoff": "15:00",
     "minType": "business",
-    "description": "ご予約から5営業日後以降のお渡しとなります（15時締切）。牛カルビ(150g)、ハラミ(150g)、豚バラ(150g)、牛シマチョウ(150g) (合計600g / 3～4人前目安)"
+    "description": "ご予約から5営業日後以降のお渡しとなります（15時締切）。牛カルビ(150g)、ハラミ(150g)、豚バラ(150g)、牛シマチョウ(150g) (合計600g / 3～4人前目安)",
+    "deliveryAvailable": true,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": "12:00",
+    "deliveryWeight": 1.0,
+    "deliverySize": "M",
+    "deliveryFrozen": true,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": true,
+    "noshiOptions": [
+      "なし",
+      "御歳暮",
+      "御中元",
+      "内祝い",
+      "お祝い",
+      "その他"
+    ]
   },
   {
     "id": "p4",
@@ -33,16 +81,48 @@
     "minDays": 5,
     "cutoff": "15:00",
     "minType": "business",
-    "description": "ご予約から5営業日後以降のお渡しとなります（15時締切）。和牛カルビ(150g)、国産リブロース(180g)、上タン(100g)、牛ヒレエンガワ(150g)、(合計580g / 3～4人前目安)"
+    "description": "ご予約から5営業日後以降のお渡しとなります（15時締切）。和牛カルビ(150g)、国産リブロース(180g)、上タン(100g)、牛ヒレエンガワ(150g)、(合計580g / 3～4人前目安)",
+    "deliveryAvailable": true,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": "12:00",
+    "deliveryWeight": 1.2,
+    "deliverySize": "L",
+    "deliveryFrozen": true,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": true,
+    "noshiOptions": [
+      "なし",
+      "御歳暮",
+      "御中元",
+      "内祝い",
+      "お祝い",
+      "その他"
+    ]
   },
   {
     "id": "p5",
     "name": "約300g　牛ヒレエンガワ1本焼",
-    "price": 1600,
+    "price": 1500,
     "minDays": 5,
     "cutoff": "15:00",
     "minType": "business",
-    "description": "ご予約から5営業日後以降のお渡しとなります（15時締切）。『希少部位「牛ヒレエンガワ」を一本まるごと。ご家庭やBBQで本格焼肉を楽しめる生冷凍肉です。』"
+    "description": "ご予約から5営業日後以降のお渡しとなります（15時締切）。『希少部位「牛ヒレエンガワ」を一本まるごと。ご家庭やBBQで本格焼肉を楽しめる生冷凍肉です。』",
+    "deliveryAvailable": true,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": "12:00",
+    "deliveryWeight": 0.4,
+    "deliverySize": "S",
+    "deliveryFrozen": true,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": true,
+    "noshiOptions": [
+      "なし",
+      "御歳暮",
+      "御中元",
+      "内祝い",
+      "お祝い",
+      "その他"
+    ]
   },
   {
     "id": "p6",
@@ -51,6 +131,17 @@
     "minDays": 5,
     "cutoff": "15:00",
     "minType": "business",
-    "description": "ご予約から5営業日後以降のお渡しとなります。特別な焼肉セットです。『じっくり煮込んだトロトロ牛すじを冷凍パックでお届け。いつでも簡単に本格派の味が楽しめます。』"
+    "description": "ご予約から5営業日後以降のお渡しとなります。特別な焼肉セットです。『じっくり煮込んだトロトロ牛すじを冷凍パックでお届け。いつでも簡単に本格派の味が楽しめます。』",
+    "deliveryAvailable": true,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": "12:00",
+    "deliveryWeight": 0.5,
+    "deliverySize": "S",
+    "deliveryFrozen": true,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": false,
+    "noshiOptions": [
+      "なし"
+    ]
   }
 ]
