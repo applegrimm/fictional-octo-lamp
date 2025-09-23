@@ -492,15 +492,7 @@
         <span class="error-message" id="email-error"></span>
       </div>
       
-      <div>
-        <label for="store">受取店舗<span class="required">*</span></label>
-        <select id="store" name="store" required>
-          <option value="">選択してください</option>
-        </select>
-        <span class="error-message" id="store-error"></span>
-      </div>
-      
-      <!-- 配送方法選択（店舗選択の後、商品選択の前） -->
+      <!-- 配送方法選択（まず最初に選択） -->
       <div>
         <label>配送方法を選択してください <span class="required">*</span></label>
         <div style="display:flex; gap:12px; align-items:center; margin-top:6px;">
@@ -508,6 +500,15 @@
           <label style="font-weight:normal;"><input type="radio" name="delivery_method" value="delivery"> 宅配便（送料込み価格）</label>
         </div>
         <span class="error-message" id="delivery_method-error"></span>
+      </div>
+
+      <!-- 受取店舗（店頭受取時のみ表示） -->
+      <div id="store-section">
+        <label for="store">受取店舗<span class="required">*</span></label>
+        <select id="store" name="store" required>
+          <option value="">選択してください</option>
+        </select>
+        <span class="error-message" id="store-error"></span>
       </div>
 
       <!-- 注文者住所（配送選択時のみ表示） -->
@@ -541,6 +542,11 @@
       <!-- 配送先住所（配送選択時のみ表示） -->
       <div id="delivery-address-section" style="display:none;">
         <label>配送先住所 <span class="required">*</span></label>
+        <div style="font-size: 0.9em; color:#555; margin:4px 0 8px;">お届け先が異なる場合はご記入ください。同じ場合は下のチェックを入れてください。</div>
+        <div style="display:flex; align-items:center; gap:8px; margin: 4px 0 8px;">
+          <input type="checkbox" id="same_as_orderer" name="same_as_orderer">
+          <label for="same_as_orderer" style="font-weight:normal; margin:0;">注文者住所と同じ</label>
+        </div>
         <div>
           <label for="delivery_postal">郵便番号<span class="required">*</span></label>
           <div style="display:flex; gap:8px;">
@@ -588,15 +594,15 @@
 
       <!-- 「のし」選択（配送選択時のみ表示） -->
       <div id="noshi-section" style="display:none;">
-        <label>「のし」について <span class="required">*</span></label>
-        <div style="display:flex; flex-direction:column; gap:4px; margin-top:6px;">
-          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="なし" checked> なし</label>
-          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="御歳暮"> 御歳暮</label>
-          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="御中元"> 御中元</label>
-          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="内祝い"> 内祝い</label>
-          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="お祝い"> お祝い</label>
-          <label style="font-weight:normal;"><input type="radio" name="noshi_option" value="その他"> その他</label>
-        </div>
+        <label for="noshi_option_select">「のし」について <span class="required">*</span></label>
+        <select id="noshi_option_select" name="noshi_option">
+          <option value="なし">なし</option>
+          <option value="御歳暮">御歳暮</option>
+          <option value="御中元">御中元</option>
+          <option value="内祝い">内祝い</option>
+          <option value="お祝い">お祝い</option>
+          <option value="その他">その他</option>
+        </select>
         <div style="font-size: 0.85em; color:#666; margin-top:4px;">※冷凍品のため略式の短冊のしのみ対応いたします</div>
         <span class="error-message" id="noshi_option-error"></span>
       </div>
@@ -945,12 +951,31 @@
       if (deliveryDateEl) {
         deliveryDateEl.addEventListener('change', validateDeliveryDate);
       }
+      // 配送先＝注文者と同じチェック
+      const sameCb = document.getElementById('same_as_orderer');
+      if (sameCb) {
+        sameCb.addEventListener('change', () => {
+          const fields = ['postal','pref','city','addr1'];
+          const disabled = sameCb.checked;
+          fields.forEach(f => {
+            const src = document.getElementById('orderer_' + f);
+            const dst = document.getElementById('delivery_' + f);
+            if (src && dst) {
+              if (disabled) {
+                dst.value = src.value;
+              }
+              dst.disabled = disabled;
+            }
+          });
+        });
+      }
       
       // 商品選択のイベントリスナー
       attachProductSelectListener();
-      updatePickupDateControl();
-      // 配送方式UIの初期化
+      // 配送方式UIの初期化（先に実施してUIと依存関係を確立）
       setupDeliveryMethodUI();
+      // pickup初期値の最短日制御
+      updatePickupDateControl();
       setupZipSearch();
       
       // GAS接続テストを実行
@@ -1227,6 +1252,8 @@
 
     function toggleDeliveryFields() {
       const isDelivery = currentDeliveryMethod === 'delivery';
+      // 表示切替
+      document.getElementById('store-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('orderer-address-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('delivery-address-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('noshi-section').style.display = isDelivery ? 'block' : 'none';
@@ -1238,6 +1265,13 @@
       // 配送系の有効/無効
       document.getElementById('delivery_date').disabled = !isDelivery;
       document.getElementById('delivery_time_slot').disabled = !isDelivery;
+
+      // 最短日制御の更新
+      if (isDelivery) {
+        updateDeliveryDateControl();
+      } else {
+        updatePickupDateControl();
+      }
     }
 
     // ============================
@@ -1322,8 +1356,9 @@
       });
 
       if (selectedProducts.length === 0) {
+        // カレンダーは操作できるようにしておくが、最短日計算は行わない
+        dateInput.disabled = false;
         dateInput.value = '';
-        dateInput.disabled = true;
         dateInput.min = '';
         dateInput.max = '';
         timeSelect.value = '';
@@ -1451,7 +1486,7 @@
         deliveryDate: document.getElementById('delivery_date') ? document.getElementById('delivery_date').value : '',
         deliveryTimeSlot: document.getElementById('delivery_time_slot') ? document.getElementById('delivery_time_slot').value : '',
         deliveryNote: document.getElementById('delivery_note') ? document.getElementById('delivery_note').value : '',
-        noshiOption: (document.querySelector('input[name="noshi_option"]:checked') || {}).value || 'なし'
+        noshiOption: (document.getElementById('noshi_option_select')?.value) || 'なし'
       };
       
       // 商品データを収集
@@ -2581,7 +2616,7 @@
         deliveryDate: document.getElementById('delivery_date') ? document.getElementById('delivery_date').value : '',
         deliveryTimeSlot: document.getElementById('delivery_time_slot') ? document.getElementById('delivery_time_slot').value : '',
         deliveryNote: document.getElementById('delivery_note') ? document.getElementById('delivery_note').value : '',
-        noshiOption: (document.querySelector('input[name="noshi_option"]:checked') || {}).value || 'なし'
+        noshiOption: (document.getElementById('noshi_option_select')?.value) || 'なし'
       };
       
       // 商品データを収集
