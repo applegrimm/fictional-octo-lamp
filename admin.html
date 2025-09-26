@@ -1696,14 +1696,29 @@
       
       addGitHubLog('🔧 GitHub接続テストを開始...');
       
+      // デバッグ情報を追加
+      addGitHubLog(`   - Owner: ${config.owner}`);
+      addGitHubLog(`   - Repo: ${config.repo}`);
+      addGitHubLog(`   - Token形式: ${config.token.substring(0, 10)}...`);
+      addGitHubLog(`   - Token長: ${config.token.length}文字`);
+      
+      // トークン形式チェック
+      if (!config.token.startsWith('ghp_') && !config.token.startsWith('gho_') && !config.token.startsWith('ghu_') && !config.token.startsWith('ghs_') && !config.token.startsWith('ghr_')) {
+        addGitHubLog(`⚠️ 警告: トークン形式が正しくない可能性があります`);
+        addGitHubLog(`   期待される形式: ghp_, gho_, ghu_, ghs_, ghr_`);
+      }
+      
+      addGitHubLog(`   - API URL: https://api.github.com/repos/${config.owner}/${config.repo}`);
+      
       const response = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}`, {
         headers: {
           'Authorization': `Bearer ${config.token}`,
           'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Admin-Panel/1.0',
           'User-Agent': 'Admin-Panel/1.0'
         }
       });
+      
+      addGitHubLog(`   - レスポンスステータス: ${response.status}`);
       
       if (response.ok) {
         const repoInfo = await response.json();
@@ -1713,9 +1728,12 @@
         addGitHubLog(`   - デフォルトブランチ: ${repoInfo.default_branch}`);
       } else {
         let errorMessage = `HTTP ${response.status}`;
+        let errorDetails = '';
         try {
           const error = await response.json();
           errorMessage += `: ${error.message}`;
+          errorDetails = JSON.stringify(error, null, 2);
+          addGitHubLog(`❌ エラー詳細: ${errorDetails}`);
           if (error.documentation_url) {
             errorMessage += `\n詳細: ${error.documentation_url}`;
           }
