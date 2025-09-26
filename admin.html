@@ -337,38 +337,91 @@
     .table-container {
       background: white;
       border-radius: 8px;
-      overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       overflow-x: auto;
+      overflow-y: hidden;
       /* スクロールバーのスタイル改善 */
       scrollbar-width: thin;
       scrollbar-color: #667eea #f1f1f1;
+      position: relative;
+    }
+    
+    /* 上部スクロールバー（初期状態では非表示） */
+    .table-container::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 12px;
+      background: #f1f1f1;
+      border-radius: 6px 6px 0 0;
+      z-index: 1;
+      pointer-events: none;
+      display: none;
+    }
+    
+    /* 上部スクロールバーのスクロール部分（初期状態では非表示） */
+    .table-container::after {
+      content: '';
+      position: absolute;
+      top: 2px;
+      left: var(--top-scrollbar-left, 0);
+      width: var(--top-scrollbar-width, 40px);
+      height: 8px;
+      background: #667eea;
+      border-radius: 4px;
+      z-index: 2;
+      pointer-events: none;
+      transition: all 0.3s ease;
+      display: none;
     }
     
     /* Webkit系ブラウザのスクロールバー */
     .table-container::-webkit-scrollbar {
-      height: 8px;
+      height: 12px;
+      width: 12px;
     }
     
     .table-container::-webkit-scrollbar-track {
       background: #f1f1f1;
-      border-radius: 4px;
+      border-radius: 6px;
     }
     
     .table-container::-webkit-scrollbar-thumb {
       background: #667eea;
-      border-radius: 4px;
+      border-radius: 6px;
+      border: 2px solid #f1f1f1;
     }
     
     .table-container::-webkit-scrollbar-thumb:hover {
       background: #5a6fd8;
     }
     
+    /* スクロールバーを常に表示 */
+    .table-container {
+      scrollbar-gutter: stable;
+    }
+    
+    /* 上部スクロールバーの動的制御用クラス */
+    .table-container.dual-scrollbar {
+      padding-top: 12px;
+    }
+    
+    .table-container.dual-scrollbar::before {
+      display: block;
+    }
+    
+    .table-container.dual-scrollbar::after {
+      display: block;
+    }
+    
     .data-table {
       width: 100%;
-      min-width: 2000px; /* テーブルの最小幅を設定 */
+      min-width: 2200px; /* テーブルの最小幅を設定（より確実にスクロールを発生させる） */
       border-collapse: collapse;
       font-size: 0.9rem;
+      table-layout: fixed; /* 固定レイアウトで幅を確実に適用 */
     }
     
     .data-table th {
@@ -1013,6 +1066,9 @@
     
     // 既存のJSONファイルを読み込み
     loadExistingData();
+    
+    // 上部スクロールバーの初期化
+    initializeDualScrollbars();
   });
   
   // =============================
@@ -1636,6 +1692,52 @@
     }
     
     updateProductsTable();
+  }
+  
+  /**
+   * 上部・下部両方のスクロールバーを初期化
+   */
+  function initializeDualScrollbars() {
+    const tableContainers = document.querySelectorAll('.table-container');
+    
+    tableContainers.forEach(container => {
+      // スクロールイベントリスナーを追加
+      container.addEventListener('scroll', function() {
+        updateTopScrollbar(container);
+      });
+      
+      // 初期状態で上部スクロールバーを表示
+      setTimeout(() => {
+        if (container.scrollWidth > container.clientWidth) {
+          container.classList.add('dual-scrollbar');
+          updateTopScrollbar(container);
+        }
+      }, 100);
+    });
+  }
+  
+  /**
+   * 上部スクロールバーを更新
+   */
+  function updateTopScrollbar(container) {
+    const scrollLeft = container.scrollLeft;
+    const scrollWidth = container.scrollWidth;
+    const clientWidth = container.clientWidth;
+    
+    if (scrollWidth > clientWidth) {
+      container.classList.add('dual-scrollbar');
+      
+      // 上部スクロールバーの位置を計算
+      const scrollPercentage = scrollLeft / (scrollWidth - clientWidth);
+      const topScrollbarWidth = clientWidth - 24; // パディングを考慮
+      const topScrollbarLeft = scrollPercentage * (topScrollbarWidth - 40); // スクロールバーの幅を考慮
+      
+      // CSS変数で位置を制御
+      container.style.setProperty('--top-scrollbar-left', topScrollbarLeft + 'px');
+      container.style.setProperty('--top-scrollbar-width', '40px');
+    } else {
+      container.classList.remove('dual-scrollbar');
+    }
   }
 </script>
 
