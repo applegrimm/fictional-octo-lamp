@@ -339,7 +339,6 @@
       border-radius: 8px;
       overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      overflow-x: auto;
     }
     
     .data-table {
@@ -544,12 +543,6 @@
         padding: 8px 6px;
       }
       
-      /* 宅配関連フィールドのモバイル対応 */
-      .data-table th:nth-child(n+8),
-      .data-table td:nth-child(n+8) {
-        min-width: 80px;
-      }
-      
       .hours-input {
         min-width: 150px;
       }
@@ -745,9 +738,6 @@
             <button class="btn btn-secondary" onclick="generateProductsJson()">
               💾 ローカルに保存
             </button>
-            <button class="btn btn-warning" onclick="toggleProductFilter()" id="filter-btn">
-              🔍 非表示商品を隠す
-            </button>
           </div>
         </div>
         
@@ -762,16 +752,6 @@
                 <th style="width: 100px;">締切時間</th>
                 <th style="width: 120px;">日数タイプ</th>
                 <th style="width: 300px;">説明</th>
-                <th style="width: 120px;">宅配対応</th>
-                <th style="width: 100px;">宅配日数</th>
-                <th style="width: 100px;">宅配締切</th>
-                <th style="width: 100px;">配送重量</th>
-                <th style="width: 100px;">配送サイズ</th>
-                <th style="width: 100px;">冷凍配送</th>
-                <th style="width: 120px;">配送エリア</th>
-                <th style="width: 100px;">熨斗対応</th>
-                <th style="width: 200px;">熨斗オプション</th>
-                <th style="width: 80px;">表示</th>
                 <th style="width: 100px;">操作</th>
               </tr>
             </thead>
@@ -816,8 +796,7 @@
                      style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
               <small style="color: #666; display: block; margin-top: 5px;">
                 GitHub → Settings → Developer settings → Personal access tokens → Generate new token (classic)<br>
-                必要なスコープ: <code>repo</code> (Full control of private repositories)<br>
-                <strong>注意:</strong> 新しいトークン形式（ghp_で始まる）を使用してください
+                必要なスコープ: <code>repo</code> (Full control of private repositories)
               </small>
             </div>
             
@@ -967,7 +946,6 @@
   // =============================
   let storesData = [];
   let productsData = [];
-  let showHiddenProducts = true; // 非表示商品も表示するかどうか
   
   // =============================
   // 初期化処理
@@ -1351,19 +1329,8 @@
     const tbody = document.getElementById('products-tbody');
     tbody.innerHTML = '';
     
-    // フィルター適用
-    const filteredProducts = productsData.filter(product => {
-      if (showHiddenProducts) {
-        return true; // 全て表示
-      } else {
-        return product.visible !== false; // 非表示商品を除外
-      }
-    });
-    
-    filteredProducts.forEach((product, originalIndex) => {
-      // 元のインデックスを取得
-      const originalProductIndex = productsData.indexOf(product);
-      const row = createProductRow(product, originalProductIndex);
+    productsData.forEach((product, index) => {
+      const row = createProductRow(product, index);
       tbody.appendChild(row);
     });
     
@@ -1415,63 +1382,6 @@
                   placeholder="商品の説明を入力">${product.description || ''}</textarea>
       </td>
       <td>
-        <select onchange="updateProductData(${index}, 'deliveryAvailable', this.value === 'true')">
-          <option value="false" ${!product.deliveryAvailable ? 'selected' : ''}>不可</option>
-          <option value="true" ${product.deliveryAvailable ? 'selected' : ''}>可能</option>
-        </select>
-      </td>
-      <td>
-        <input type="number" value="${product.deliveryMinDays || ''}" 
-               onchange="updateProductData(${index}, 'deliveryMinDays', parseInt(this.value))"
-               placeholder="日数">
-      </td>
-      <td>
-        <input type="time" value="${product.deliveryCutoff || ''}" 
-               onchange="updateProductData(${index}, 'deliveryCutoff', this.value || null)"
-               placeholder="HH:MM">
-      </td>
-      <td>
-        <input type="number" step="0.1" value="${product.deliveryWeight || ''}" 
-               onchange="updateProductData(${index}, 'deliveryWeight', parseFloat(this.value))"
-               placeholder="kg">
-      </td>
-      <td>
-        <select onchange="updateProductData(${index}, 'deliverySize', this.value)">
-          <option value="S" ${product.deliverySize === 'S' ? 'selected' : ''}>S</option>
-          <option value="M" ${product.deliverySize === 'M' ? 'selected' : ''}>M</option>
-          <option value="L" ${product.deliverySize === 'L' ? 'selected' : ''}>L</option>
-          <option value="XL" ${product.deliverySize === 'XL' ? 'selected' : ''}>XL</option>
-        </select>
-      </td>
-      <td>
-        <select onchange="updateProductData(${index}, 'deliveryFrozen', this.value === 'true')">
-          <option value="false" ${!product.deliveryFrozen ? 'selected' : ''}>常温</option>
-          <option value="true" ${product.deliveryFrozen ? 'selected' : ''}>冷凍</option>
-        </select>
-      </td>
-      <td>
-        <select onchange="updateProductData(${index}, 'deliveryArea', this.value)">
-          <option value="local" ${product.deliveryArea === 'local' ? 'selected' : ''}>地域限定</option>
-          <option value="nationwide" ${product.deliveryArea === 'nationwide' ? 'selected' : ''}>全国</option>
-        </select>
-      </td>
-      <td>
-        <select onchange="updateProductData(${index}, 'noshiAvailable', this.value === 'true')">
-          <option value="false" ${!product.noshiAvailable ? 'selected' : ''}>不可</option>
-          <option value="true" ${product.noshiAvailable ? 'selected' : ''}>可能</option>
-        </select>
-      </td>
-      <td>
-        <textarea onchange="updateProductData(${index}, 'noshiOptions', this.value.split(',').map(opt => opt.trim()).filter(opt => opt))"
-                  placeholder="熨斗オプション（カンマ区切り）">${(product.noshiOptions || []).join(',')}</textarea>
-      </td>
-      <td>
-        <select onchange="updateProductData(${index}, 'visible', this.value === 'true')">
-          <option value="true" ${product.visible !== false ? 'selected' : ''}>表示</option>
-          <option value="false" ${product.visible === false ? 'selected' : ''}>非表示</option>
-        </select>
-      </td>
-      <td>
         <button class="action-btn btn-remove" onclick="removeProductRow(${index})">削除</button>
       </td>
     `;
@@ -1500,17 +1410,7 @@
       minDays: 1,
       cutoff: null,
       minType: 'calendar',
-      description: '',
-      deliveryAvailable: false,
-      deliveryMinDays: 7,
-      deliveryCutoff: null,
-      deliveryWeight: 0,
-      deliverySize: 'M',
-      deliveryFrozen: false,
-      deliveryArea: 'nationwide',
-      noshiAvailable: false,
-      noshiOptions: ['なし'],
-      visible: true
+      description: ''
     };
     
     productsData.push(newProduct);
@@ -1580,26 +1480,6 @@
     } catch (error) {
       showMessage('products.jsonの生成に失敗しました: ' + error.message, 'error');
     }
-  }
-  
-  /**
-   * 商品表示フィルターを切り替え
-   */
-  function toggleProductFilter() {
-    showHiddenProducts = !showHiddenProducts;
-    const filterBtn = document.getElementById('filter-btn');
-    
-    if (showHiddenProducts) {
-      filterBtn.textContent = '🔍 非表示商品を隠す';
-      filterBtn.className = 'btn btn-warning';
-      showMessage('全ての商品を表示しています', 'info');
-    } else {
-      filterBtn.textContent = '👁️ 全ての商品を表示';
-      filterBtn.className = 'btn btn-success';
-      showMessage('非表示商品を隠しています', 'info');
-    }
-    
-    updateProductsTable();
   }
 </script>
 
@@ -1696,29 +1576,12 @@
       
       addGitHubLog('🔧 GitHub接続テストを開始...');
       
-      // デバッグ情報を追加
-      addGitHubLog(`   - Owner: ${config.owner}`);
-      addGitHubLog(`   - Repo: ${config.repo}`);
-      addGitHubLog(`   - Token形式: ${config.token.substring(0, 10)}...`);
-      addGitHubLog(`   - Token長: ${config.token.length}文字`);
-      
-      // トークン形式チェック
-      if (!config.token.startsWith('ghp_') && !config.token.startsWith('gho_') && !config.token.startsWith('ghu_') && !config.token.startsWith('ghs_') && !config.token.startsWith('ghr_')) {
-        addGitHubLog(`⚠️ 警告: トークン形式が正しくない可能性があります`);
-        addGitHubLog(`   期待される形式: ghp_, gho_, ghu_, ghs_, ghr_`);
-      }
-      
-      addGitHubLog(`   - API URL: https://api.github.com/repos/${config.owner}/${config.repo}`);
-      
       const response = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}`, {
         headers: {
-          'Authorization': `Bearer ${config.token}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Admin-Panel/1.0'
+          'Authorization': `token ${config.token}`,
+          'Accept': 'application/vnd.github.v3+json'
         }
       });
-      
-      addGitHubLog(`   - レスポンスステータス: ${response.status}`);
       
       if (response.ok) {
         const repoInfo = await response.json();
@@ -1727,20 +1590,8 @@
         addGitHubLog(`   - プライベート: ${repoInfo.private ? 'Yes' : 'No'}`);
         addGitHubLog(`   - デフォルトブランチ: ${repoInfo.default_branch}`);
       } else {
-        let errorMessage = `HTTP ${response.status}`;
-        let errorDetails = '';
-        try {
-          const error = await response.json();
-          errorMessage += `: ${error.message}`;
-          errorDetails = JSON.stringify(error, null, 2);
-          addGitHubLog(`❌ エラー詳細: ${errorDetails}`);
-          if (error.documentation_url) {
-            errorMessage += `\n詳細: ${error.documentation_url}`;
-          }
-        } catch (e) {
-          errorMessage += `: ${response.statusText}`;
-        }
-        throw new Error(errorMessage);
+        const error = await response.json();
+        throw new Error(`HTTP ${response.status}: ${error.message}`);
       }
       
     } catch (error) {
@@ -1808,9 +1659,8 @@
     try {
       const getResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
         headers: {
-          'Authorization': `Bearer ${config.token}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Admin-Panel/1.0'
+          'Authorization': `token ${config.token}`,
+          'Accept': 'application/vnd.github.v3+json'
         }
       });
       
@@ -1841,7 +1691,7 @@
     const putResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${config.token}`,
+        'Authorization': `token ${config.token}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json'
       },
@@ -1932,9 +1782,8 @@
     try {
       const getResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
         headers: {
-          'Authorization': `Bearer ${config.token}`,
-          'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Admin-Panel/1.0'
+          'Authorization': `token ${config.token}`,
+          'Accept': 'application/vnd.github.v3+json'
         }
       });
       
@@ -1965,7 +1814,7 @@
     const putResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${config.token}`,
+        'Authorization': `token ${config.token}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json'
       },
@@ -2472,9 +2321,8 @@
       try {
         const getResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
           headers: {
-            'Authorization': `Bearer ${config.token}`,
-            'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Admin-Panel/1.0'
+            'Authorization': `token ${config.token}`,
+            'Accept': 'application/vnd.github.v3+json'
           }
         });
         
@@ -2501,9 +2349,8 @@
       const putResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `Bearer ${config.token}`,
+          'Authorization': `token ${config.token}`,
           'Accept': 'application/vnd.github.v3+json',
-          'User-Agent': 'Admin-Panel/1.0',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(commitData)
