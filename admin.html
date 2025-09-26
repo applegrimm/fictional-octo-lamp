@@ -745,6 +745,9 @@
             <button class="btn btn-secondary" onclick="generateProductsJson()">
               💾 ローカルに保存
             </button>
+            <button class="btn btn-warning" onclick="toggleProductFilter()" id="filter-btn">
+              🔍 非表示商品を隠す
+            </button>
           </div>
         </div>
         
@@ -768,6 +771,7 @@
                 <th style="width: 120px;">配送エリア</th>
                 <th style="width: 100px;">熨斗対応</th>
                 <th style="width: 200px;">熨斗オプション</th>
+                <th style="width: 80px;">表示</th>
                 <th style="width: 100px;">操作</th>
               </tr>
             </thead>
@@ -962,6 +966,7 @@
   // =============================
   let storesData = [];
   let productsData = [];
+  let showHiddenProducts = true; // 非表示商品も表示するかどうか
   
   // =============================
   // 初期化処理
@@ -1345,8 +1350,19 @@
     const tbody = document.getElementById('products-tbody');
     tbody.innerHTML = '';
     
-    productsData.forEach((product, index) => {
-      const row = createProductRow(product, index);
+    // フィルター適用
+    const filteredProducts = productsData.filter(product => {
+      if (showHiddenProducts) {
+        return true; // 全て表示
+      } else {
+        return product.visible !== false; // 非表示商品を除外
+      }
+    });
+    
+    filteredProducts.forEach((product, originalIndex) => {
+      // 元のインデックスを取得
+      const originalProductIndex = productsData.indexOf(product);
+      const row = createProductRow(product, originalProductIndex);
       tbody.appendChild(row);
     });
     
@@ -1449,6 +1465,12 @@
                   placeholder="熨斗オプション（カンマ区切り）">${(product.noshiOptions || []).join(',')}</textarea>
       </td>
       <td>
+        <select onchange="updateProductData(${index}, 'visible', this.value === 'true')">
+          <option value="true" ${product.visible !== false ? 'selected' : ''}>表示</option>
+          <option value="false" ${product.visible === false ? 'selected' : ''}>非表示</option>
+        </select>
+      </td>
+      <td>
         <button class="action-btn btn-remove" onclick="removeProductRow(${index})">削除</button>
       </td>
     `;
@@ -1486,7 +1508,8 @@
       deliveryFrozen: false,
       deliveryArea: 'nationwide',
       noshiAvailable: false,
-      noshiOptions: ['なし']
+      noshiOptions: ['なし'],
+      visible: true
     };
     
     productsData.push(newProduct);
@@ -1556,6 +1579,26 @@
     } catch (error) {
       showMessage('products.jsonの生成に失敗しました: ' + error.message, 'error');
     }
+  }
+  
+  /**
+   * 商品表示フィルターを切り替え
+   */
+  function toggleProductFilter() {
+    showHiddenProducts = !showHiddenProducts;
+    const filterBtn = document.getElementById('filter-btn');
+    
+    if (showHiddenProducts) {
+      filterBtn.textContent = '🔍 非表示商品を隠す';
+      filterBtn.className = 'btn btn-warning';
+      showMessage('全ての商品を表示しています', 'info');
+    } else {
+      filterBtn.textContent = '👁️ 全ての商品を表示';
+      filterBtn.className = 'btn btn-success';
+      showMessage('非表示商品を隠しています', 'info');
+    }
+    
+    updateProductsTable();
   }
 </script>
 
