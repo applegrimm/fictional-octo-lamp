@@ -339,6 +339,7 @@
       border-radius: 8px;
       overflow: hidden;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow-x: auto;
     }
     
     .data-table {
@@ -541,6 +542,12 @@
       .data-table th,
       .data-table td {
         padding: 8px 6px;
+      }
+      
+      /* 宅配関連フィールドのモバイル対応 */
+      .data-table th:nth-child(n+8),
+      .data-table td:nth-child(n+8) {
+        min-width: 80px;
       }
       
       .hours-input {
@@ -752,6 +759,15 @@
                 <th style="width: 100px;">締切時間</th>
                 <th style="width: 120px;">日数タイプ</th>
                 <th style="width: 300px;">説明</th>
+                <th style="width: 120px;">宅配対応</th>
+                <th style="width: 100px;">宅配日数</th>
+                <th style="width: 100px;">宅配締切</th>
+                <th style="width: 100px;">配送重量</th>
+                <th style="width: 100px;">配送サイズ</th>
+                <th style="width: 100px;">冷凍配送</th>
+                <th style="width: 120px;">配送エリア</th>
+                <th style="width: 100px;">熨斗対応</th>
+                <th style="width: 200px;">熨斗オプション</th>
                 <th style="width: 100px;">操作</th>
               </tr>
             </thead>
@@ -1382,6 +1398,57 @@
                   placeholder="商品の説明を入力">${product.description || ''}</textarea>
       </td>
       <td>
+        <select onchange="updateProductData(${index}, 'deliveryAvailable', this.value === 'true')">
+          <option value="false" ${!product.deliveryAvailable ? 'selected' : ''}>不可</option>
+          <option value="true" ${product.deliveryAvailable ? 'selected' : ''}>可能</option>
+        </select>
+      </td>
+      <td>
+        <input type="number" value="${product.deliveryMinDays || ''}" 
+               onchange="updateProductData(${index}, 'deliveryMinDays', parseInt(this.value))"
+               placeholder="日数">
+      </td>
+      <td>
+        <input type="time" value="${product.deliveryCutoff || ''}" 
+               onchange="updateProductData(${index}, 'deliveryCutoff', this.value || null)"
+               placeholder="HH:MM">
+      </td>
+      <td>
+        <input type="number" step="0.1" value="${product.deliveryWeight || ''}" 
+               onchange="updateProductData(${index}, 'deliveryWeight', parseFloat(this.value))"
+               placeholder="kg">
+      </td>
+      <td>
+        <select onchange="updateProductData(${index}, 'deliverySize', this.value)">
+          <option value="S" ${product.deliverySize === 'S' ? 'selected' : ''}>S</option>
+          <option value="M" ${product.deliverySize === 'M' ? 'selected' : ''}>M</option>
+          <option value="L" ${product.deliverySize === 'L' ? 'selected' : ''}>L</option>
+          <option value="XL" ${product.deliverySize === 'XL' ? 'selected' : ''}>XL</option>
+        </select>
+      </td>
+      <td>
+        <select onchange="updateProductData(${index}, 'deliveryFrozen', this.value === 'true')">
+          <option value="false" ${!product.deliveryFrozen ? 'selected' : ''}>常温</option>
+          <option value="true" ${product.deliveryFrozen ? 'selected' : ''}>冷凍</option>
+        </select>
+      </td>
+      <td>
+        <select onchange="updateProductData(${index}, 'deliveryArea', this.value)">
+          <option value="local" ${product.deliveryArea === 'local' ? 'selected' : ''}>地域限定</option>
+          <option value="nationwide" ${product.deliveryArea === 'nationwide' ? 'selected' : ''}>全国</option>
+        </select>
+      </td>
+      <td>
+        <select onchange="updateProductData(${index}, 'noshiAvailable', this.value === 'true')">
+          <option value="false" ${!product.noshiAvailable ? 'selected' : ''}>不可</option>
+          <option value="true" ${product.noshiAvailable ? 'selected' : ''}>可能</option>
+        </select>
+      </td>
+      <td>
+        <textarea onchange="updateProductData(${index}, 'noshiOptions', this.value.split(',').map(opt => opt.trim()).filter(opt => opt))"
+                  placeholder="熨斗オプション（カンマ区切り）">${(product.noshiOptions || []).join(',')}</textarea>
+      </td>
+      <td>
         <button class="action-btn btn-remove" onclick="removeProductRow(${index})">削除</button>
       </td>
     `;
@@ -1410,7 +1477,16 @@
       minDays: 1,
       cutoff: null,
       minType: 'calendar',
-      description: ''
+      description: '',
+      deliveryAvailable: false,
+      deliveryMinDays: 7,
+      deliveryCutoff: null,
+      deliveryWeight: 0,
+      deliverySize: 'M',
+      deliveryFrozen: false,
+      deliveryArea: 'nationwide',
+      noshiAvailable: false,
+      noshiOptions: ['なし']
     };
     
     productsData.push(newProduct);
