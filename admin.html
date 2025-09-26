@@ -816,7 +816,8 @@
                      style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px;">
               <small style="color: #666; display: block; margin-top: 5px;">
                 GitHub → Settings → Developer settings → Personal access tokens → Generate new token (classic)<br>
-                必要なスコープ: <code>repo</code> (Full control of private repositories)
+                必要なスコープ: <code>repo</code> (Full control of private repositories)<br>
+                <strong>注意:</strong> 新しいトークン形式（ghp_で始まる）を使用してください
               </small>
             </div>
             
@@ -1697,8 +1698,10 @@
       
       const response = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}`, {
         headers: {
-          'Authorization': `token ${config.token}`,
-          'Accept': 'application/vnd.github.v3+json'
+          'Authorization': `Bearer ${config.token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Admin-Panel/1.0',
+          'User-Agent': 'Admin-Panel/1.0'
         }
       });
       
@@ -1709,8 +1712,17 @@
         addGitHubLog(`   - プライベート: ${repoInfo.private ? 'Yes' : 'No'}`);
         addGitHubLog(`   - デフォルトブランチ: ${repoInfo.default_branch}`);
       } else {
-        const error = await response.json();
-        throw new Error(`HTTP ${response.status}: ${error.message}`);
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const error = await response.json();
+          errorMessage += `: ${error.message}`;
+          if (error.documentation_url) {
+            errorMessage += `\n詳細: ${error.documentation_url}`;
+          }
+        } catch (e) {
+          errorMessage += `: ${response.statusText}`;
+        }
+        throw new Error(errorMessage);
       }
       
     } catch (error) {
@@ -1778,8 +1790,9 @@
     try {
       const getResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
         headers: {
-          'Authorization': `token ${config.token}`,
-          'Accept': 'application/vnd.github.v3+json'
+          'Authorization': `Bearer ${config.token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Admin-Panel/1.0'
         }
       });
       
@@ -1810,7 +1823,7 @@
     const putResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
       method: 'PUT',
       headers: {
-        'Authorization': `token ${config.token}`,
+        'Authorization': `Bearer ${config.token}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json'
       },
@@ -1901,8 +1914,9 @@
     try {
       const getResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
         headers: {
-          'Authorization': `token ${config.token}`,
-          'Accept': 'application/vnd.github.v3+json'
+          'Authorization': `Bearer ${config.token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Admin-Panel/1.0'
         }
       });
       
@@ -1933,7 +1947,7 @@
     const putResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
       method: 'PUT',
       headers: {
-        'Authorization': `token ${config.token}`,
+        'Authorization': `Bearer ${config.token}`,
         'Accept': 'application/vnd.github.v3+json',
         'Content-Type': 'application/json'
       },
@@ -2440,8 +2454,9 @@
       try {
         const getResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
           headers: {
-            'Authorization': `token ${config.token}`,
-            'Accept': 'application/vnd.github.v3+json'
+            'Authorization': `Bearer ${config.token}`,
+            'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Admin-Panel/1.0'
           }
         });
         
@@ -2468,8 +2483,9 @@
       const putResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
         method: 'PUT',
         headers: {
-          'Authorization': `token ${config.token}`,
+          'Authorization': `Bearer ${config.token}`,
           'Accept': 'application/vnd.github.v3+json',
+          'User-Agent': 'Admin-Panel/1.0',
           'Content-Type': 'application/json'
         },
         body: JSON.stringify(commitData)
