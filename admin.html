@@ -344,9 +344,10 @@
       scrollbar-width: thin;
       scrollbar-color: #667eea #f1f1f1;
       position: relative;
+      padding-top: 12px; /* 上部スクロールバーのスペースを確保 */
     }
     
-    /* 上部スクロールバー（初期状態では非表示） */
+    /* 上部スクロールバー（常時表示） */
     .table-container::before {
       content: '';
       position: absolute;
@@ -358,10 +359,10 @@
       border-radius: 6px 6px 0 0;
       z-index: 1;
       pointer-events: none;
-      display: none;
+      display: block;
     }
     
-    /* 上部スクロールバーのスクロール部分（初期状態では非表示） */
+    /* 上部スクロールバーのスクロール部分（常時表示） */
     .table-container::after {
       content: '';
       position: absolute;
@@ -374,7 +375,7 @@
       z-index: 2;
       pointer-events: none;
       transition: all 0.3s ease;
-      display: none;
+      display: block;
     }
     
     /* Webkit系ブラウザのスクロールバー */
@@ -485,6 +486,17 @@
       min-height: 80px;
       resize: vertical;
       font-family: inherit; /* フォントを統一 */
+    }
+    
+    /* 複数選択selectのスタイル */
+    .data-table select[multiple] {
+      min-height: 80px;
+      padding: 4px;
+    }
+    
+    .data-table select[multiple] option {
+      padding: 4px 8px;
+      margin: 2px 0;
     }
     
     /* =============================
@@ -1554,8 +1566,14 @@
         </select>
       </td>
       <td>
-        <textarea onchange="updateProductData(${index}, 'noshiOptions', this.value.split(',').map(opt => opt.trim()).filter(opt => opt))"
-                  placeholder="熨斗オプション（カンマ区切り）">${(product.noshiOptions || []).join(',')}</textarea>
+        <select onchange="updateProductData(${index}, 'noshiOptions', Array.from(this.selectedOptions).map(option => option.value))" multiple>
+          <option value="なし" ${(product.noshiOptions || []).includes('なし') ? 'selected' : ''}>なし</option>
+          <option value="御歳暮" ${(product.noshiOptions || []).includes('御歳暮') ? 'selected' : ''}>御歳暮</option>
+          <option value="御中元" ${(product.noshiOptions || []).includes('御中元') ? 'selected' : ''}>御中元</option>
+          <option value="内祝い" ${(product.noshiOptions || []).includes('内祝い') ? 'selected' : ''}>内祝い</option>
+          <option value="お祝い" ${(product.noshiOptions || []).includes('お祝い') ? 'selected' : ''}>お祝い</option>
+          <option value="その他" ${(product.noshiOptions || []).includes('その他') ? 'selected' : ''}>その他</option>
+        </select>
       </td>
       <td>
         <select onchange="updateProductData(${index}, 'visible', this.value === 'true')">
