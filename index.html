@@ -398,6 +398,40 @@
     margin-top: 4px;
     margin-left: 8px;
   }
+
+  /* 店舗グループ選択のスタイル */
+  #store-group-section {
+    margin-top: 16px;
+  }
+
+  #store-group-section label {
+    font-weight: bold;
+    margin-bottom: 4px;
+    display: block;
+  }
+
+  #store-group-section select {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-size: 1em;
+    box-sizing: border-box;
+  }
+
+  #store-group-section select:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+  }
+
+  /* 店舗選択のスタイル調整 */
+  #store-section select:disabled {
+    background-color: #f5f5f5;
+    color: #999;
+    cursor: not-allowed;
+  }
   
   /* モバイル向け */
   @media (max-width: 600px) {
@@ -502,11 +536,25 @@
         <span class="error-message" id="delivery_method-error"></span>
       </div>
 
+      <!-- 店舗グループ選択（店頭受取時のみ表示） -->
+      <div id="store-group-section">
+        <label for="store-group">店舗グループ<span class="required">*</span></label>
+        <select id="store-group" name="store-group" required>
+          <option value="">グループを選択してください</option>
+          <option value="burns">🍖 焼肉バーンズグループ</option>
+          <option value="kirabi">🥩 カルビ牧場グループ</option>
+          <option value="applegrimm">🍰 あっぷるぐりむグループ</option>
+          <option value="pizzeria">🍕 ピッツェリアグループ</option>
+          <option value="kirabi">🍰 きらびグループ</option>
+        </select>
+        <span class="error-message" id="store-group-error"></span>
+      </div>
+
       <!-- 受取店舗（店頭受取時のみ表示） -->
       <div id="store-section">
         <label for="store">受取店舗<span class="required">*</span></label>
-        <select id="store" name="store" required>
-          <option value="">選択してください</option>
+        <select id="store" name="store" required disabled>
+          <option value="">先にグループを選択してください</option>
         </select>
         <span class="error-message" id="store-error"></span>
       </div>
@@ -935,6 +983,51 @@
       loadProductsAndStores();
       addProductItem(); // 初期商品項目を追加
       
+      // 店舗グループ選択のイベントリスナー
+      document.getElementById('store-group').addEventListener('change', function() {
+        const selectedGroup = this.value;
+        const storeSelect = document.getElementById('store');
+        
+        // 店舗選択肢をクリア
+        storeSelect.innerHTML = '<option value="">店舗を選択してください</option>';
+        
+        if (selectedGroup) {
+          // 選択されたグループの店舗のみ表示
+          const groupStores = allStores.filter(store => store.group === selectedGroup);
+          
+          if (groupStores.length > 0) {
+            groupStores.forEach(store => {
+              const option = document.createElement('option');
+              option.value = store.name;
+              option.textContent = store.name;
+              storeSelect.appendChild(option);
+            });
+            
+            storeSelect.disabled = false;
+            storeSelect.required = true;
+          } else {
+            // グループに店舗がない場合
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'このグループには店舗がありません';
+            option.disabled = true;
+            storeSelect.appendChild(option);
+            storeSelect.disabled = true;
+            storeSelect.required = false;
+          }
+        } else {
+          storeSelect.disabled = true;
+          storeSelect.required = false;
+        }
+        
+        // 日付制御を更新
+        if (currentDeliveryMethod === 'delivery') {
+          updateDeliveryDateControl();
+        } else {
+          updatePickupDateControl();
+        }
+      });
+
       // 店舗選択のイベントリスナー
       document.getElementById('store').addEventListener('change', function() {
         if (currentDeliveryMethod === 'delivery') {
@@ -1253,6 +1346,7 @@
     function toggleDeliveryFields() {
       const isDelivery = currentDeliveryMethod === 'delivery';
       // 表示切替
+      document.getElementById('store-group-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('store-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('pickup-date-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('pickup-time-section').style.display = isDelivery ? 'none' : 'block';
@@ -1267,8 +1361,10 @@
       pickupTimeEl.disabled = isDelivery;
       pickupDateEl.required = !isDelivery;
       pickupTimeEl.required = !isDelivery;
-      // 店舗は店頭受取時のみ必須
+      // 店舗グループと店舗は店頭受取時のみ必須
+      const storeGroupEl = document.getElementById('store-group');
       const storeEl = document.getElementById('store');
+      if (storeGroupEl) storeGroupEl.required = !isDelivery;
       if (storeEl) storeEl.required = !isDelivery;
 
       // 配送系の有効/無効
