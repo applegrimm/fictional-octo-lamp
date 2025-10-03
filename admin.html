@@ -1805,9 +1805,6 @@
       // 初期設定
       setTimeout(updateProductsScrollbarWidth, 100);
       
-      // ウィンドウリサイズ時に再計算
-      window.addEventListener('resize', updateProductsScrollbarWidth);
-      
       // 下部→上部の同期
       productsTableContainer.addEventListener('scroll', function() {
         productsTopScrollbar.scrollLeft = productsTableContainer.scrollLeft;
