@@ -898,6 +898,9 @@
             <button class="btn btn-success" onclick="pushToGitHub('all')">
               📤 全てをGitHubにプッシュ
             </button>
+            <button class="btn btn-info" onclick="clearCache()" style="margin-left: 10px;">
+              🗑️ キャッシュクリア
+            </button>
             <button class="btn btn-danger" onclick="logout()" style="margin-left: 15px;">
               🚪 ログアウト
             </button>
@@ -2499,6 +2502,31 @@
     if (confirm('ログアウトしますか？')) {
       localStorage.removeItem('admin-auth');
       location.reload();
+    }
+  }
+  
+  /**
+   * キャッシュクリア機能
+   * index.htmlのローカルストレージキャッシュをクリア
+   */
+  function clearCache() {
+    if (confirm('index.htmlのキャッシュをクリアしますか？\n\nこれにより、次回index.htmlにアクセスした際に最新の商品データが表示されます。')) {
+      try {
+        // ローカルストレージからキャッシュデータを削除
+        localStorage.removeItem('reservationData');
+        
+        showMessage('✅ キャッシュをクリアしました！', 'success');
+        addGitHubLog('🗑️ キャッシュクリア完了');
+        addGitHubLog('   - index.htmlのローカルストレージキャッシュを削除しました');
+        addGitHubLog('   - 次回index.htmlにアクセスした際に最新データが表示されます');
+        
+        console.log('✅ キャッシュクリア完了');
+        
+      } catch (error) {
+        showMessage('キャッシュクリアでエラーが発生しました: ' + error.message, 'error');
+        addGitHubLog('❌ キャッシュクリアエラー: ' + error.message);
+        console.error('❌ キャッシュクリアエラー:', error);
+      }
     }
   }
   
