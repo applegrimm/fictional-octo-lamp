@@ -809,8 +809,10 @@
               <tr>
                 <th style="width: 80px;">ID</th>
                 <th style="width: 200px;">店舗名</th>
+                <th style="width: 120px;">グループ</th>
+                <th style="width: 120px;">カテゴリ</th>
                 <th style="width: 150px;">管理シークレット</th>
-                <th style="width: 600px;">営業時間</th>
+                <th style="width: 500px;">営業時間</th>
                 <th style="width: 200px;">休業日</th>
                 <th style="width: 100px;">操作</th>
               </tr>
@@ -1205,6 +1207,22 @@
                placeholder="店舗名を入力">
       </td>
       <td>
+        <select onchange="updateStoreData(${index}, 'group', this.value)" 
+                style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
+          <option value="">グループを選択</option>
+          <option value="burns" ${store.group === 'burns' ? 'selected' : ''}>🍖 焼肉バーンズグループ</option>
+          <option value="kirabi" ${store.group === 'kirabi' ? 'selected' : ''}>🥩 カルビ牧場グループ</option>
+          <option value="applegrimm" ${store.group === 'applegrimm' ? 'selected' : ''}>🍰 あっぷるぐりむグループ</option>
+          <option value="pizzeria" ${store.group === 'pizzeria' ? 'selected' : ''}>🍕 ピッツェリアグループ</option>
+          <option value="kirabi" ${store.group === 'kirabi' ? 'selected' : ''}>🍰 きらびグループ</option>
+        </select>
+      </td>
+      <td>
+        <input type="text" value="${store.category || ''}" 
+               onchange="updateStoreData(${index}, 'category', this.value)"
+               placeholder="例: 焼肉">
+      </td>
+      <td>
         <input type="text" value="${store.managementSecret || ''}" 
                onchange="updateStoreData(${index}, 'managementSecret', this.value)"
                placeholder="管理用シークレット">
@@ -1286,6 +1304,36 @@
       storesData[index] = {};
     }
     storesData[index][field] = value;
+    
+    // グループ選択時にgroupNameを自動設定
+    if (field === 'group') {
+      const groupNames = {
+        'burns': '🍖 焼肉バーンズグループ',
+        'kirabi': '🥩 カルビ牧場グループ',
+        'applegrimm': '🍰 あっぷるぐりむグループ',
+        'pizzeria': '🍕 ピッツェリアグループ',
+        'kirabi': '🍰 きらびグループ'
+      };
+      
+      if (groupNames[value]) {
+        storesData[index]['groupName'] = groupNames[value];
+        // カテゴリも自動設定
+        const categories = {
+          'burns': '焼肉',
+          'kirabi': '焼肉・韓国料理',
+          'applegrimm': 'スイーツ・カフェ',
+          'pizzeria': 'ピザ・イタリアン',
+          'kirabi': 'スイーツ・カフェ'
+        };
+        if (categories[value]) {
+          storesData[index]['category'] = categories[value];
+        }
+        
+        // テーブルを更新して新しい値を反映
+        updateStoresTable();
+      }
+    }
+    
     console.log(`店舗[${index}]の${field}を更新:`, value);
   }
   
@@ -1364,6 +1412,9 @@
     const newStore = {
       id: '',
       name: '',
+      group: '',
+      groupName: '',
+      category: '',
       managementSecret: '',
       hours: {
         mon: ['09:00', '18:00'],
