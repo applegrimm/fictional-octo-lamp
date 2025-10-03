@@ -1151,36 +1151,36 @@
         const cacheKey = 'reservationData';
         const cacheTimeout = 10 * 60 * 1000; // 10分間キャッシュ
         
-        // 🚀 キャッシュチェック
-        const cachedData = localStorage.getItem(cacheKey);
-        if (cachedData) {
-          try {
-            const { data, timestamp } = JSON.parse(cachedData);
-            const isExpired = Date.now() - timestamp > cacheTimeout;
-            
-            if (!isExpired && data.products && data.stores) {
-              console.log('✅ キャッシュからデータ読み込み完了（80-90%高速化）');
-              allProducts = data.products;
-              allStores = data.stores;
-              
-              // UI更新
-              setupUIWithData();
-              
-              console.log('📊 キャッシュデータ:', {
-                商品数: allProducts.length,
-                店舗数: allStores.length,
-                キャッシュ経過時間: Math.round((Date.now() - timestamp) / 1000) + '秒'
-              });
-              return;
-            } else {
-              console.log('⏰ キャッシュ期限切れ、新しいデータを取得します');
-              localStorage.removeItem(cacheKey);
-            }
-          } catch (cacheError) {
-            console.warn('⚠️ キャッシュデータ読み込みエラー:', cacheError);
-            localStorage.removeItem(cacheKey);
-          }
-        }
+        // 🚀 キャッシュチェック（一時的に無効化）
+        // const cachedData = localStorage.getItem(cacheKey);
+        // if (cachedData) {
+        //   try {
+        //     const { data, timestamp } = JSON.parse(cachedData);
+        //     const isExpired = Date.now() - timestamp > cacheTimeout;
+        //     
+        //     if (!isExpired && data.products && data.stores) {
+        //       console.log('✅ キャッシュからデータ読み込み完了（80-90%高速化）');
+        //       allProducts = data.products;
+        //       allStores = data.stores;
+        //       
+        //       // UI更新
+        //       setupUIWithData();
+        //       
+        //       console.log('📊 キャッシュデータ:', {
+        //         商品数: allProducts.length,
+        //         店舗数: allStores.length,
+        //         キャッシュ経過時間: Math.round((Date.now() - timestamp) / 1000) + '秒'
+        //       });
+        //       return;
+        //     } else {
+        //       console.log('⏰ キャッシュ期限切れ、新しいデータを取得します');
+        //       localStorage.removeItem(cacheKey);
+        //     }
+        //   } catch (cacheError) {
+        //     console.warn('⚠️ キャッシュデータ読み込みエラー:', cacheError);
+        //     localStorage.removeItem(cacheKey);
+        //   }
+        // }
         
         // 🚀 並列データ読み込み（50-70%高速化）
         const timestamp = Date.now();
