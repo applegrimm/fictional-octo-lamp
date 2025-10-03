@@ -22,7 +22,8 @@
       "内祝い",
       "お祝い",
       "その他"
-    ]
+    ],
+    "visible": false
   },
   {
     "id": "p2",
@@ -47,7 +48,8 @@
       "内祝い",
       "お祝い",
       "その他"
-    ]
+    ],
+    "visible": false
   },
   {
     "id": "p3",
@@ -72,7 +74,8 @@
       "内祝い",
       "お祝い",
       "その他"
-    ]
+    ],
+    "visible": false
   },
   {
     "id": "p4",
@@ -97,7 +100,8 @@
       "内祝い",
       "お祝い",
       "その他"
-    ]
+    ],
+    "visible": false
   },
   {
     "id": "p5",
@@ -122,7 +126,8 @@
       "内祝い",
       "お祝い",
       "その他"
-    ]
+    ],
+    "visible": false
   },
   {
     "id": "p6",
@@ -142,7 +147,8 @@
     "noshiAvailable": false,
     "noshiOptions": [
       "なし"
-    ]
+    ],
+    "visible": false
   },
   {
     "id": "N1",
@@ -159,7 +165,7 @@
     "deliverySize": "S",
     "deliveryFrozen": true,
     "deliveryArea": "nationwide",
-    "noshiAvailable": false,
+    "noshiAvailable": true,
     "noshiOptions": [
       "なし"
     ],
