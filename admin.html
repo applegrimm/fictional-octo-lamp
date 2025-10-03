@@ -849,7 +849,7 @@
         
         <!-- 上部スクロールバー -->
         <div class="top-scrollbar" id="products-top-scrollbar">
-          <div style="width: 2200px; height: 1px;"></div>
+          <div id="products-scrollbar-content" style="height: 1px;"></div>
         </div>
         
         <div class="table-container" id="products-table-container">
@@ -1789,8 +1789,29 @@
     // 商品管理タブのスクロールバー同期
     const productsTopScrollbar = document.getElementById('products-top-scrollbar');
     const productsTableContainer = document.getElementById('products-table-container');
+    const productsScrollbarContent = document.getElementById('products-scrollbar-content');
     
-    if (productsTopScrollbar && productsTableContainer) {
+    if (productsTopScrollbar && productsTableContainer && productsScrollbarContent) {
+      // スクロールバーの幅を動的に設定
+      function updateProductsScrollbarWidth() {
+        const table = document.getElementById('products-table');
+        if (table) {
+          const tableWidth = table.scrollWidth;
+          productsScrollbarContent.style.width = tableWidth + 'px';
+          console.log('商品テーブル幅を更新:', tableWidth + 'px');
+        }
+      }
+      
+      // 初期設定
+      updateProductsScrollbarWidth();
+      
+      // ウィンドウリサイズ時に再計算
+      window.addEventListener('resize', updateProductsScrollbarWidth);
+      
+      // テーブル内容変更時に再計算
+      const observer = new MutationObserver(updateProductsScrollbarWidth);
+      observer.observe(productsTableContainer, { childList: true, subtree: true });
+      
       // 下部→上部の同期
       productsTableContainer.addEventListener('scroll', function() {
         productsTopScrollbar.scrollLeft = productsTableContainer.scrollLeft;
@@ -2756,6 +2777,31 @@
     } catch (error) {
       showMessage('GitHubプッシュでエラーが発生しました: ' + error.message, 'error');
       addGitHubLog('❌ GitHubプッシュエラー: ' + error.message);
+    }
+  }
+  
+  /**
+   * キャッシュクリア機能
+   * index.htmlのローカルストレージキャッシュをクリア
+   */
+  function clearCache() {
+    if (confirm('index.htmlのキャッシュをクリアしますか？\n\nこれにより、次回index.htmlにアクセスした際に最新の商品データが表示されます。')) {
+      try {
+        // ローカルストレージからキャッシュデータを削除
+        localStorage.removeItem('reservationData');
+        
+        showMessage('✅ キャッシュをクリアしました！', 'success');
+        addGitHubLog('🗑️ キャッシュクリア完了');
+        addGitHubLog('   - index.htmlのローカルストレージキャッシュを削除しました');
+        addGitHubLog('   - 次回index.htmlにアクセスした際に最新データが表示されます');
+        
+        console.log('✅ キャッシュクリア完了');
+        
+      } catch (error) {
+        showMessage('キャッシュクリアでエラーが発生しました: ' + error.message, 'error');
+        addGitHubLog('❌ キャッシュクリアエラー: ' + error.message);
+        console.error('❌ キャッシュクリアエラー:', error);
+      }
     }
   }
 </script>
