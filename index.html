@@ -1265,8 +1265,13 @@
         // 選択肢をクリア
         select.innerHTML = '<option value="">商品を選択</option>';
         
-        // 商品を追加
+        // 商品を追加（visibleプロパティでフィルタリング）
         allProducts.forEach(product => {
+          // visibleプロパティがfalseの場合は表示しない
+          if (product.visible === false) {
+            return;
+          }
+          
           const option = document.createElement('option');
           option.value = product.name;
           option.textContent = `${product.name} (${product.price}円)`;
@@ -1295,9 +1300,14 @@
       
       container.appendChild(itemDiv);
       
-      // 商品選択肢を設定
+      // 商品選択肢を設定（visibleプロパティでフィルタリング）
       const select = itemDiv.querySelector('select');
       allProducts.forEach(product => {
+        // visibleプロパティがfalseの場合は表示しない
+        if (product.visible === false) {
+          return;
+        }
+        
         const option = document.createElement('option');
         option.value = product.name;
         option.textContent = `${product.name} (${product.price}円)`;
