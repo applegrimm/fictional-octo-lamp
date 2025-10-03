@@ -849,7 +849,7 @@
         
         <!-- 上部スクロールバー -->
         <div class="top-scrollbar" id="products-top-scrollbar">
-          <div style="width: 2200px; height: 1px;"></div>
+          <div id="products-scrollbar-content" style="height: 1px;"></div>
         </div>
         
         <div class="table-container" id="products-table-container">
@@ -1790,8 +1790,24 @@
     // 商品管理タブのスクロールバー同期
     const productsTopScrollbar = document.getElementById('products-top-scrollbar');
     const productsTableContainer = document.getElementById('products-table-container');
+    const productsScrollbarContent = document.getElementById('products-scrollbar-content');
     
-    if (productsTopScrollbar && productsTableContainer) {
+    if (productsTopScrollbar && productsTableContainer && productsScrollbarContent) {
+      // スクロールバーの幅を動的に設定
+      function updateProductsScrollbarWidth() {
+        const table = document.getElementById('products-table');
+        if (table) {
+          const tableWidth = table.scrollWidth;
+          productsScrollbarContent.style.width = tableWidth + 'px';
+        }
+      }
+      
+      // 初期設定
+      setTimeout(updateProductsScrollbarWidth, 100);
+      
+      // ウィンドウリサイズ時に再計算
+      window.addEventListener('resize', updateProductsScrollbarWidth);
+      
       // 下部→上部の同期
       productsTableContainer.addEventListener('scroll', function() {
         productsTopScrollbar.scrollLeft = productsTableContainer.scrollLeft;
