@@ -344,39 +344,38 @@
       scrollbar-width: thin;
       scrollbar-color: #667eea #f1f1f1;
       position: relative;
-      padding-top: 12px; /* 上部スクロールバーのスペースを常時確保 */
     }
     
-    /* 上部スクロールバー（常時表示） */
-    .table-container::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
+    /* 上部スクロールバー用のコンテナ */
+    .top-scrollbar {
+      width: 100%;
       height: 12px;
+      overflow-x: auto;
+      overflow-y: hidden;
       background: #f1f1f1;
       border-radius: 6px 6px 0 0;
-      z-index: 1;
-      pointer-events: auto; /* クリック可能にする */
-      display: block; /* 常時表示 */
+      margin-bottom: 0;
+      scrollbar-width: thin;
+      scrollbar-color: #667eea #f1f1f1;
     }
     
-    /* 上部スクロールバーのスクロール部分（常時表示） */
-    .table-container::after {
-      content: '';
-      position: absolute;
-      top: 2px;
-      left: var(--top-scrollbar-left, 0);
-      width: var(--top-scrollbar-width, 40px);
-      height: 8px;
+    .top-scrollbar::-webkit-scrollbar {
+      height: 12px;
+    }
+    
+    .top-scrollbar::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 6px;
+    }
+    
+    .top-scrollbar::-webkit-scrollbar-thumb {
       background: #667eea;
-      border-radius: 4px;
-      z-index: 2;
-      pointer-events: auto; /* クリック可能にする */
-      transition: all 0.3s ease;
-      display: block; /* 常時表示 */
-      cursor: pointer; /* クリック可能であることを示す */
+      border-radius: 6px;
+      border: 2px solid #f1f1f1;
+    }
+    
+    .top-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #5a6fd8;
     }
     
     /* Webkit系ブラウザのスクロールバー */
@@ -405,20 +404,6 @@
       scrollbar-gutter: stable;
     }
     
-    /* 上部スクロールバーの動的制御用クラス */
-    .table-container.dual-scrollbar {
-      padding-top: 12px;
-    }
-    
-    .table-container.dual-scrollbar::before {
-      display: block;
-    }
-    
-    .table-container.dual-scrollbar::after {
-      display: block;
-    }
-    
-    /* 上部スクロールバーは常時表示 */
     
     .data-table {
       width: 100%;
@@ -806,7 +791,12 @@
           </div>
         </div>
         
-        <div class="table-container">
+        <!-- 上部スクロールバー -->
+        <div class="top-scrollbar" id="stores-top-scrollbar">
+          <div style="width: 2200px; height: 1px;"></div>
+        </div>
+        
+        <div class="table-container" id="stores-table-container">
           <table class="data-table" id="stores-table">
             <thead>
               <tr>
@@ -857,7 +847,12 @@
           </div>
         </div>
         
-        <div class="table-container">
+        <!-- 上部スクロールバー -->
+        <div class="top-scrollbar" id="products-top-scrollbar">
+          <div style="width: 2200px; height: 1px;"></div>
+        </div>
+        
+        <div class="table-container" id="products-table-container">
           <table class="data-table" id="products-table">
             <thead>
               <tr>
@@ -1105,14 +1100,6 @@
     // 選択されたタブを表示
     document.getElementById(tabName + '-tab').classList.add('active');
     event.target.classList.add('active');
-    
-    // タブ切り替え後にスクロールバーを再初期化
-    setTimeout(() => {
-      const activeContainer = document.querySelector(`#${tabName}-tab .table-container`);
-      if (activeContainer) {
-        updateTopScrollbar(activeContainer);
-      }
-    }, 100);
   }
   
   // =============================
@@ -1200,13 +1187,6 @@
       addStoreRow();
     }
     
-    // テーブル更新後にスクロールバーを再初期化
-    setTimeout(() => {
-      const container = document.querySelector('#stores-tab .table-container');
-      if (container) {
-        updateTopScrollbar(container);
-      }
-    }, 100);
   }
   
   /**
@@ -1546,13 +1526,6 @@
       addProductRow();
     }
     
-    // テーブル更新後にスクロールバーを再初期化
-    setTimeout(() => {
-      const container = document.querySelector('#products-tab .table-container');
-      if (container) {
-        updateTopScrollbar(container);
-      }
-    }, 100);
   }
   
   /**
@@ -1794,91 +1767,39 @@
    * 上部・下部両方のスクロールバーを初期化
    */
   function initializeDualScrollbars() {
-    const tableContainers = document.querySelectorAll('.table-container');
+    // 店舗管理タブのスクロールバー同期
+    const storesTopScrollbar = document.getElementById('stores-top-scrollbar');
+    const storesTableContainer = document.getElementById('stores-table-container');
     
-    tableContainers.forEach(container => {
-      // スクロールイベントリスナーを追加
-      container.addEventListener('scroll', function() {
-        updateTopScrollbar(container);
+    if (storesTopScrollbar && storesTableContainer) {
+      // 下部→上部の同期
+      storesTableContainer.addEventListener('scroll', function() {
+        storesTopScrollbar.scrollLeft = storesTableContainer.scrollLeft;
       });
       
-      // 上部スクロールバーのクリックイベントを追加
-      container.addEventListener('click', function(e) {
-        handleTopScrollbarClick(e, container);
+      // 上部→下部の同期
+      storesTopScrollbar.addEventListener('scroll', function() {
+        storesTableContainer.scrollLeft = storesTopScrollbar.scrollLeft;
       });
-      
-      // リサイズイベントリスナーを追加
-      window.addEventListener('resize', function() {
-        setTimeout(() => {
-          updateTopScrollbar(container);
-        }, 100);
-      });
-      
-      // 初期状態で上部スクロールバーを更新
-      setTimeout(() => {
-        updateTopScrollbar(container);
-      }, 200);
-    });
-  }
-  
-  /**
-   * 上部スクロールバーのクリック処理
-   */
-  function handleTopScrollbarClick(e, container) {
-    // 上部スクロールバーエリア内のクリックかチェック
-    const rect = container.getBoundingClientRect();
-    const clickY = e.clientY - rect.top;
+    }
     
-    // 上部スクロールバーエリア（0-12px）内のクリックかチェック
-    if (clickY >= 0 && clickY <= 12) {
-      const scrollWidth = container.scrollWidth;
-      const clientWidth = container.clientWidth;
+    // 商品管理タブのスクロールバー同期
+    const productsTopScrollbar = document.getElementById('products-top-scrollbar');
+    const productsTableContainer = document.getElementById('products-table-container');
+    
+    if (productsTopScrollbar && productsTableContainer) {
+      // 下部→上部の同期
+      productsTableContainer.addEventListener('scroll', function() {
+        productsTopScrollbar.scrollLeft = productsTableContainer.scrollLeft;
+      });
       
-      if (scrollWidth > clientWidth) {
-        const clickX = e.clientX - rect.left;
-        const scrollPercentage = clickX / clientWidth;
-        const maxScrollLeft = scrollWidth - clientWidth;
-        const newScrollLeft = scrollPercentage * maxScrollLeft;
-        
-        // スムーズスクロール
-        container.scrollTo({
-          left: newScrollLeft,
-          behavior: 'smooth'
-        });
-      }
+      // 上部→下部の同期
+      productsTopScrollbar.addEventListener('scroll', function() {
+        productsTableContainer.scrollLeft = productsTopScrollbar.scrollLeft;
+      });
     }
   }
   
-  /**
-   * 上部スクロールバーを更新
-   */
-  function updateTopScrollbar(container) {
-    const scrollLeft = container.scrollLeft;
-    const scrollWidth = container.scrollWidth;
-    const clientWidth = container.clientWidth;
-    
-    // 常時上部スクロールバーを表示
-    container.classList.add('dual-scrollbar');
-    
-    if (scrollWidth > clientWidth) {
-      // スクロールが必要な場合：位置を更新
-      const scrollPercentage = scrollLeft / (scrollWidth - clientWidth);
-      const topScrollbarWidth = Math.max(40, clientWidth * 0.3); // 最小40px、最大30%の幅
-      const maxLeft = clientWidth - topScrollbarWidth;
-      const topScrollbarLeft = scrollPercentage * maxLeft;
-      
-      // CSS変数で位置を制御
-      container.style.setProperty('--top-scrollbar-left', topScrollbarLeft + 'px');
-      container.style.setProperty('--top-scrollbar-width', topScrollbarWidth + 'px');
-    } else {
-      // スクロール不要な場合：中央に配置
-      const topScrollbarWidth = Math.max(40, clientWidth * 0.3);
-      const topScrollbarLeft = (clientWidth - topScrollbarWidth) / 2;
-      
-      container.style.setProperty('--top-scrollbar-left', topScrollbarLeft + 'px');
-      container.style.setProperty('--top-scrollbar-width', topScrollbarWidth + 'px');
-    }
-  }
 </script>
 
 <script>
