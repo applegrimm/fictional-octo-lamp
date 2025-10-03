@@ -60,7 +60,7 @@
     "deliveryAvailable": true,
     "deliveryMinDays": 7,
     "deliveryCutoff": "12:00",
-    "deliveryWeight": 1.0,
+    "deliveryWeight": 1,
     "deliverySize": "M",
     "deliveryFrozen": true,
     "deliveryArea": "nationwide",
@@ -143,5 +143,26 @@
     "noshiOptions": [
       "なし"
     ]
+  },
+  {
+    "id": "N1",
+    "name": "信州プレミアム牛肉すき焼き用",
+    "price": 5500,
+    "minDays": 5,
+    "cutoff": "15:00",
+    "minType": "business",
+    "description": "",
+    "deliveryAvailable": true,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": null,
+    "deliveryWeight": 0.8,
+    "deliverySize": "S",
+    "deliveryFrozen": true,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": false,
+    "noshiOptions": [
+      "なし"
+    ],
+    "visible": true
   }
 ]
