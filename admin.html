@@ -344,7 +344,7 @@
       scrollbar-width: thin;
       scrollbar-color: #667eea #f1f1f1;
       position: relative;
-      padding-top: 12px; /* 上部スクロールバーのスペースを確保 */
+      padding-top: 12px; /* 上部スクロールバーのスペースを常時確保 */
     }
     
     /* 上部スクロールバー（常時表示） */
@@ -359,7 +359,7 @@
       border-radius: 6px 6px 0 0;
       z-index: 1;
       pointer-events: none;
-      display: block;
+      display: block; /* 常時表示 */
     }
     
     /* 上部スクロールバーのスクロール部分（常時表示） */
@@ -375,7 +375,7 @@
       z-index: 2;
       pointer-events: none;
       transition: all 0.3s ease;
-      display: block;
+      display: block; /* 常時表示 */
     }
     
     /* Webkit系ブラウザのスクロールバー */
@@ -1188,6 +1188,14 @@
     if (storesData.length === 0) {
       addStoreRow();
     }
+    
+    // テーブル更新後にスクロールバーを再初期化
+    setTimeout(() => {
+      const container = document.querySelector('#stores-tab .table-container');
+      if (container) {
+        updateTopScrollbar(container);
+      }
+    }, 100);
   }
   
   /**
@@ -1526,6 +1534,14 @@
     if (productsData.length === 0) {
       addProductRow();
     }
+    
+    // テーブル更新後にスクロールバーを再初期化
+    setTimeout(() => {
+      const container = document.querySelector('#products-tab .table-container');
+      if (container) {
+        updateTopScrollbar(container);
+      }
+    }, 100);
   }
   
   /**
@@ -1775,13 +1791,17 @@
         updateTopScrollbar(container);
       });
       
-      // 初期状態で上部スクロールバーを表示
-      setTimeout(() => {
-        if (container.scrollWidth > container.clientWidth) {
-          container.classList.add('dual-scrollbar');
+      // リサイズイベントリスナーを追加
+      window.addEventListener('resize', function() {
+        setTimeout(() => {
           updateTopScrollbar(container);
-        }
-      }, 100);
+        }, 100);
+      });
+      
+      // 初期状態で上部スクロールバーを更新
+      setTimeout(() => {
+        updateTopScrollbar(container);
+      }, 200);
     });
   }
   
@@ -1793,19 +1813,24 @@
     const scrollWidth = container.scrollWidth;
     const clientWidth = container.clientWidth;
     
+    // 常時表示なので、スクロール可能な場合のみ位置を更新
     if (scrollWidth > clientWidth) {
-      container.classList.add('dual-scrollbar');
-      
       // 上部スクロールバーの位置を計算
       const scrollPercentage = scrollLeft / (scrollWidth - clientWidth);
-      const topScrollbarWidth = clientWidth - 24; // パディングを考慮
-      const topScrollbarLeft = scrollPercentage * (topScrollbarWidth - 40); // スクロールバーの幅を考慮
+      const topScrollbarWidth = Math.max(40, clientWidth * 0.3); // 最小40px、最大30%の幅
+      const maxLeft = clientWidth - topScrollbarWidth;
+      const topScrollbarLeft = scrollPercentage * maxLeft;
       
       // CSS変数で位置を制御
       container.style.setProperty('--top-scrollbar-left', topScrollbarLeft + 'px');
-      container.style.setProperty('--top-scrollbar-width', '40px');
+      container.style.setProperty('--top-scrollbar-width', topScrollbarWidth + 'px');
     } else {
-      container.classList.remove('dual-scrollbar');
+      // スクロール不要な場合は中央に配置
+      const topScrollbarWidth = Math.max(40, clientWidth * 0.3);
+      const topScrollbarLeft = (clientWidth - topScrollbarWidth) / 2;
+      
+      container.style.setProperty('--top-scrollbar-left', topScrollbarLeft + 'px');
+      container.style.setProperty('--top-scrollbar-width', topScrollbarWidth + 'px');
     }
   }
 </script>
