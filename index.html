@@ -590,6 +590,13 @@
       <!-- 配送先住所（配送選択時のみ表示） -->
       <div id="delivery-address-section" style="display:none;">
         <label>配送先住所 <span class="required">*</span></label>
+        <div id="application-store-section" style="margin: 8px 0 12px;">
+          <label for="application_store">お申し込み店舗を選択してください。<span class="required">*</span></label>
+          <select id="application_store" name="application_store" disabled>
+            <option value="">選択してください</option>
+          </select>
+          <span class="error-message" id="application_store-error"></span>
+        </div>
         <div style="font-size: 0.9em; color:#555; margin:4px 0 8px;">お届け先が異なる場合はご記入ください。同じ場合は下のチェックを入れてください。</div>
         <div style="display:flex; align-items:center; gap:8px; margin: 4px 0 8px;">
           <input type="checkbox" id="same_as_orderer" name="same_as_orderer">
@@ -837,6 +844,9 @@
         <!-- 事前決済ボタン（新規） -->
         <button type="button" id="payment-btn" class="payment-reservation-btn">
           💳 事前決済で予約
+        </button>
+        <button type="button" id="invoice-btn" class="payment-reservation-btn" style="background:#34495e;">
+          🧾 請求書払い（法人）で申し込む
         </button>
       </div>
     </form>
@@ -1251,6 +1261,18 @@
         storeSelect.appendChild(option);
       });
       
+      // 宅配便用 お申し込み店舗の選択肢も設定
+      const applicationStoreSelect = document.getElementById('application_store');
+      if (applicationStoreSelect) {
+        applicationStoreSelect.innerHTML = '<option value="">選択してください</option>';
+        allStores.forEach(store => {
+          const opt = document.createElement('option');
+          opt.value = store.name;
+          opt.textContent = store.name;
+          applicationStoreSelect.appendChild(opt);
+        });
+      }
+
       // 商品選択肢を更新
       updateProductSelects();
     }
@@ -1376,6 +1398,13 @@
       const storeEl = document.getElementById('store');
       if (storeGroupEl) storeGroupEl.required = !isDelivery;
       if (storeEl) storeEl.required = !isDelivery;
+
+      // 宅配便用 お申し込み店舗は配送時のみ必須/有効
+      const applicationStoreEl = document.getElementById('application_store');
+      if (applicationStoreEl) {
+        applicationStoreEl.disabled = !isDelivery;
+        applicationStoreEl.required = isDelivery;
+      }
 
       // 配送系の有効/無効
       document.getElementById('delivery_date').disabled = !isDelivery;
@@ -1591,6 +1620,7 @@
         phone: formData.get('phone'),
         email: formData.get('email'),
         store: formData.get('store'),
+        applicationStore: formData.get('application_store') || '',
         pickup_date: formData.get('pickup_date'),
         pickup_time: formData.get('pickup_time'),
         note: formData.get('note'),
@@ -2540,7 +2570,7 @@
       const processedData = { ...data };
       
       // 文字列フィールドをサニタイズ
-      ['name', 'phone', 'email', 'store', 'note', 'deliveryMethod', 'deliveryDate', 'deliveryTimeSlot', 'deliveryNote', 'noshiOption'].forEach(field => {
+      ['name', 'phone', 'email', 'store', 'applicationStore', 'note', 'deliveryMethod', 'deliveryDate', 'deliveryTimeSlot', 'deliveryNote', 'noshiOption'].forEach(field => {
         if (processedData[field]) {
           processedData[field] = sanitizeInput(processedData[field]);
         }
@@ -2721,6 +2751,7 @@
         phone: formData.get('phone'),
         email: formData.get('email'),
         store: formData.get('store'),
+        applicationStore: formData.get('application_store') || '',
         pickup_date: formData.get('pickup_date'),
         pickup_time: formData.get('pickup_time'),
         note: formData.get('note'),
@@ -2761,6 +2792,7 @@
         if (!data.store || !data.pickup_date || !data.pickup_time) return null;
       } else {
         if (!data.deliveryDate || !data.deliveryTimeSlot) return null;
+        if (!data.applicationStore) return null;
         data.ordererAddress = {
           postalCode: (document.getElementById('orderer_postal')?.value || ''),
           prefecture: (document.getElementById('orderer_pref')?.value || ''),
@@ -2881,6 +2913,81 @@
         paymentBtn.textContent = '💳 事前決済で予約';
       }
     }
+
+    /**
+     * 請求書払い（法人）ボタンクリック処理
+     */
+    async function handleInvoiceReservation() {
+      try {
+        console.log('請求書払い予約開始');
+
+        // フォームバリデーション
+        const form = document.getElementById('reserveForm');
+        if (!form.checkValidity()) {
+          form.reportValidity();
+          return;
+        }
+
+        // プライバシーとキャンセルポリシー
+        if (!document.getElementById('privacy-consent').checked) {
+          alert('プライバシーポリシーへの同意が必要です。');
+          return;
+        }
+        if (!document.getElementById('cancel-policy-consent').checked) {
+          alert('キャンセルポリシーへの同意が必要です。');
+          return;
+        }
+
+        // 予約データを収集
+        const reservationData = collectReservationData();
+        if (!reservationData) {
+          alert('入力内容を確認してください。');
+          return;
+        }
+
+        // 配送時の追加バリデーション再利用
+        if (reservationData.deliveryMethod === 'delivery') {
+          const errors = validateDeliveryInputs(reservationData);
+          if (errors.length > 0) {
+            alert('配送先の入力に不備があります:\n' + errors.join('\n'));
+            return;
+          }
+          if (!reservationData.applicationStore) {
+            alert('「お申し込み店舗」を選択してください。');
+            return;
+          }
+        }
+
+        // ボタン無効化
+        const invoiceBtn = document.getElementById('invoice-btn');
+        invoiceBtn.disabled = true;
+        invoiceBtn.textContent = '請求書を作成中...';
+
+        // 請求書作成（Stripe Invoicing）
+        if (typeof startStripeInvoice === 'function') {
+          const result = await startStripeInvoice(reservationData);
+          if (result && result.success) {
+            const url = result.invoice_url || '';
+            alert('請求書の作成・送付を受け付けました。\n' + (url ? '請求書URL: ' + url : ''));
+            if (url) {
+              window.open(url, '_blank');
+            }
+          } else {
+            throw new Error(result && result.error ? result.error : '請求書の作成に失敗しました');
+          }
+        } else {
+          throw new Error('請求書機能の読み込みに失敗しました');
+        }
+
+      } catch (error) {
+        console.error('請求書払いエラー:', error);
+        alert('請求書の作成に失敗しました: ' + error.message);
+      } finally {
+        const invoiceBtn = document.getElementById('invoice-btn');
+        invoiceBtn.disabled = false;
+        invoiceBtn.textContent = '🧾 請求書払い（法人）で申し込む';
+      }
+    }
     
     // ========================================
     // イベントリスナーの追加
@@ -2890,6 +2997,11 @@
     document.addEventListener('DOMContentLoaded', function() {
       // 決済ボタンのクリックイベント
       document.getElementById('payment-btn').addEventListener('click', handlePaymentReservation);
+    // 請求書払いボタンのクリックイベント
+    const invoiceBtnEl = document.getElementById('invoice-btn');
+    if (invoiceBtnEl) {
+      invoiceBtnEl.addEventListener('click', handleInvoiceReservation);
+    }
       
       // 商品選択・数量変更時の合計金額更新
       document.addEventListener('change', function(e) {
