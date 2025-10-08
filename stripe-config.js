@@ -129,6 +129,7 @@ function buildCheckoutData(orderData) {
       customer_phone: orderData.phone,
       customer_email: orderData.email,
       pickup_store: orderData.store,
+      application_store: orderData.applicationStore || '',
       pickup_date: orderData.pickup_date || '',
       pickup_time: orderData.pickup_time || '',
       delivery_method: orderData.deliveryMethod || 'pickup',
@@ -332,3 +333,116 @@ window.isPaymentEnabled = isPaymentEnabled;
 window.isTestMode = isTestMode;
 window.startStripeCheckout = startStripeCheckout;
 window.formatAmount = formatAmount; 
+
+/**
+ * 請求書（Stripe Invoicing）データの構築
+ * @param {Object} orderData - 予約データ
+ * @return {Object} 請求書作成用データ
+ */
+function buildInvoiceData(orderData) {
+  const items = orderData.items.map(item => ({
+    name: item.name,
+    qty: Number(item.qty),
+    price: Number(item.price)
+  }));
+
+  const totalAmount = items.reduce((sum, it) => sum + (it.price * it.qty), 0);
+
+  const metadata = {
+    customer_name: orderData.name,
+    customer_phone: orderData.phone,
+    customer_email: orderData.email,
+    pickup_store: orderData.store || '',
+    application_store: orderData.applicationStore || '',
+    pickup_date: orderData.pickup_date || '',
+    pickup_time: orderData.pickup_time || '',
+    delivery_method: orderData.deliveryMethod || 'delivery',
+    delivery_date: orderData.deliveryDate || '',
+    delivery_time_slot: orderData.deliveryTimeSlot || '',
+    noshi_option: orderData.noshiOption || 'なし',
+    orderer_address: orderData.ordererAddress ? JSON.stringify(orderData.ordererAddress) : '',
+    delivery_address: orderData.deliveryAddress ? JSON.stringify(orderData.deliveryAddress) : '',
+    pickup_note: orderData.note || '',
+    order_items: JSON.stringify(items),
+    total_amount: String(Math.round(totalAmount))
+  };
+
+  return {
+    currency: STRIPE_CONFIG.CURRENCY,
+    customer: {
+      email: orderData.email,
+      name: orderData.name,
+      phone: orderData.phone
+    },
+    items: items,
+    metadata: metadata,
+    days_until_due: 30
+  };
+}
+
+/**
+ * Stripe Invoicing 開始
+ * @param {Object} orderData - 予約データ
+ * @return {Promise<Object>} 結果
+ */
+async function startStripeInvoice(orderData) {
+  console.log('Stripe Invoicing開始:', orderData);
+  const invoiceData = buildInvoiceData(orderData);
+  const response = await createInvoice(invoiceData);
+  return response;
+}
+
+/**
+ * GASに請求書作成を依頼
+ * @param {Object} invoiceData - 請求書データ
+ * @return {Promise<Object>} GAS応答
+ */
+async function createInvoice(invoiceData) {
+  return new Promise((resolve, reject) => {
+    try {
+      const callbackName = 'invoiceCallback' + Date.now();
+
+      window[callbackName] = function(result) {
+        try {
+          if (typeof result === 'string') {
+            result = JSON.parse(result);
+          }
+          resolve(result);
+        } catch (err) {
+          reject(new Error('応答の解析に失敗しました'));
+        } finally {
+          const script = document.querySelector(`script[data-callback="${callbackName}"]`);
+          if (script && script.parentNode) script.parentNode.removeChild(script);
+          if (window[callbackName]) delete window[callbackName];
+        }
+      };
+
+      const jsonString = JSON.stringify(invoiceData);
+      const encodedData = btoa(encodeURIComponent(jsonString));
+      const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwgeG189yH0YGt6gpqpYHoclCnZe4cbo8jARRaHCqjgxpiD_XW47taPqNFlQYDhfaYaCg/exec';
+      const jsonpUrl = `${GAS_WEB_APP_URL}?action=createInvoice&data=${encodedData}&callback=${callbackName}&_t=${Date.now()}`;
+
+      const script = document.createElement('script');
+      script.src = jsonpUrl;
+      script.setAttribute('data-callback', callbackName);
+      script.onerror = function(err) {
+        reject(new Error('サーバーとの通信に失敗しました'));
+      };
+      document.head.appendChild(script);
+
+      setTimeout(() => {
+        if (window[callbackName]) {
+          const scriptEl = document.querySelector(`script[data-callback="${callbackName}"]`);
+          if (scriptEl && scriptEl.parentNode) scriptEl.parentNode.removeChild(scriptEl);
+          delete window[callbackName];
+          reject(new Error('請求書作成がタイムアウトしました'));
+        }
+      }, 20000);
+    } catch (error) {
+      reject(error);
+    }
+  });
+}
+
+// グローバル公開
+window.startStripeInvoice = startStripeInvoice;
