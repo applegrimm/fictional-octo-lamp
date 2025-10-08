@@ -352,6 +352,9 @@ function buildInvoiceData(orderData) {
     customer_name: orderData.name,
     customer_phone: orderData.phone,
     customer_email: orderData.email,
+    company_name: orderData.companyName || '',
+    department_name: orderData.departmentName || '',
+    contact_person: orderData.contactPerson || '',
     pickup_store: orderData.store || '',
     application_store: orderData.applicationStore || '',
     pickup_date: orderData.pickup_date || '',
@@ -371,7 +374,7 @@ function buildInvoiceData(orderData) {
     currency: STRIPE_CONFIG.CURRENCY,
     customer: {
       email: orderData.email,
-      name: orderData.name,
+      name: orderData.companyName ? `${orderData.companyName} ${orderData.contactPerson || ''}`.trim() : orderData.name,
       phone: orderData.phone
     },
     items: items,
