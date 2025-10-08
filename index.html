@@ -562,6 +562,17 @@
       <!-- 注文者住所（配送選択時のみ表示） -->
       <div id="orderer-address-section" style="display:none;">
         <label>注文者住所 <span class="required">*</span></label>
+        <div id="b2b-fields" style="margin: 8px 0 12px;">
+          <label for="company_name">会社名<span class="required">*</span></label>
+          <input type="text" id="company_name" name="company_name" placeholder="株式会社〇〇" disabled>
+          <span class="error-message" id="company_name-error"></span>
+          <label for="department_name" style="margin-top:8px;">部署名</label>
+          <input type="text" id="department_name" name="department_name" placeholder="営業部" disabled>
+          <span class="error-message" id="department_name-error"></span>
+          <label for="contact_person" style="margin-top:8px;">担当者名<span class="required">*</span></label>
+          <input type="text" id="contact_person" name="contact_person" placeholder="山田 太郎" disabled>
+          <span class="error-message" id="contact_person-error"></span>
+        </div>
         <div>
           <label for="orderer_postal">郵便番号<span class="required">*</span></label>
           <div style="display:flex; gap:8px;">
@@ -1409,6 +1420,15 @@
       // 配送系の有効/無効
       document.getElementById('delivery_date').disabled = !isDelivery;
       document.getElementById('delivery_time_slot').disabled = !isDelivery;
+      // B2Bフィールド（請求書想定）の有効化は配送時に有効化
+      const companyEl = document.getElementById('company_name');
+      const deptEl = document.getElementById('department_name');
+      const contactEl = document.getElementById('contact_person');
+      if (companyEl && deptEl && contactEl) {
+        companyEl.disabled = !isDelivery;
+        deptEl.disabled = !isDelivery;
+        contactEl.disabled = !isDelivery;
+      }
 
       // 最短日制御の更新
       if (isDelivery) {
@@ -1621,6 +1641,9 @@
         email: formData.get('email'),
         store: formData.get('store'),
         applicationStore: formData.get('application_store') || '',
+        companyName: formData.get('company_name') || '',
+        departmentName: formData.get('department_name') || '',
+        contactPerson: formData.get('contact_person') || '',
         pickup_date: formData.get('pickup_date'),
         pickup_time: formData.get('pickup_time'),
         note: formData.get('note'),
@@ -2570,7 +2593,7 @@
       const processedData = { ...data };
       
       // 文字列フィールドをサニタイズ
-      ['name', 'phone', 'email', 'store', 'applicationStore', 'note', 'deliveryMethod', 'deliveryDate', 'deliveryTimeSlot', 'deliveryNote', 'noshiOption'].forEach(field => {
+      ['name', 'phone', 'email', 'store', 'applicationStore', 'companyName', 'departmentName', 'contactPerson', 'note', 'deliveryMethod', 'deliveryDate', 'deliveryTimeSlot', 'deliveryNote', 'noshiOption'].forEach(field => {
         if (processedData[field]) {
           processedData[field] = sanitizeInput(processedData[field]);
         }
@@ -2752,6 +2775,9 @@
         email: formData.get('email'),
         store: formData.get('store'),
         applicationStore: formData.get('application_store') || '',
+        companyName: formData.get('company_name') || '',
+        departmentName: formData.get('department_name') || '',
+        contactPerson: formData.get('contact_person') || '',
         pickup_date: formData.get('pickup_date'),
         pickup_time: formData.get('pickup_time'),
         note: formData.get('note'),
@@ -2793,6 +2819,7 @@
       } else {
         if (!data.deliveryDate || !data.deliveryTimeSlot) return null;
         if (!data.applicationStore) return null;
+        if (!data.companyName || !data.contactPerson) return null;
         data.ordererAddress = {
           postalCode: (document.getElementById('orderer_postal')?.value || ''),
           prefecture: (document.getElementById('orderer_pref')?.value || ''),
@@ -2965,7 +2992,12 @@
 
         // 請求書作成（Stripe Invoicing）
         if (typeof startStripeInvoice === 'function') {
-          const result = await startStripeInvoice(reservationData);
+          const result = await startStripeInvoice({
+            ...reservationData,
+            companyName: sanitizeInput(reservationData.companyName || ''),
+            departmentName: sanitizeInput(reservationData.departmentName || ''),
+            contactPerson: sanitizeInput(reservationData.contactPerson || '')
+          });
           if (result && result.success) {
             const url = result.invoice_url || '';
             alert('請求書の作成・送付を受け付けました。\n' + (url ? '請求書URL: ' + url : ''));
