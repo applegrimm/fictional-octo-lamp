@@ -3044,6 +3044,13 @@
         const isCorporate = type === 'corporate';
         const isDelivery = type === 'delivery' || isCorporate;
 
+        // グローバル状態を同期（以降のバリデーション/日付制御に反映）
+        try {
+          if (typeof currentDeliveryMethod !== 'undefined') {
+            currentDeliveryMethod = isDelivery ? 'delivery' : 'pickup';
+          }
+        } catch (e) {}
+
         // ページタイトル切替
         const titleEl = document.querySelector('h1');
         if (titleEl) {
@@ -3112,6 +3119,16 @@
 
         // 既存の合計金額表示を更新
         setTimeout(updateTotalAmount, 100);
+
+        // 日付等の依存UIを更新
+        try {
+          if (typeof updateDeliveryDateControl === 'function' && typeof updatePickupDateControl === 'function') {
+            if (isDelivery) updateDeliveryDateControl(); else updatePickupDateControl();
+          }
+          if (typeof updatePickupTimeOptions === 'function') {
+            updatePickupTimeOptions();
+          }
+        } catch (e) {}
       }
 
       const formType = getFormTypeFromUrl();
