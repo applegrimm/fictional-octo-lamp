@@ -3027,6 +3027,76 @@
     
     // DOMContentLoaded時の追加処理
     document.addEventListener('DOMContentLoaded', function() {
+      // URLのtypeクエリを取得してフォーム種別に応じてUIを初期化
+      function getFormTypeFromUrl() {
+        try {
+          const params = new URLSearchParams(window.location.search);
+          const raw = (params.get('type') || '').toLowerCase();
+          if (raw === 'delivery' || raw === 'corporate' || raw === 'pickup') return raw;
+          return 'pickup';
+        } catch (e) {
+          return 'pickup';
+        }
+      }
+
+      function applyFormType(type) {
+        const isPickup = type === 'pickup';
+        const isCorporate = type === 'corporate';
+        const isDelivery = type === 'delivery' || isCorporate;
+
+        // 配送/店頭ラジオの選択と制御
+        const pickupRadio = document.querySelector('input[name="delivery_method"][value="pickup"]');
+        const deliveryRadio = document.querySelector('input[name="delivery_method"][value="delivery"]');
+        if (pickupRadio && deliveryRadio) {
+          pickupRadio.checked = isPickup;
+          deliveryRadio.checked = !isPickup;
+          // 法人ではラジオを固定（配送前提）
+          pickupRadio.disabled = isCorporate;
+          deliveryRadio.disabled = isCorporate;
+        }
+
+        // ボタンの出し分け
+        const submitBtnEl = document.getElementById('submit-btn');
+        const paymentBtnEl = document.getElementById('payment-btn');
+        const invoiceBtnEl = document.getElementById('invoice-btn');
+        if (submitBtnEl) submitBtnEl.style.display = isPickup ? '' : 'none';
+        if (paymentBtnEl) paymentBtnEl.style.display = isCorporate ? 'none' : '';
+        if (invoiceBtnEl) invoiceBtnEl.style.display = isCorporate ? '' : 'none';
+
+        // 会社情報フィールドの必須/有効化（法人）
+        const companyNameEl = document.getElementById('company_name');
+        const departmentNameEl = document.getElementById('department_name');
+        const contactPersonEl = document.getElementById('contact_person');
+        [companyNameEl, departmentNameEl, contactPersonEl].forEach(el => {
+          if (!el) return;
+          el.disabled = !isCorporate;
+          if (isCorporate) {
+            el.setAttribute('required', 'required');
+          } else {
+            el.removeAttribute('required');
+          }
+        });
+
+        // 配送関連の有効化（配送/法人）
+        const applicationStoreEl = document.getElementById('application_store');
+        if (applicationStoreEl) {
+          applicationStoreEl.disabled = !isDelivery;
+          if (isDelivery) applicationStoreEl.setAttribute('required', 'required');
+          else applicationStoreEl.removeAttribute('required');
+        }
+        const deliveryTimeSlotEl = document.getElementById('delivery_time_slot');
+        if (deliveryTimeSlotEl) {
+          deliveryTimeSlotEl.disabled = !isDelivery;
+          if (isDelivery) deliveryTimeSlotEl.setAttribute('required', 'required');
+          else deliveryTimeSlotEl.removeAttribute('required');
+        }
+
+        // 既存の合計金額表示を更新
+        setTimeout(updateTotalAmount, 100);
+      }
+
+      const formType = getFormTypeFromUrl();
+      applyFormType(formType);
       // 決済ボタンのクリックイベント
       document.getElementById('payment-btn').addEventListener('click', handlePaymentReservation);
     // 請求書払いボタンのクリックイベント
