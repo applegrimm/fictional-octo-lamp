@@ -572,6 +572,18 @@
           <label for="contact_person" style="margin-top:8px;">担当者名<span class="required">*</span></label>
           <input type="text" id="contact_person" name="contact_person" placeholder="山田 太郎" disabled>
           <span class="error-message" id="contact_person-error"></span>
+          <!-- 法人時にFormDataのnameとして送るためのエイリアス（担当者名をnameに反映） -->
+          <input type="hidden" id="corp_name_alias" name="name" value="">
+        </div>
+
+        <!-- 法人専用：注文者の連絡先（電話・メール）を住所セクションに含める -->
+        <div id="corp-contact-fields" style="display:none; margin: 8px 0 12px;">
+          <label for="corp_phone">電話番号<span class="required">*</span></label>
+          <input type="tel" id="corp_phone" name="phone" placeholder="03-1234-5678">
+          <span class="error-message" id="corp_phone-error"></span>
+          <label for="corp_email" style="margin-top:8px;">メールアドレス<span class="required">*</span></label>
+          <input type="email" id="corp_email" name="email" placeholder="example@company.co.jp">
+          <span class="error-message" id="corp_email-error"></span>
         </div>
         <div>
           <label for="orderer_postal">郵便番号<span class="required">*</span></label>
@@ -3084,7 +3096,7 @@
         const deliveryAddressSection = document.getElementById('delivery-address-section');
         if (storeGroupSection) storeGroupSection.style.display = isPickup ? '' : 'none';
         if (storeSection) storeSection.style.display = isPickup ? '' : 'none';
-        if (ordererAddressSection) ordererAddressSection.style.display = isDelivery ? '' : 'none';
+        if (ordererAddressSection) ordererAddressSection.style.display = (isDelivery || isCorporate) ? '' : 'none';
         if (deliveryAddressSection) deliveryAddressSection.style.display = isDelivery ? '' : 'none';
 
         // 会社情報フィールドの必須/有効化（法人）
@@ -3093,15 +3105,17 @@
         const contactPersonEl = document.getElementById('contact_person');
         const phoneEl = document.getElementById('phone');
         const emailEl = document.getElementById('email');
+        const corpContactFields = document.getElementById('corp-contact-fields');
         [companyNameEl, departmentNameEl, contactPersonEl].forEach(el => {
           if (!el) return;
           el.disabled = !isCorporate;
           if (isCorporate) el.setAttribute('required', 'required');
           else el.removeAttribute('required');
         });
-        // 電話・メールは既存必須を維持（念のため有効化）
-        if (phoneEl) phoneEl.disabled = false;
-        if (emailEl) emailEl.disabled = false;
+        // 法人では電話・メールを住所セクション側で入力させる
+        if (corpContactFields) corpContactFields.style.display = isCorporate ? '' : 'none';
+        if (phoneEl) phoneEl.parentElement.style.display = isCorporate ? 'none' : '';
+        if (emailEl) emailEl.parentElement.style.display = isCorporate ? 'none' : '';
 
         // 配送関連の有効化（配送/法人）
         const applicationStoreEl = document.getElementById('application_store');
@@ -3133,6 +3147,17 @@
 
       const formType = getFormTypeFromUrl();
       applyFormType(formType);
+
+      // 法人時: 担当者名を名前エイリアスへ反映、住所セクションの電話・メールを常時FormDataに反映
+      const contactPersonEl = document.getElementById('contact_person');
+      const corpNameAlias = document.getElementById('corp_name_alias');
+      if (contactPersonEl && corpNameAlias) {
+        ['input','change'].forEach(ev => {
+          contactPersonEl.addEventListener(ev, () => {
+            corpNameAlias.value = contactPersonEl.value || '';
+          });
+        });
+      }
       // 決済ボタンのクリックイベント
       document.getElementById('payment-btn').addEventListener('click', handlePaymentReservation);
     // 請求書払いボタンのクリックイベント
