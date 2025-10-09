@@ -2780,6 +2780,14 @@
     function collectReservationData() {
       // フォームデータを収集
       const formData = new FormData(document.getElementById('reserveForm'));
+      // 種別判定（URLパラメータ）
+      let formType = 'pickup';
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const raw = (params.get('type') || '').toLowerCase();
+        if (raw === 'delivery' || raw === 'corporate' || raw === 'pickup') formType = raw;
+      } catch (e) {}
+      const isCorporateType = formType === 'corporate';
       
       const data = {
         name: formData.get('name'),
@@ -2831,7 +2839,10 @@
       } else {
         if (!data.deliveryDate || !data.deliveryTimeSlot) return null;
         if (!data.applicationStore) return null;
-        if (!data.companyName || !data.contactPerson) return null;
+        // 会社情報は法人のみ必須
+        if (isCorporateType) {
+          if (!data.companyName || !data.contactPerson) return null;
+        }
         data.ordererAddress = {
           postalCode: (document.getElementById('orderer_postal')?.value || ''),
           prefecture: (document.getElementById('orderer_pref')?.value || ''),
