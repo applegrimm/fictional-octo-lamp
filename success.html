@@ -508,7 +508,7 @@
           items = [];
         }
         
-        // 決済済みフラグを追加
+        // 決済済みフラグを追加（deliveryMethodをサーバへ伝搬）
         const reservationData = {
           name: metadata.customer_name,
           phone: metadata.customer_phone,
@@ -517,6 +517,7 @@
           pickup_date: metadata.pickup_date,
           pickup_time: metadata.pickup_time,
           note: metadata.pickup_note || '',
+          deliveryMethod: metadata.delivery_method || 'pickup',
           items: items,
           payment_status: 'completed',
           payment_session_id: sessionId,
