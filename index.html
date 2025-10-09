@@ -19,7 +19,7 @@
       location.replace('https:' + window.location.href.substring(window.location.protocol.length));
     }
   </script>
-  <title>テイクアウト予約フォーム</title>
+  <title id="page-title">テイクアウト予約フォーム</title>
   
   <!-- 📝 高速化: reCAPTCHA v3遅延読み込み（HTMLから削除、JavaScriptで動的読み込み） -->
   <!-- <script src="https://www.google.com/recaptcha/api.js?render=6Le2lk4rAAAAAJu2ojJxoexvlUILZn4oNyJvuHzd" async defer></script> -->
@@ -526,8 +526,8 @@
         <span class="error-message" id="email-error"></span>
       </div>
       
-      <!-- 配送方法選択（まず最初に選択） -->
-      <div>
+      <!-- 配送方法選択（種別URLで案内するため非表示化） -->
+      <div style="display:none;">
         <label>配送方法を選択してください <span class="required">*</span></label>
         <div style="display:flex; gap:12px; align-items:center; margin-top:6px;">
           <label style="font-weight:normal;"><input type="radio" name="delivery_method" value="pickup" checked> 店頭受取（従来通り）</label>
@@ -3044,6 +3044,15 @@
         const isCorporate = type === 'corporate';
         const isDelivery = type === 'delivery' || isCorporate;
 
+        // ページタイトル切替
+        const titleEl = document.getElementById('page-title');
+        if (titleEl) {
+          if (isCorporate) titleEl.textContent = '掛け売り予約フォーム';
+          else if (isDelivery) titleEl.textContent = '配送予約フォーム';
+          else titleEl.textContent = '店舗受取予約フォーム';
+          document.title = titleEl.textContent;
+        }
+
         // 配送/店頭ラジオの選択と制御
         const pickupRadio = document.querySelector('input[name="delivery_method"][value="pickup"]');
         const deliveryRadio = document.querySelector('input[name="delivery_method"][value="delivery"]');
@@ -3067,6 +3076,8 @@
         const companyNameEl = document.getElementById('company_name');
         const departmentNameEl = document.getElementById('department_name');
         const contactPersonEl = document.getElementById('contact_person');
+        const phoneEl = document.getElementById('phone');
+        const emailEl = document.getElementById('email');
         [companyNameEl, departmentNameEl, contactPersonEl].forEach(el => {
           if (!el) return;
           el.disabled = !isCorporate;
@@ -3076,6 +3087,9 @@
             el.removeAttribute('required');
           }
         });
+        // 電話・メールは既存必須を維持（念のため有効化）
+        if (phoneEl) phoneEl.disabled = false;
+        if (emailEl) emailEl.disabled = false;
 
         // 配送関連の有効化（配送/法人）
         const applicationStoreEl = document.getElementById('application_store');
