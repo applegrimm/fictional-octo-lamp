@@ -3106,16 +3106,46 @@
         const phoneEl = document.getElementById('phone');
         const emailEl = document.getElementById('email');
         const corpContactFields = document.getElementById('corp-contact-fields');
+        const b2bFields = document.getElementById('b2b-fields');
+        const nameInput = document.getElementById('name');
+        const corpPhoneEl = document.getElementById('corp_phone');
+        const corpEmailEl = document.getElementById('corp_email');
         [companyNameEl, departmentNameEl, contactPersonEl].forEach(el => {
           if (!el) return;
           el.disabled = !isCorporate;
           if (isCorporate) el.setAttribute('required', 'required');
           else el.removeAttribute('required');
         });
+        // 会社情報ブロックの表示（法人のみ表示）
+        if (b2bFields) b2bFields.style.display = isCorporate ? '' : 'none';
+
         // 法人では電話・メールを住所セクション側で入力させる
-        if (corpContactFields) corpContactFields.style.display = isCorporate ? '' : 'none';
-        if (phoneEl) phoneEl.parentElement.style.display = isCorporate ? 'none' : '';
-        if (emailEl) emailEl.parentElement.style.display = isCorporate ? 'none' : '';
+        if (corpContactFields) {
+          corpContactFields.style.display = isCorporate ? '' : 'none';
+          if (corpPhoneEl) {
+            if (isCorporate) corpPhoneEl.setAttribute('required', 'required');
+            else corpPhoneEl.removeAttribute('required');
+          }
+          if (corpEmailEl) {
+            if (isCorporate) corpEmailEl.setAttribute('required', 'required');
+            else corpEmailEl.removeAttribute('required');
+          }
+        }
+        if (phoneEl && phoneEl.parentElement) phoneEl.parentElement.style.display = isCorporate ? 'none' : '';
+        if (emailEl && emailEl.parentElement) emailEl.parentElement.style.display = isCorporate ? 'none' : '';
+
+        // 法人では「お名前」を非表示・非必須・無効化（担当者名をnameにエイリアス）
+        if (nameInput && nameInput.parentElement) {
+          if (isCorporate) {
+            nameInput.parentElement.style.display = 'none';
+            nameInput.removeAttribute('required');
+            nameInput.setAttribute('disabled', 'disabled');
+          } else {
+            nameInput.parentElement.style.display = '';
+            nameInput.removeAttribute('disabled');
+            nameInput.setAttribute('required', 'required');
+          }
+        }
 
         // 配送関連の有効化（配送/法人）
         const applicationStoreEl = document.getElementById('application_store');
