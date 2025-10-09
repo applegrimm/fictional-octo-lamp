@@ -3045,11 +3045,9 @@
         const isDelivery = type === 'delivery' || isCorporate;
 
         // ページタイトル切替
-        const titleEl = document.getElementById('page-title');
+        const titleEl = document.querySelector('h1');
         if (titleEl) {
-          if (isCorporate) titleEl.textContent = '掛け売り予約フォーム';
-          else if (isDelivery) titleEl.textContent = '配送予約フォーム';
-          else titleEl.textContent = '店舗受取予約フォーム';
+          titleEl.textContent = isCorporate ? '掛け売り予約フォーム' : (isDelivery ? '配送予約フォーム' : '店舗受取予約フォーム');
           document.title = titleEl.textContent;
         }
 
@@ -3072,6 +3070,16 @@
         if (paymentBtnEl) paymentBtnEl.style.display = isCorporate ? 'none' : '';
         if (invoiceBtnEl) invoiceBtnEl.style.display = isCorporate ? '' : 'none';
 
+        // セクションの表示/非表示
+        const storeGroupSection = document.getElementById('store-group-section');
+        const storeSection = document.getElementById('store-section');
+        const ordererAddressSection = document.getElementById('orderer-address-section');
+        const deliveryAddressSection = document.getElementById('delivery-address-section');
+        if (storeGroupSection) storeGroupSection.style.display = isPickup ? '' : 'none';
+        if (storeSection) storeSection.style.display = isPickup ? '' : 'none';
+        if (ordererAddressSection) ordererAddressSection.style.display = isDelivery ? '' : 'none';
+        if (deliveryAddressSection) deliveryAddressSection.style.display = isDelivery ? '' : 'none';
+
         // 会社情報フィールドの必須/有効化（法人）
         const companyNameEl = document.getElementById('company_name');
         const departmentNameEl = document.getElementById('department_name');
@@ -3081,11 +3089,8 @@
         [companyNameEl, departmentNameEl, contactPersonEl].forEach(el => {
           if (!el) return;
           el.disabled = !isCorporate;
-          if (isCorporate) {
-            el.setAttribute('required', 'required');
-          } else {
-            el.removeAttribute('required');
-          }
+          if (isCorporate) el.setAttribute('required', 'required');
+          else el.removeAttribute('required');
         });
         // 電話・メールは既存必須を維持（念のため有効化）
         if (phoneEl) phoneEl.disabled = false;
