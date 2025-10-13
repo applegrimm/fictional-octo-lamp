@@ -1550,17 +1550,29 @@
       const arrayBuffer = await file.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // 大きなファイルをチャンクに分けてBase64エンコード
-      const chunkSize = 8192; // 8KBずつ処理
+      // より安全なBase64エンコード方法
       let base64Content = '';
       
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.slice(i, i + chunkSize);
-        const chunkString = String.fromCharCode.apply(null, chunk);
-        base64Content += btoa(chunkString);
+      // ファイルサイズに応じて処理方法を変更
+      if (file.size <= 2 * 1024 * 1024) { // 2MB以下は一括処理
+        addGitHubLog(`   - 小ファイル: 一括エンコード`);
+        base64Content = btoa(String.fromCharCode.apply(null, uint8Array));
+      } else { // 2MB以上はチャンク処理
+        addGitHubLog(`   - 大ファイル: チャンクエンコード`);
+        const chunkSize = 8192; // 8KBずつ処理
         
-        // 進捗表示（大きなファイルの場合）
-        if (file.size > 500 * 1024) { // 500KB以上の場合
+        for (let i = 0; i < uint8Array.length; i += chunkSize) {
+          const chunk = uint8Array.slice(i, i + chunkSize);
+          
+          // より安全な方法でチャンクを文字列に変換
+          let chunkString = '';
+          for (let j = 0; j < chunk.length; j++) {
+            chunkString += String.fromCharCode(chunk[j]);
+          }
+          
+          base64Content += btoa(chunkString);
+          
+          // 進捗表示
           const progress = Math.round((i / uint8Array.length) * 100);
           if (progress % 20 === 0) { // 20%ごとに表示
             addGitHubLog(`   - エンコード進捗: ${progress}%`);
@@ -1569,6 +1581,20 @@
       }
       
       addGitHubLog(`   - Base64エンコード完了 (${Math.round(base64Content.length/1024)}KB)`);
+      
+      // GitHub APIの制限チェック（100MB制限）
+      if (base64Content.length > 100 * 1024 * 1024) {
+        throw new Error('Base64エンコード後のサイズが大きすぎます（100MB制限）');
+      }
+      
+      // Base64の妥当性をチェック
+      try {
+        atob(base64Content.substring(0, 100)); // 最初の100文字をテスト
+        addGitHubLog(`   - Base64妥当性チェック: OK`);
+      } catch (e) {
+        addGitHubLog(`   - Base64妥当性チェック: NG - ${e.message}`);
+        throw new Error('Base64エンコードに失敗しました');
+      }
       
       // 既存SHA取得
       let sha = null;
