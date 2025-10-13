@@ -1575,9 +1575,9 @@
       const result = await putResponse.json();
       addGitHubLog('✅ 画像アップロード完了');
       
-      // GitHub Pagesで配信されるURLを推定
-      let pagesBase = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/`;
-      // GitHub Pagesのビルド成果物ではないため、raw URLを使用（Pagesにビルド連携がある場合は適宜変更）
+      // GitHub Pagesの公開URLを生成（オーナー.github.io/repo/path）
+      // Pathが空なら直下、あるなら接頭辞として利用
+      const pagesBase = `https://${config.owner}.github.io/${config.repo}/`;
       const publicUrl = pagesBase + filePath;
       
       // imageUrlを更新
