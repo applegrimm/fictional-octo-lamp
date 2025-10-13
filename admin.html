@@ -1511,13 +1511,21 @@
   async function handleProductImageUpload(event, index) {
     try {
       const file = event.target.files && event.target.files[0];
-      if (!file) return;
+      if (!file) {
+        addGitHubLog('❌ ファイルが選択されていません');
+        return;
+      }
+      
+      addGitHubLog(`📤 画像アップロード開始: ${file.name} (${Math.round(file.size/1024)}KB)`);
+      
       const config = getGitHubConfig();
       if (!config) {
         showMessage('GitHub設定が未保存です。先に設定してください。', 'error');
+        addGitHubLog('❌ GitHub設定が未保存');
         event.target.value = '';
         return;
       }
+      
       // 拡張子と保存パス
       const ext = file.name.split('.').pop().toLowerCase();
       const product = productsData[index] || {};
@@ -1527,18 +1535,27 @@
       const filePath = `${imagesDir}${fileName}`;
       
       addGitHubLog(`📤 画像をアップロード中... (${filePath})`);
+      
+      // ファイルサイズチェック（10MB制限）
+      if (file.size > 10 * 1024 * 1024) {
+        throw new Error('ファイルサイズが大きすぎます（10MB以下にしてください）');
+      }
+      
       const arrayBuffer = await file.arrayBuffer();
       const base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      addGitHubLog(`   - Base64エンコード完了 (${Math.round(base64Content.length/1024)}KB)`);
       
       // 既存SHA取得
       let sha = null;
       try {
+        addGitHubLog(`   - 既存ファイル確認中: ${filePath}`);
         const getResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
           headers: {
             'Authorization': `Bearer ${config.token}`,
             'Accept': 'application/vnd.github.v3+json'
           }
         });
+        
         if (getResponse.ok) {
           const info = await getResponse.json();
           sha = info.sha;
@@ -1546,10 +1563,16 @@
         } else if (getResponse.status === 404) {
           addGitHubLog('   - 新規画像を作成');
         } else {
+          const errorText = await getResponse.text();
+          addGitHubLog(`   - ファイル確認エラー: HTTP ${getResponse.status} - ${errorText}`);
           throw new Error(`画像情報取得エラー: HTTP ${getResponse.status}`);
         }
       } catch (e) {
         addGitHubLog(`   - 画像情報取得でエラー: ${e.message}`);
+        // 404エラーの場合は続行
+        if (!e.message.includes('404')) {
+          throw e;
+        }
       }
       
       const commitData = {
@@ -1559,6 +1582,7 @@
       };
       if (sha) commitData.sha = sha;
       
+      addGitHubLog(`   - GitHub APIに送信中...`);
       const putResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
         method: 'PUT',
         headers: {
@@ -1568,24 +1592,34 @@
         },
         body: JSON.stringify(commitData)
       });
+      
       if (!putResponse.ok) {
-        const err = await putResponse.json();
-        throw new Error(`HTTP ${putResponse.status}: ${err.message}`);
+        const errorText = await putResponse.text();
+        addGitHubLog(`   - アップロードエラー: HTTP ${putResponse.status} - ${errorText}`);
+        const err = JSON.parse(errorText);
+        throw new Error(`HTTP ${putResponse.status}: ${err.message || errorText}`);
       }
+      
       const result = await putResponse.json();
       addGitHubLog('✅ 画像アップロード完了');
+      addGitHubLog(`   - コミットSHA: ${result.commit.sha.substring(0, 7)}`);
+      addGitHubLog(`   - ファイルURL: ${result.content.html_url}`);
       
       // GitHub Pagesの公開URLを生成（オーナー.github.io/repo/path）
       // Pathが空なら直下、あるなら接頭辞として利用
       const pagesBase = `https://${config.owner}.github.io/${config.repo}/`;
       const publicUrl = pagesBase + filePath;
       
+      addGitHubLog(`   - 公開URL: ${publicUrl}`);
+      
       // imageUrlを更新
       updateProductData(index, 'imageUrl', publicUrl);
       showMessage('画像URLを設定しました: ' + publicUrl, 'success');
       
     } catch (error) {
+      addGitHubLog(`❌ 画像アップロードエラー: ${error.message}`);
       showMessage('画像アップロードに失敗しました: ' + error.message, 'error');
+      console.error('画像アップロードエラーの詳細:', error);
     } finally {
       // 入力の同一ファイル再選択に備えてリセット
       if (event && event.target) {
