@@ -1547,38 +1547,20 @@
       }
       
       addGitHubLog(`   - Base64エンコード開始...`);
-      const arrayBuffer = await file.arrayBuffer();
-      const uint8Array = new Uint8Array(arrayBuffer);
       
-      // より安全なBase64エンコード方法
-      let base64Content = '';
-      
-      // ファイルサイズに応じて処理方法を変更
-      if (file.size <= 2 * 1024 * 1024) { // 2MB以下は一括処理
-        addGitHubLog(`   - 小ファイル: 一括エンコード`);
-        base64Content = btoa(String.fromCharCode.apply(null, uint8Array));
-      } else { // 2MB以上はチャンク処理
-        addGitHubLog(`   - 大ファイル: チャンクエンコード`);
-        const chunkSize = 8192; // 8KBずつ処理
-        
-        for (let i = 0; i < uint8Array.length; i += chunkSize) {
-          const chunk = uint8Array.slice(i, i + chunkSize);
-          
-          // より安全な方法でチャンクを文字列に変換
-          let chunkString = '';
-          for (let j = 0; j < chunk.length; j++) {
-            chunkString += String.fromCharCode(chunk[j]);
-          }
-          
-          base64Content += btoa(chunkString);
-          
-          // 進捗表示
-          const progress = Math.round((i / uint8Array.length) * 100);
-          if (progress % 20 === 0) { // 20%ごとに表示
-            addGitHubLog(`   - エンコード進捗: ${progress}%`);
-          }
-        }
-      }
+      // FileReader APIを使用した安全なBase64エンコード
+      const base64Content = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = function() {
+          // data:image/jpeg;base64, の部分を除去
+          const base64 = reader.result.split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = function() {
+          reject(new Error('ファイル読み込みエラー'));
+        };
+        reader.readAsDataURL(file);
+      });
       
       addGitHubLog(`   - Base64エンコード完了 (${Math.round(base64Content.length/1024)}KB)`);
       
