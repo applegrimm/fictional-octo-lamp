@@ -1518,6 +1518,11 @@
       
       addGitHubLog(`📤 画像アップロード開始: ${file.name} (${Math.round(file.size/1024)}KB)`);
       
+      // 大きなファイルの警告
+      if (file.size > 1024 * 1024) { // 1MB以上
+        addGitHubLog(`⚠️ 大きなファイルです。Web表示用には1MB以下を推奨します。`);
+      }
+      
       const config = getGitHubConfig();
       if (!config) {
         showMessage('GitHub設定が未保存です。先に設定してください。', 'error');
@@ -1536,13 +1541,33 @@
       
       addGitHubLog(`📤 画像をアップロード中... (${filePath})`);
       
-      // ファイルサイズチェック（10MB制限）
-      if (file.size > 10 * 1024 * 1024) {
-        throw new Error('ファイルサイズが大きすぎます（10MB以下にしてください）');
+      // ファイルサイズチェック（5MB制限に変更）
+      if (file.size > 5 * 1024 * 1024) {
+        throw new Error('ファイルサイズが大きすぎます（5MB以下にしてください）');
       }
       
+      addGitHubLog(`   - Base64エンコード開始...`);
       const arrayBuffer = await file.arrayBuffer();
-      const base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const uint8Array = new Uint8Array(arrayBuffer);
+      
+      // 大きなファイルをチャンクに分けてBase64エンコード
+      const chunkSize = 8192; // 8KBずつ処理
+      let base64Content = '';
+      
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.slice(i, i + chunkSize);
+        const chunkString = String.fromCharCode.apply(null, chunk);
+        base64Content += btoa(chunkString);
+        
+        // 進捗表示（大きなファイルの場合）
+        if (file.size > 500 * 1024) { // 500KB以上の場合
+          const progress = Math.round((i / uint8Array.length) * 100);
+          if (progress % 20 === 0) { // 20%ごとに表示
+            addGitHubLog(`   - エンコード進捗: ${progress}%`);
+          }
+        }
+      }
+      
       addGitHubLog(`   - Base64エンコード完了 (${Math.round(base64Content.length/1024)}KB)`);
       
       // 既存SHA取得
