@@ -399,6 +399,19 @@
     margin-left: 8px;
   }
 
+  /* 商品画像エリア */
+  .product-image {
+    margin-top: 6px;
+    margin-left: 8px;
+  }
+  .product-image img {
+    max-width: 160px;
+    max-height: 120px;
+    border: 1px solid #eee;
+    border-radius: 4px;
+    background: #fff;
+  }
+
   /* 店舗グループ選択のスタイル */
   #store-group-section {
     margin-top: 16px;
@@ -508,6 +521,50 @@
     <h1>テイクアウト予約フォーム</h1>
     
     <form id="reserveForm">
+      <div>
+        <label>商品・数量<span class="required">*</span></label>
+        <div id="product-list-area">
+          <!-- 商品選択項目がここに動的に追加される -->
+        </div>
+        <button type="button" class="add-product-btn" onclick="addProductItem()">商品を追加</button>
+        <span class="error-message" id="items-error"></span>
+        <div id="product-date-note" style="font-size: 0.9em; color: #666; margin-top: 8px;">商品を選択してください。</div>
+      </div>
+      
+      <div id="pickup-date-section">
+        <label for="pickup_date">受取希望日<span class="required">*</span></label>
+        <input type="date" id="pickup_date" name="pickup_date" required disabled>
+        <span class="error-message" id="pickup_date-error"></span>
+      </div>
+      
+      <div id="pickup-time-section">
+        <label for="pickup_time">受取希望時間<span class="required">*</span></label>
+        <select id="pickup_time" name="pickup_time" required disabled>
+          <option value="">選択してください</option>
+          <option value="10:00">10:00</option>
+          <option value="10:30">10:30</option>
+          <option value="11:00">11:00</option>
+          <option value="11:30">11:30</option>
+          <option value="12:00">12:00</option>
+          <option value="12:30">12:30</option>
+          <option value="13:00">13:00</option>
+          <option value="13:30">13:30</option>
+          <option value="14:00">14:00</option>
+          <option value="14:30">14:30</option>
+          <option value="15:00">15:00</option>
+          <option value="15:30">15:30</option>
+          <option value="16:00">16:00</option>
+          <option value="16:30">16:30</option>
+          <option value="17:00">17:00</option>
+          <option value="17:30">17:30</option>
+          <option value="18:00">18:00</option>
+          <option value="18:30">18:30</option>
+          <option value="19:00">19:00</option>
+          <option value="19:30">19:30</option>
+          <option value="20:00">20:00</option>
+        </select>
+        <span class="error-message" id="pickup_time-error"></span>
+      </div>
       <div>
         <label for="name">お名前<span class="required">*</span></label>
         <input type="text" id="name" name="name" required>
@@ -685,50 +742,6 @@
         <span class="error-message" id="noshi_option-error"></span>
       </div>
       
-      <div>
-        <label>商品・数量<span class="required">*</span></label>
-        <div id="product-list-area">
-          <!-- 商品選択項目がここに動的に追加される -->
-        </div>
-        <button type="button" class="add-product-btn" onclick="addProductItem()">商品を追加</button>
-        <span class="error-message" id="items-error"></span>
-        <div id="product-date-note" style="font-size: 0.9em; color: #666; margin-top: 8px;">商品を選択してください。</div>
-      </div>
-      
-      <div id="pickup-date-section">
-        <label for="pickup_date">受取希望日<span class="required">*</span></label>
-        <input type="date" id="pickup_date" name="pickup_date" required disabled>
-        <span class="error-message" id="pickup_date-error"></span>
-      </div>
-      
-      <div id="pickup-time-section">
-        <label for="pickup_time">受取希望時間<span class="required">*</span></label>
-        <select id="pickup_time" name="pickup_time" required disabled>
-          <option value="">選択してください</option>
-          <option value="10:00">10:00</option>
-          <option value="10:30">10:30</option>
-          <option value="11:00">11:00</option>
-          <option value="11:30">11:30</option>
-          <option value="12:00">12:00</option>
-          <option value="12:30">12:30</option>
-          <option value="13:00">13:00</option>
-          <option value="13:30">13:30</option>
-          <option value="14:00">14:00</option>
-          <option value="14:30">14:30</option>
-          <option value="15:00">15:00</option>
-          <option value="15:30">15:30</option>
-          <option value="16:00">16:00</option>
-          <option value="16:30">16:30</option>
-          <option value="17:00">17:00</option>
-          <option value="17:30">17:30</option>
-          <option value="18:00">18:00</option>
-          <option value="18:30">18:30</option>
-          <option value="19:00">19:00</option>
-          <option value="19:30">19:30</option>
-          <option value="20:00">20:00</option>
-        </select>
-        <span class="error-message" id="pickup_time-error"></span>
-      </div>
       
       <div>
         <label for="note">備考</label>
@@ -1328,7 +1341,7 @@
       });
     }
 
-    // 商品項目を追加
+    // 商品項目を追加（画像領域を含む）
     function addProductItem() {
       const container = document.getElementById('product-list-area');
       const itemDiv = document.createElement('div');
@@ -1341,6 +1354,7 @@
         <input type="number" min="1" placeholder="数量" onchange="updatePickupDateControl();">
         <button type="button" class="remove-product-btn" onclick="removeProductItem(this)">削除</button>
         <div class="product-desc"></div>
+        <div class="product-image"><img alt="商品画像" loading="lazy" style="display:none;"></div>
       `;
       
       container.appendChild(itemDiv);
@@ -1369,15 +1383,25 @@
       }
     }
 
-    // 商品説明を更新
+    // 商品説明・画像を更新
     function updateProductDescription(select) {
       const descDiv = select.parentElement.querySelector('.product-desc');
+      const imgEl = select.parentElement.querySelector('.product-image img');
       const selectedProduct = allProducts.find(p => p.name === select.value);
       
       if (selectedProduct && selectedProduct.description) {
         descDiv.textContent = selectedProduct.description;
       } else {
         descDiv.textContent = '';
+      }
+      if (imgEl) {
+        if (selectedProduct && selectedProduct.imageUrl) {
+          imgEl.src = selectedProduct.imageUrl;
+          imgEl.style.display = '';
+        } else {
+          imgEl.removeAttribute('src');
+          imgEl.style.display = 'none';
+        }
       }
     }
     
