@@ -863,6 +863,7 @@
                 <th style="width: 120px;">締切時間</th>
                 <th style="width: 140px;">日数タイプ</th>
                 <th style="width: 400px;">説明</th>
+                <th style="width: 260px;">画像URL/アップロード</th>
                 <th style="width: 140px;">宅配対応</th>
                 <th style="width: 120px;">宅配日数</th>
                 <th style="width: 120px;">宅配締切</th>
@@ -1503,6 +1504,109 @@
   // =============================
   
   /**
+   * 画像ファイルをGitHubにアップロードし、imageUrlを設定
+   * @param {Event} event - input[type=file] のchangeイベント
+   * @param {number} index - productsDataのインデックス
+   */
+  async function handleProductImageUpload(event, index) {
+    try {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const config = getGitHubConfig();
+      if (!config) {
+        showMessage('GitHub設定が未保存です。先に設定してください。', 'error');
+        event.target.value = '';
+        return;
+      }
+      // 拡張子と保存パス
+      const ext = file.name.split('.').pop().toLowerCase();
+      const product = productsData[index] || {};
+      const id = (product.id || `p${index + 1}`).replace(/[^a-zA-Z0-9_-]/g, '');
+      const fileName = `${id}.${ext}`;
+      const imagesDir = config.path ? `${config.path}images/products/` : 'images/products/';
+      const filePath = `${imagesDir}${fileName}`;
+      
+      addGitHubLog(`📤 画像をアップロード中... (${filePath})`);
+      const arrayBuffer = await file.arrayBuffer();
+      const base64Content = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      // 既存SHA取得
+      let sha = null;
+      try {
+        const getResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
+          headers: {
+            'Authorization': `Bearer ${config.token}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+        if (getResponse.ok) {
+          const info = await getResponse.json();
+          sha = info.sha;
+          addGitHubLog(`   - 既存画像を更新 (SHA: ${sha.substring(0,7)})`);
+        } else if (getResponse.status === 404) {
+          addGitHubLog('   - 新規画像を作成');
+        } else {
+          throw new Error(`画像情報取得エラー: HTTP ${getResponse.status}`);
+        }
+      } catch (e) {
+        addGitHubLog(`   - 画像情報取得でエラー: ${e.message}`);
+      }
+      
+      const commitData = {
+        message: `🖼️ Upload product image: ${fileName}`,
+        content: base64Content,
+        branch: config.branch
+      };
+      if (sha) commitData.sha = sha;
+      
+      const putResponse = await fetch(`https://api.github.com/repos/${config.owner}/${config.repo}/contents/${filePath}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${config.token}`,
+          'Accept': 'application/vnd.github.v3+json',
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(commitData)
+      });
+      if (!putResponse.ok) {
+        const err = await putResponse.json();
+        throw new Error(`HTTP ${putResponse.status}: ${err.message}`);
+      }
+      const result = await putResponse.json();
+      addGitHubLog('✅ 画像アップロード完了');
+      
+      // GitHub Pagesで配信されるURLを推定
+      let pagesBase = `https://raw.githubusercontent.com/${config.owner}/${config.repo}/${config.branch}/`;
+      // GitHub Pagesのビルド成果物ではないため、raw URLを使用（Pagesにビルド連携がある場合は適宜変更）
+      const publicUrl = pagesBase + filePath;
+      
+      // imageUrlを更新
+      updateProductData(index, 'imageUrl', publicUrl);
+      showMessage('画像URLを設定しました: ' + publicUrl, 'success');
+      
+    } catch (error) {
+      showMessage('画像アップロードに失敗しました: ' + error.message, 'error');
+    } finally {
+      // 入力の同一ファイル再選択に備えてリセット
+      if (event && event.target) {
+        try { event.target.value = ''; } catch (_) {}
+      }
+    }
+  }
+  
+  /**
+   * プレビューを別タブで開く
+   */
+  function previewProductImage(index) {
+    const product = productsData[index] || {};
+    if (product.imageUrl) {
+      window.open(product.imageUrl, '_blank');
+    } else {
+      showMessage('画像URLが設定されていません', 'info');
+    }
+  }
+  
+  /**
    * 商品テーブルを更新
    */
   function updateProductsTable() {
@@ -1572,6 +1676,19 @@
       <td>
         <textarea onchange="updateProductData(${index}, 'description', this.value)"
                   placeholder="商品の説明を入力">${product.description || ''}</textarea>
+      </td>
+      <td>
+        <div style="display:flex; gap:6px; align-items:center;">
+          <input type="text" value="${product.imageUrl || ''}" 
+                 onchange="updateProductData(${index}, 'imageUrl', this.value)"
+                 placeholder="https://.../images/products/p1.jpg" style="width: 60%;">
+          <input type="file" accept="image/*" 
+                 onchange="handleProductImageUpload(event, ${index})" style="width: 40%;">
+        </div>
+        <div style="margin-top:6px; display:flex; align-items:center; gap:8px;">
+          <img src="${product.imageUrl || ''}" alt="preview" style="max-width:80px; max-height:60px; border:1px solid #eee; border-radius:4px; ${product.imageUrl ? '' : 'display:none;'}">
+          <button class="btn btn-secondary" type="button" onclick="previewProductImage(${index})">プレビュー</button>
+        </div>
       </td>
       <td>
         <select onchange="updateProductData(${index}, 'deliveryAvailable', this.value === 'true')">
@@ -1652,6 +1769,24 @@
     }
     productsData[index][field] = value;
     console.log(`商品[${index}]の${field}を更新:`, value);
+
+    // プレビュー画像更新
+    if (field === 'imageUrl') {
+      const tbody = document.getElementById('products-tbody');
+      const row = tbody.children[index];
+      if (row) {
+        const img = row.querySelector('img[alt="preview"]');
+        if (img) {
+          if (value) {
+            img.src = value;
+            img.style.display = '';
+          } else {
+            img.removeAttribute('src');
+            img.style.display = 'none';
+          }
+        }
+      }
+    }
   }
   
   /**
@@ -1666,6 +1801,7 @@
       cutoff: null,
       minType: 'calendar',
       description: '',
+      imageUrl: '',
       deliveryAvailable: false,
       deliveryMinDays: 7,
       deliveryCutoff: null,
@@ -1723,7 +1859,14 @@
       // データの妥当性チェック
       const validProducts = productsData.filter(product => 
         product.id && product.name && typeof product.price === 'number'
-      );
+      ).map(p => {
+        // 空文字のimageUrlは除去
+        const { imageUrl, ...rest } = p;
+        if (imageUrl && imageUrl.trim() !== '') {
+          return { ...rest, imageUrl: imageUrl.trim() };
+        }
+        return rest;
+      });
       
       if (validProducts.length === 0) {
         showMessage('有効な商品データがありません（ID、商品名、価格は必須です）', 'error');
