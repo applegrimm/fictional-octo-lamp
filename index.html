@@ -3015,8 +3015,30 @@
       });
       
       // バリデーション（共通）
-      if (!data.name || !data.phone || !data.email || data.items.length === 0) {
+      if (data.items.length === 0) {
         return null;
+      }
+      
+      // 法人フォームの場合は法人専用フィールドをチェック
+      if (isCorporateType) {
+        if (!data.companyName || !data.contactPerson) {
+          return null;
+        }
+        // 法人専用の電話・メールフィールドをチェック
+        const corpPhone = document.getElementById('corp_phone')?.value;
+        const corpEmail = document.getElementById('corp_email')?.value;
+        if (!corpPhone || !corpEmail) {
+          return null;
+        }
+        // 法人フォームでは担当者名をnameとして使用
+        data.name = data.contactPerson;
+        data.phone = corpPhone;
+        data.email = corpEmail;
+      } else {
+        // 通常フォームの場合は従来通り
+        if (!data.name || !data.phone || !data.email) {
+          return null;
+        }
       }
       if (data.deliveryMethod === 'pickup') {
         // 店頭受取時のみ店舗・受取日時が必須
