@@ -943,11 +943,20 @@
     // 🚀 高速化機能: Stripe設定を遅延読み込み（決済機能が必要な場合のみ）
     function loadStripeIfNeeded() {
       // 既に読み込み済みの場合はスキップ
-      if (window.stripeConfigLoaded) {
+      if (window.stripeConfigLoaded || window.STRIPE_CONFIG) {
+        console.log('✅ Stripe設定既に読み込み済み');
         return Promise.resolve();
       }
       
       return new Promise((resolve, reject) => {
+        // 既存のスクリプトタグをチェック
+        const existingScript = document.querySelector('script[src*="stripe-config.js"]');
+        if (existingScript) {
+          console.log('⚠️ Stripe設定スクリプト既に存在 - 重複読み込みを回避');
+          resolve();
+          return;
+        }
+        
         const script = document.createElement('script');
         script.src = 'stripe-config.js?v=20241220';
         script.onload = () => {
