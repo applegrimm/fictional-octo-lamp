@@ -295,7 +295,7 @@ async function createCheckoutSession(checkoutData) {
       const encodedData = btoa(encodeURIComponent(jsonString));
       
       // GAS WebアプリURL（index.htmlと同じ）
-      const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3KjsOwCNdqB3BNNhlJ4xGni7OV1sjlpjVkCuDFWkylORHGwJWl5LU24ML2q6VpiJp/exec';
+      const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwQi1nQI1jDspUlagORpKHtpj3NBbQ5RNNkkcXqhsE-WM_j_w10CvO0CAPkVZFT5Vxh/exec';
       
       // JSONPリクエストURL作成
       const jsonpUrl = `${GAS_WEB_APP_URL}?action=createCheckoutSession&data=${encodedData}&callback=${callbackName}&_t=${Date.now()}`;
@@ -426,7 +426,7 @@ async function createInvoice(invoiceData) {
 
       const jsonString = JSON.stringify(invoiceData);
       const encodedData = btoa(encodeURIComponent(jsonString));
-      const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbz3KjsOwCNdqB3BNNhlJ4xGni7OV1sjlpjVkCuDFWkylORHGwJWl5LU24ML2q6VpiJp/exec';
+      const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwQi1nQI1jDspUlagORpKHtpj3NBbQ5RNNkkcXqhsE-WM_j_w10CvO0CAPkVZFT5Vxh/exec';
       const jsonpUrl = `${GAS_WEB_APP_URL}?action=createInvoice&data=${encodedData}&callback=${callbackName}&_t=${Date.now()}`;
 
       const script = document.createElement('script');
