@@ -7,8 +7,12 @@
 
 console.log('🔧 stripe-config.js v2.1.0 読み込み開始 (金額100倍問題修正版)');
 
-// Stripe設定
-const STRIPE_CONFIG = {
+// 重複読み込み防止
+if (window.STRIPE_CONFIG) {
+  console.log('⚠️ STRIPE_CONFIG既に読み込み済み - 重複読み込みをスキップ');
+} else {
+  // Stripe設定
+  window.STRIPE_CONFIG = {
   // 🔑 Stripe公開鍵（テスト用）
   // 本番運用時は pk_live_... に変更してください
   PUBLISHABLE_KEY: 'pk_test_51RVBoUIjwFiP4bNCKXNfgzkwTnmAfRnX4cNFwDVZeO4PewRHOE7Fq7OgjvtbJpWJod7NlQOLROtRZfU0hLRElngH00k1okQ7wq',
@@ -449,3 +453,5 @@ async function createInvoice(invoiceData) {
 
 // グローバル公開
 window.startStripeInvoice = startStripeInvoice;
+
+} // 重複読み込み防止のelseブロック終了
