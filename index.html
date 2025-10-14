@@ -3121,16 +3121,131 @@
     }
 
     /**
+     * 掛け売りフォーム専用バリデーション
+     */
+    function validateCorporateForm() {
+      const errors = [];
+      
+      // 商品選択チェック
+      const productItems = document.querySelectorAll('.product-item');
+      let hasValidProduct = false;
+      productItems.forEach(item => {
+        const select = item.querySelector('select');
+        const qtyInput = item.querySelector('input[type="number"]');
+        if (select && select.value && qtyInput && qtyInput.value && parseInt(qtyInput.value) > 0) {
+          hasValidProduct = true;
+        }
+      });
+      if (!hasValidProduct) {
+        errors.push('• 商品を選択し、数量を入力してください');
+      }
+      
+      // お申し込み店舗チェック
+      const applicationStore = document.getElementById('application_store');
+      if (!applicationStore || !applicationStore.value) {
+        errors.push('• お申し込み店舗を選択してください');
+      }
+      
+      // 会社名チェック
+      const companyName = document.getElementById('company_name');
+      if (!companyName || !companyName.value.trim()) {
+        errors.push('• 会社名を入力してください');
+      }
+      
+      // 担当者名チェック
+      const contactPerson = document.getElementById('contact_person');
+      if (!contactPerson || !contactPerson.value.trim()) {
+        errors.push('• 担当者名を入力してください');
+      }
+      
+      // 法人専用電話番号チェック
+      const corpPhone = document.getElementById('corp_phone');
+      if (!corpPhone || !corpPhone.value.trim()) {
+        errors.push('• 電話番号を入力してください');
+      }
+      
+      // 法人専用メールアドレスチェック
+      const corpEmail = document.getElementById('corp_email');
+      if (!corpEmail || !corpEmail.value.trim()) {
+        errors.push('• メールアドレスを入力してください');
+      } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(corpEmail.value)) {
+        errors.push('• 正しいメールアドレスを入力してください');
+      }
+      
+      // 注文者住所チェック
+      const ordererPostal = document.getElementById('orderer_postal');
+      const ordererPref = document.getElementById('orderer_pref');
+      const ordererCity = document.getElementById('orderer_city');
+      const ordererAddr1 = document.getElementById('orderer_addr1');
+      
+      if (!ordererPostal || !ordererPostal.value.trim()) {
+        errors.push('• 注文者の郵便番号を入力してください');
+      }
+      if (!ordererPref || !ordererPref.value.trim()) {
+        errors.push('• 注文者の都道府県を入力してください');
+      }
+      if (!ordererCity || !ordererCity.value.trim()) {
+        errors.push('• 注文者の市区町村を入力してください');
+      }
+      if (!ordererAddr1 || !ordererAddr1.value.trim()) {
+        errors.push('• 注文者の番地・建物名を入力してください');
+      }
+      
+      // 配送先住所チェック
+      const sameAsOrderer = document.getElementById('same_as_orderer');
+      if (!sameAsOrderer || !sameAsOrderer.checked) {
+        const deliveryPostal = document.getElementById('delivery_postal');
+        const deliveryPref = document.getElementById('delivery_pref');
+        const deliveryCity = document.getElementById('delivery_city');
+        const deliveryAddr1 = document.getElementById('delivery_addr1');
+        
+        if (!deliveryPostal || !deliveryPostal.value.trim()) {
+          errors.push('• 配送先の郵便番号を入力してください');
+        }
+        if (!deliveryPref || !deliveryPref.value.trim()) {
+          errors.push('• 配送先の都道府県を入力してください');
+        }
+        if (!deliveryCity || !deliveryCity.value.trim()) {
+          errors.push('• 配送先の市区町村を入力してください');
+        }
+        if (!deliveryAddr1 || !deliveryAddr1.value.trim()) {
+          errors.push('• 配送先の番地・建物名を入力してください');
+        }
+      }
+      
+      // 配送希望日チェック
+      const deliveryDate = document.getElementById('delivery_date');
+      if (!deliveryDate || !deliveryDate.value) {
+        errors.push('• 配送希望日を選択してください');
+      }
+      
+      // 配送時間帯チェック
+      const deliveryTimeSlot = document.getElementById('delivery_time_slot');
+      if (!deliveryTimeSlot || !deliveryTimeSlot.value) {
+        errors.push('• 配送時間帯を選択してください');
+      }
+      
+      // 「のし」選択チェック
+      const noshiOption = document.getElementById('noshi_option_select');
+      if (!noshiOption || !noshiOption.value) {
+        errors.push('• 「のし」を選択してください');
+      }
+      
+      return errors;
+    }
+
+    /**
      * 請求書払い（法人）ボタンクリック処理
      */
     async function handleInvoiceReservation() {
       try {
         console.log('請求書払い予約開始');
 
-        // フォームバリデーション
-        const form = document.getElementById('reserveForm');
-        if (!form.checkValidity()) {
-          form.reportValidity();
+        // 掛け売りフォーム専用バリデーション
+        const validationErrors = validateCorporateForm();
+        if (validationErrors.length > 0) {
+          const errorMessage = '以下の項目を確認してください：\n\n' + validationErrors.join('\n');
+          alert(errorMessage);
           return;
         }
 
