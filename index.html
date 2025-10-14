@@ -1043,7 +1043,7 @@
           box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
           outline: none;
           transition: all 0.3s ease;
-          transform: scale(1.01);
+          transform: none; /* フォーカス時に位置ズレしないように固定 */
         }
         
         input:invalid:not(:placeholder-shown):not(:focus), 
@@ -2684,9 +2684,24 @@
           console.warn('⚠️ reCAPTCHA読み込みが完了していません（セキュリティ機能制限）');
           return null;
         }
-        
-        const token = await grecaptcha.execute('6Le2lk4rAAAAAJu2ojJxoexvlUILZn4oNyJvuHzd', {action: action});
-        return token;
+        // grecaptcha.ready の中で 5秒タイムアウト付きで実行
+        const token = await new Promise(resolve => {
+          try {
+            grecaptcha.ready(async () => {
+              const execPromise = grecaptcha.execute('6Le2lk4rAAAAAJu2ojJxoexvlUILZn4oNyJvuHzd', { action });
+              const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error('recaptcha-timeout')), 5000));
+              const t = await Promise.race([execPromise, timeoutPromise]).catch(err => {
+                console.warn('reCAPTCHA取得タイムアウト/失敗:', err && err.message);
+                return null;
+              });
+              resolve(t);
+            });
+          } catch (e) {
+            console.warn('reCAPTCHA ready 実行に失敗:', e);
+            resolve(null);
+          }
+        });
+        return token || null;
       } catch (error) {
         console.error('reCAPTCHA トークン取得エラー:', error);
         return null;
@@ -2729,7 +2744,7 @@
         errors.push({ field: 'rate-limit', message: '短時間内の連続送信です' });
       }
       
-      // reCAPTCHA検証
+      // reCAPTCHA検証（常に実施）
       if (typeof grecaptcha !== 'undefined') {
         const token = await getRecaptchaToken();
         if (!await validateRecaptchaV3(token)) {
@@ -2796,7 +2811,7 @@
         }));
       }
       
-      // reCAPTCHA レスポンスを追加
+      // reCAPTCHA レスポンスを追加（常に試行）
       if (typeof grecaptcha !== 'undefined') {
         processedData.recaptchaResponse = await getRecaptchaToken();
       }
