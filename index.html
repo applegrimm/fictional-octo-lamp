@@ -667,16 +667,18 @@
         </div>
       </div>
 
+      <!-- お申し込み店舗選択（配送選択時のみ表示） -->
+      <div id="application-store-section" style="display:none; margin: 8px 0 12px;">
+        <label for="application_store">お申し込み店舗を選択してください。<span class="required">*</span></label>
+        <select id="application_store" name="application_store" required disabled>
+          <option value="">選択してください</option>
+        </select>
+        <span class="error-message" id="application_store-error"></span>
+      </div>
+
       <!-- 配送先住所（配送選択時のみ表示） -->
       <div id="delivery-address-section" style="display:none;">
         <label>配送先住所 <span class="required">*</span></label>
-        <div id="application-store-section" style="margin: 8px 0 12px;">
-          <label for="application_store">お申し込み店舗を選択してください。<span class="required">*</span></label>
-          <select id="application_store" name="application_store" disabled>
-            <option value="">選択してください</option>
-          </select>
-          <span class="error-message" id="application_store-error"></span>
-        </div>
         <div style="font-size: 0.9em; color:#555; margin:4px 0 8px;">お届け先が異なる場合はご記入ください。同じ場合は下のチェックを入れてください。</div>
         <div style="display:flex; align-items:center; gap:8px; margin: 4px 0 8px;">
           <input type="checkbox" id="same_as_orderer" name="same_as_orderer">
@@ -1430,6 +1432,7 @@
       document.getElementById('pickup-date-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('pickup-time-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('orderer-address-section').style.display = isDelivery ? 'block' : 'none';
+      document.getElementById('application-store-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('delivery-address-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('noshi-section').style.display = isDelivery ? 'block' : 'none';
 
@@ -1440,18 +1443,19 @@
       pickupTimeEl.disabled = isDelivery;
       pickupDateEl.required = !isDelivery;
       pickupTimeEl.required = !isDelivery;
+      
+      // お申し込み店舗の有効/無効
+      const applicationStoreEl = document.getElementById('application_store');
+      if (applicationStoreEl) {
+        applicationStoreEl.disabled = !isDelivery;
+        applicationStoreEl.required = isDelivery;
+      }
       // 店舗グループと店舗は店頭受取時のみ必須
       const storeGroupEl = document.getElementById('store-group');
       const storeEl = document.getElementById('store');
       if (storeGroupEl) storeGroupEl.required = !isDelivery;
       if (storeEl) storeEl.required = !isDelivery;
 
-      // 宅配便用 お申し込み店舗は配送時のみ必須/有効
-      const applicationStoreEl = document.getElementById('application_store');
-      if (applicationStoreEl) {
-        applicationStoreEl.disabled = !isDelivery;
-        applicationStoreEl.required = isDelivery;
-      }
 
       // 配送系の有効/無効
       document.getElementById('delivery_date').disabled = !isDelivery;
@@ -3132,6 +3136,8 @@
         if (storeGroupSection) storeGroupSection.style.display = isPickup ? '' : 'none';
         if (storeSection) storeSection.style.display = isPickup ? '' : 'none';
         if (ordererAddressSection) ordererAddressSection.style.display = (isDelivery || isCorporate) ? '' : 'none';
+        const applicationStoreSection = document.getElementById('application-store-section');
+        if (applicationStoreSection) applicationStoreSection.style.display = isDelivery ? '' : 'none';
         if (deliveryAddressSection) deliveryAddressSection.style.display = isDelivery ? '' : 'none';
 
         // 会社情報フィールドの必須/有効化（法人）
