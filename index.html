@@ -616,6 +616,15 @@
         <span class="error-message" id="store-error"></span>
       </div>
 
+      <!-- お申し込み店舗選択（配送選択時のみ表示） -->
+      <div id="application-store-section" style="display:none; margin: 8px 0 12px;">
+        <label for="application_store">お申し込み店舗を選択してください。<span class="required">*</span></label>
+        <select id="application_store" name="application_store" required disabled>
+          <option value="">選択してください</option>
+        </select>
+        <span class="error-message" id="application_store-error"></span>
+      </div>
+
       <!-- 注文者住所（配送選択時のみ表示） -->
       <div id="orderer-address-section" style="display:none;">
         <label>注文者住所 <span class="required">*</span></label>
@@ -665,15 +674,6 @@
           <input type="text" id="orderer_addr1" name="orderer_addr1" placeholder="大字鶴賀123-4 マンションABC 101号室">
           <span class="error-message" id="orderer_addr1-error"></span>
         </div>
-      </div>
-
-      <!-- お申し込み店舗選択（配送選択時のみ表示） -->
-      <div id="application-store-section" style="display:none; margin: 8px 0 12px;">
-        <label for="application_store">お申し込み店舗を選択してください。<span class="required">*</span></label>
-        <select id="application_store" name="application_store" required disabled>
-          <option value="">選択してください</option>
-        </select>
-        <span class="error-message" id="application_store-error"></span>
       </div>
 
       <!-- 配送先住所（配送選択時のみ表示） -->
