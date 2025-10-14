@@ -1043,7 +1043,12 @@
           box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
           outline: none;
           transition: all 0.3s ease;
-          transform: none; /* フォーカス時に位置ズレしないように固定 */
+          transform: none !important; /* フォーカス時に位置ズレしないように固定 */
+        }
+        
+        /* すべてのselect要素のtransformを無効化 */
+        select {
+          transform: none !important;
         }
         
         input:invalid:not(:placeholder-shown):not(:focus), 
@@ -1097,7 +1102,7 @@
         .product-item:hover {
           background: #f8f9fa;
           box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-          transform: translateX(4px);
+          transform: none; /* ホバー時の位置ズレを防止 */
         }
         
         /* モバイル向けの調整 */
@@ -3078,11 +3083,23 @@
         // 🚀 高速化: Stripe設定が読み込まれていることを確認
         await loadStripeIfNeeded();
         
-        // フォームバリデーション
-        const form = document.getElementById('reserveForm');
-        if (!form.checkValidity()) {
-          form.reportValidity();
-          return;
+        // フォームタイプに応じたバリデーション
+        const formType = getFormTypeFromUrl();
+        if (formType === 'corporate') {
+          // 掛け売りフォーム専用バリデーション
+          const validationErrors = validateCorporateForm();
+          if (validationErrors.length > 0) {
+            const errorMessage = '以下の項目を確認してください：\n\n' + validationErrors.join('\n');
+            alert(errorMessage);
+            return;
+          }
+        } else {
+          // 通常フォームのバリデーション
+          const form = document.getElementById('reserveForm');
+          if (!form.checkValidity()) {
+            form.reportValidity();
+            return;
+          }
         }
         
         // プライバシーポリシー同意チェック
@@ -3343,19 +3360,20 @@
     // イベントリスナーの追加
     // ========================================
     
+    // URLのtypeクエリを取得してフォーム種別を判定
+    function getFormTypeFromUrl() {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        const raw = (params.get('type') || '').toLowerCase();
+        if (raw === 'delivery' || raw === 'corporate' || raw === 'pickup') return raw;
+        return 'pickup';
+      } catch (e) {
+        return 'pickup';
+      }
+    }
+    
     // DOMContentLoaded時の追加処理
     document.addEventListener('DOMContentLoaded', function() {
-      // URLのtypeクエリを取得してフォーム種別に応じてUIを初期化
-      function getFormTypeFromUrl() {
-        try {
-          const params = new URLSearchParams(window.location.search);
-          const raw = (params.get('type') || '').toLowerCase();
-          if (raw === 'delivery' || raw === 'corporate' || raw === 'pickup') return raw;
-          return 'pickup';
-        } catch (e) {
-          return 'pickup';
-        }
-      }
 
       function applyFormType(type) {
         const isPickup = type === 'pickup';
