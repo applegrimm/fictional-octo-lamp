@@ -3357,9 +3357,12 @@
           });
           if (result && result.success) {
             const url = result.invoice_url || '';
-            alert('請求書の作成・送付を受け付けました。\n' + (url ? '請求書URL: ' + url : ''));
+            const guidance = '請求書URLは受注確認メールをご確認ください。';
             if (url) {
+              alert('請求書の作成・送付を受け付けました。\n' + '請求書URL: ' + url + '\n' + guidance);
               window.open(url, '_blank');
+            } else {
+              alert('請求書の作成・送付を受け付けました。\n' + guidance);
             }
           } else {
             throw new Error(result && result.error ? result.error : '請求書の作成に失敗しました');
