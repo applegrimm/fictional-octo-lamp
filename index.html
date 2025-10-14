@@ -963,26 +963,154 @@
       });
     }
     
-    // 🚀 高速化機能: Non-Critical CSSを遅延読み込み
+    // 🚀 高速化機能: Non-Critical CSSを遅延読み込み（インライン版）
     function loadNonCriticalCSS() {
       // 既に読み込み済みの場合はスキップ
       if (window.nonCriticalCSSLoaded) {
         return;
       }
       
-      const link = document.createElement('link');
-      link.rel = 'stylesheet';
-      link.href = 'non-critical.css';
-      link.media = 'print'; // 初期はprint用として読み込み
-      link.onload = function() {
-        this.media = 'all'; // 読み込み完了後にallに変更
-        console.log('✅ Non-Critical CSS読み込み完了');
-        window.nonCriticalCSSLoaded = true;
-      };
-      link.onerror = function() {
-        console.warn('⚠️ Non-Critical CSS読み込み失敗');
-      };
-      document.head.appendChild(link);
+      // インラインCSSで直接適用（外部ファイルの読み込みエラーを回避）
+      const style = document.createElement('style');
+      style.textContent = `
+        /* =============================
+          Non-Critical CSS（インライン版）
+          アニメーション、高度な装飾、ホバー効果など
+        ============================= */
+        
+        /* 高度なアニメーションとトランジション */
+        button:hover:not(:disabled) {
+          background: #27ae60;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+        
+        button:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        
+        .normal-reservation-btn:hover:not(:disabled) {
+          background: #27ae60;
+          box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+        }
+        
+        .payment-reservation-btn:hover:not(:disabled) {
+          background: #8e44ad;
+          box-shadow: 0 4px 12px rgba(155, 89, 182, 0.3);
+        }
+        
+        .add-product-btn:hover {
+          background: #2980b9;
+          transform: translateY(-1px);
+        }
+        
+        .remove-product-btn:hover {
+          background: #c0392b;
+          transform: scale(1.05);
+        }
+        
+        /* モーダルアニメーション */
+        #custom-modal {
+          animation: modalFadeIn 0.3s ease-in-out;
+        }
+        
+        #custom-modal > div {
+          animation: modalSlideIn 0.3s ease-out;
+        }
+        
+        @keyframes modalFadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        
+        @keyframes modalSlideIn {
+          from { transform: translateY(-50px) scale(0.9); opacity: 0; }
+          to { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        
+        /* 高度なフォーカス・バリデーションアニメーション */
+        input:focus, select:focus, textarea:focus {
+          border-color: #3498db;
+          box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+          outline: none;
+          transition: all 0.3s ease;
+          transform: scale(1.01);
+        }
+        
+        input:invalid:not(:placeholder-shown):not(:focus), 
+        select:invalid:not(:focus), 
+        textarea:invalid:not(:placeholder-shown):not(:focus) {
+          border-color: #e74c3c;
+          box-shadow: 0 0 0 3px rgba(231, 76, 60, 0.1);
+          animation: shake 0.5s ease-in-out;
+        }
+        
+        @keyframes shake {
+          0%, 100% { transform: translateX(0); }
+          25% { transform: translateX(-5px); }
+          75% { transform: translateX(5px); }
+        }
+        
+        /* 合計金額の高度なスタイル */
+        .total-amount-display {
+          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+          box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+          transition: all 0.3s ease;
+        }
+        
+        .total-amount-display:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+        
+        .total-amount {
+          text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+          background: linear-gradient(135deg, #27ae60 0%, #2ecc71 100%);
+          background-clip: text;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          animation: amountGlow 2s ease-in-out infinite alternate;
+        }
+        
+        @keyframes amountGlow {
+          from { filter: brightness(1); }
+          to { filter: brightness(1.1); }
+        }
+        
+        /* 商品アイテムのホバー効果 */
+        .product-item {
+          transition: all 0.2s ease;
+          border-radius: 4px;
+          padding: 8px;
+          margin: 8px 0;
+        }
+        
+        .product-item:hover {
+          background: #f8f9fa;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+          transform: translateX(4px);
+        }
+        
+        /* モバイル向けの調整 */
+        @media (max-width: 600px) {
+          button:hover:not(:disabled) {
+            transform: none;
+          }
+          
+          input:focus, select:focus, textarea:focus {
+            transform: none;
+          }
+          
+          .product-item:hover {
+            transform: none;
+            box-shadow: none;
+            background: none;
+          }
+        }
+      `;
+      document.head.appendChild(style);
+      console.log('✅ Non-Critical CSS（インライン版）を適用しました');
+      window.nonCriticalCSSLoaded = true;
     }
     
     // 商品選択欄のselectと数量inputにイベントリスナーを追加
@@ -3172,8 +3300,16 @@
             else corpEmailEl.removeAttribute('required');
           }
         }
-        if (phoneEl && phoneEl.parentElement) phoneEl.parentElement.style.display = isCorporate ? 'none' : '';
-        if (emailEl && emailEl.parentElement) emailEl.parentElement.style.display = isCorporate ? 'none' : '';
+        if (phoneEl && phoneEl.parentElement) {
+          phoneEl.parentElement.style.display = isCorporate ? 'none' : '';
+          if (isCorporate) phoneEl.removeAttribute('required');
+          else phoneEl.setAttribute('required', 'required');
+        }
+        if (emailEl && emailEl.parentElement) {
+          emailEl.parentElement.style.display = isCorporate ? 'none' : '';
+          if (isCorporate) emailEl.removeAttribute('required');
+          else emailEl.setAttribute('required', 'required');
+        }
 
         // 法人では「お名前」を非表示・非必須・無効化（担当者名をnameにエイリアス）
         if (nameInput && nameInput.parentElement) {
