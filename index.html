@@ -1460,10 +1460,15 @@
         // 選択肢をクリア
         select.innerHTML = '<option value="">商品を選択</option>';
         
-        // 商品を追加（visibleプロパティでフィルタリング）
+        // 商品を追加（visibleプロパティと販売期間でフィルタリング）
         allProducts.forEach(product => {
           // visibleプロパティがfalseの場合は表示しない
           if (product.visible === false) {
+            return;
+          }
+          
+          // 販売期間制御
+          if (!isProductAvailableForSale(product)) {
             return;
           }
           
@@ -1795,6 +1800,9 @@
       dateInput.value = dateInput.min;
 
       timeSelect.disabled = false;
+      
+      // 配送時間帯の選択肢を更新
+      updateDeliveryTimeSlotOptions(selectedProducts);
 
       if (selectedProducts.length > 1) {
         noteDiv.innerHTML = '※複数商品の同時配送は、最も遅い最短配送日以降のみ指定可能です。' + (cutoffMsg ? '<br>' + cutoffMsg : '');
@@ -2548,6 +2556,198 @@
       const month = date.getMonth() + 1;
       const day = date.getDate();
       return `${month}/${day}`;
+    }
+    
+    /**
+     * 配送時間帯の選択肢を更新
+     * @param {Array} selectedProducts - 選択された商品リスト
+     */
+    function updateDeliveryTimeSlotOptions(selectedProducts) {
+      const timeSelect = document.getElementById('delivery_time_slot');
+      if (!timeSelect) return;
+      
+      // 選択肢をクリア
+      timeSelect.innerHTML = '<option value="">選択してください</option>';
+      
+      if (selectedProducts.length === 0) {
+        return;
+      }
+      
+      // 全商品の配送時間帯設定を確認
+      let availableTimeSlots = new Set();
+      let hasTimeSlotRestriction = false;
+      
+      selectedProducts.forEach(product => {
+        if (product.deliveryTimeSlots && product.deliveryTimeSlots.enabled) {
+          hasTimeSlotRestriction = true;
+          availableTimeSlots.add(product.deliveryTimeSlots.timeSlots);
+        }
+      });
+      
+      // 時間帯制限がない場合は全時間帯を表示
+      if (!hasTimeSlotRestriction) {
+        availableTimeSlots.add('all');
+      }
+      
+      // 選択肢を追加（2025年10月現在のクロネコヤマトの時間帯）
+      const timeSlotOptions = {
+        'all': [
+          { value: '08:00-12:00', text: '8時-12時' },
+          { value: '14:00-16:00', text: '14時-16時' },
+          { value: '16:00-18:00', text: '16時-18時' },
+          { value: '18:00-20:00', text: '18時-20時' },
+          { value: '19:00-21:00', text: '19時-21時' }
+        ],
+        'morning': [
+          { value: '08:00-12:00', text: '8時-12時' }
+        ],
+        'afternoon': [
+          { value: '14:00-16:00', text: '14時-16時' },
+          { value: '16:00-18:00', text: '16時-18時' }
+        ],
+        'evening': [
+          { value: '18:00-20:00', text: '18時-20時' },
+          { value: '19:00-21:00', text: '19時-21時' }
+        ],
+        'none': [
+          { value: 'no_time_slot', text: '時間指定なし' }
+        ]
+      };
+      
+      // 共通の時間帯を計算
+      let commonTimeSlots = null;
+      availableTimeSlots.forEach(timeSlot => {
+        if (commonTimeSlots === null) {
+          commonTimeSlots = timeSlotOptions[timeSlot] || [];
+        } else {
+          // 共通の時間帯のみを保持
+          commonTimeSlots = commonTimeSlots.filter(option => 
+            timeSlotOptions[timeSlot]?.some(ts => ts.value === option.value)
+          );
+        }
+      });
+      
+      // 選択肢を追加
+      if (commonTimeSlots && commonTimeSlots.length > 0) {
+        commonTimeSlots.forEach(option => {
+          const optionElement = document.createElement('option');
+          optionElement.value = option.value;
+          optionElement.textContent = option.text;
+          timeSelect.appendChild(optionElement);
+        });
+      } else {
+        // 共通の時間帯がない場合は「時間指定なし」のみ
+        const optionElement = document.createElement('option');
+        optionElement.value = 'no_time_slot';
+        optionElement.textContent = '時間指定なし';
+        timeSelect.appendChild(optionElement);
+      }
+    }
+    
+    /**
+     * 商品が販売期間内かどうかをチェック
+     * @param {Object} product - 商品オブジェクト
+     * @return {boolean} 販売可能な場合はtrue
+     */
+    function isProductAvailableForSale(product) {
+      // 販売期間指定が無効な場合は常に販売可能
+      if (!product.salesPeriod || !product.salesPeriod.enabled) {
+        return true;
+      }
+      
+      const now = new Date();
+      const today = getTodayJST();
+      
+      // 販売開始日・終了日のチェック
+      if (product.salesPeriod.startDate) {
+        const startDate = new Date(product.salesPeriod.startDate);
+        if (today < startDate) {
+          return false; // 販売開始前
+        }
+      }
+      
+      if (product.salesPeriod.endDate) {
+        const endDate = new Date(product.salesPeriod.endDate);
+        if (today > endDate) {
+          return false; // 販売終了後
+        }
+      }
+      
+      // 販売時間のチェック（同じ日の場合のみ）
+      if (product.salesPeriod.startDate && product.salesPeriod.endDate) {
+        const startDate = new Date(product.salesPeriod.startDate);
+        const endDate = new Date(product.salesPeriod.endDate);
+        
+        // 今日が販売期間内の日付の場合、時間もチェック
+        if (startDate <= today && today <= endDate) {
+          if (product.salesPeriod.startTime) {
+            const [startHour, startMinute] = product.salesPeriod.startTime.split(':').map(Number);
+            const startDateTime = new Date(today);
+            startDateTime.setHours(startHour, startMinute, 0, 0);
+            
+            if (now < startDateTime) {
+              return false; // 販売開始時刻前
+            }
+          }
+          
+          if (product.salesPeriod.endTime) {
+            const [endHour, endMinute] = product.salesPeriod.endTime.split(':').map(Number);
+            const endDateTime = new Date(today);
+            endDateTime.setHours(endHour, endMinute, 0, 0);
+            
+            if (now > endDateTime) {
+              return false; // 販売終了時刻後
+            }
+          }
+        }
+      }
+      
+      return true;
+    }
+    
+    /**
+     * 配送時間帯の検証（フロントエンド）
+     * @param {string} selectedTimeSlot - 選択された配送時間帯
+     * @return {Array<string>} エラーメッセージ配列
+     */
+    function validateDeliveryTimeSlotFrontend(selectedTimeSlot) {
+      const errors = [];
+      
+      const productItems = document.querySelectorAll('.product-item');
+      productItems.forEach((itemDiv, index) => {
+        const select = itemDiv.querySelector('select');
+        const qtyInput = itemDiv.querySelector('input[type="number"]');
+        if (select && select.value && qtyInput && qtyInput.value && parseInt(qtyInput.value) >= 1) {
+          const product = allProducts.find(p => p.name === select.value);
+          if (product && product.deliveryTimeSlots && product.deliveryTimeSlots.enabled) {
+            const allowedTimeSlots = product.deliveryTimeSlots.timeSlots;
+            
+            // 時間帯制限のチェック
+            if (allowedTimeSlots === 'none' && selectedTimeSlot !== 'no_time_slot') {
+              errors.push(`「${product.name}」は時間指定不可の商品です`);
+            } else if (allowedTimeSlots !== 'all' && allowedTimeSlots !== 'none') {
+              // 特定の時間帯のみ許可の場合
+              const timeSlotMap = {
+                'morning': ['08:00-12:00'],
+                'afternoon': ['14:00-16:00', '16:00-18:00'],
+                'evening': ['18:00-20:00', '19:00-21:00']
+              };
+              
+              const allowedSlots = timeSlotMap[allowedTimeSlots] || [];
+              if (!allowedSlots.includes(selectedTimeSlot)) {
+                const timeSlotNames = {
+                  'morning': '8時-12時',
+                  'afternoon': '14時-18時',
+                  'evening': '18時-21時'
+                };
+                errors.push(`「${product.name}」は${timeSlotNames[allowedTimeSlots]}のみ配送可能です`);
+              }
+            }
+          }
+        }
+      });
+      
+      return errors;
     }
 
     /**
@@ -3448,6 +3648,10 @@
       const deliveryTimeSlot = document.getElementById('delivery_time_slot');
       if (!deliveryTimeSlot || !deliveryTimeSlot.value) {
         errors.push('• 配送時間帯を選択してください');
+      } else if (deliveryTimeSlot.value !== 'no_time_slot') {
+        // 時間指定ありの場合、商品の時間帯制限をチェック
+        const timeSlotErrors = validateDeliveryTimeSlotFrontend(deliveryTimeSlot.value);
+        errors.push(...timeSlotErrors);
       }
       
       // 「のし」選択チェック
