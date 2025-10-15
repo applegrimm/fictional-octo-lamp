@@ -1721,8 +1721,8 @@
           const startDate = new Date(prod.deliveryDateRange.startDate);
           const endDate = new Date(prod.deliveryDateRange.endDate);
           
-          // 日付範囲の開始日を最小日として設定
-          prodMinDate = new Date(startDate);
+          // 日付範囲の開始日と今日のうち、遅い方を最小日として設定
+          prodMinDate = new Date(Math.max(startDate.getTime(), today.getTime()));
           
           // 締切時刻考慮（日付範囲指定時）
           if (prod.deliveryDateRange.cutoff) {
@@ -1763,12 +1763,15 @@
 
       // 最大日付の計算（日付範囲指定と従来の相対日数指定の両方に対応）
       let maxDate = null;
+      let hasDateRangeRestriction = false;
+      
       selectedProducts.forEach(prod => {
         let prodMaxDate;
         
         // 日付範囲指定が有効な場合
         if (prod.deliveryDateRange && prod.deliveryDateRange.enabled) {
           prodMaxDate = new Date(prod.deliveryDateRange.endDate);
+          hasDateRangeRestriction = true;
         } else {
           // 従来の相対日数指定（最大30営業日後）
           prodMaxDate = getBusinessDate(today, 30);
@@ -1779,8 +1782,8 @@
         }
       });
       
-      // デフォルトの最大日付（30営業日後）を設定
-      if (!maxDate) {
+      // 日付範囲指定がない場合のみデフォルトの最大日付（30営業日後）を設定
+      if (!hasDateRangeRestriction) {
         maxDate = getBusinessDate(today, 30);
       }
       
@@ -2264,8 +2267,8 @@
           const startDate = new Date(prod.pickupDateRange.startDate);
           const endDate = new Date(prod.pickupDateRange.endDate);
           
-          // 日付範囲の開始日を最小日として設定
-          prodMinDate = new Date(startDate);
+          // 日付範囲の開始日と今日のうち、遅い方を最小日として設定
+          prodMinDate = new Date(Math.max(startDate.getTime(), today.getTime()));
           
           // 締切時刻考慮（日付範囲指定時）
           if (prod.pickupDateRange.cutoff) {
@@ -2308,12 +2311,15 @@
       });
       // 最大日付の計算（日付範囲指定と従来の相対日数指定の両方に対応）
       let maxDate = null;
+      let hasDateRangeRestriction = false;
+      
       selectedProducts.forEach(prod => {
         let prodMaxDate;
         
         // 日付範囲指定が有効な場合
         if (prod.pickupDateRange && prod.pickupDateRange.enabled) {
           prodMaxDate = new Date(prod.pickupDateRange.endDate);
+          hasDateRangeRestriction = true;
         } else {
           // 従来の相対日数指定（最大30営業日後）
           prodMaxDate = getBusinessDate(today, 30);
@@ -2324,8 +2330,8 @@
         }
       });
       
-      // デフォルトの最大日付（30営業日後）を設定
-      if (!maxDate) {
+      // 日付範囲指定がない場合のみデフォルトの最大日付（30営業日後）を設定
+      if (!hasDateRangeRestriction) {
         maxDate = getBusinessDate(today, 30);
       }
       
