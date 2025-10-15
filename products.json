@@ -178,7 +178,7 @@
     },
     "salesPeriod": {
       "enabled": true,
-      "startDate": "2025-10-25",
+      "startDate": "2025-10-15",
       "endDate": "2025-11-30"
     },
     "deliveryTimeSlots": {
