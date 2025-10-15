@@ -864,11 +864,13 @@
                 <th style="width: 140px;">日数タイプ</th>
                 <th style="width: 200px;">受取日範囲指定</th>
                 <th style="width: 200px;">配送日範囲指定</th>
+                <th style="width: 200px;">販売期間指定</th>
                 <th style="width: 400px;">説明</th>
                 <th style="width: 260px;">画像URL/アップロード</th>
                 <th style="width: 140px;">宅配対応</th>
                 <th style="width: 120px;">宅配日数</th>
                 <th style="width: 120px;">宅配締切</th>
+                <th style="width: 200px;">配送時間帯</th>
                 <th style="width: 120px;">配送重量</th>
                 <th style="width: 120px;">配送サイズ</th>
                 <th style="width: 120px;">冷凍配送</th>
@@ -1781,6 +1783,28 @@
         </div>
       </td>
       <td>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 12px; color: #666;">
+            <input type="checkbox" ${product.salesPeriod?.enabled ? 'checked' : ''} 
+                   onchange="toggleSalesPeriod(${index}, this.checked)"> 販売期間指定
+          </label>
+          <div id="sales-period-${index}" style="display: ${product.salesPeriod?.enabled ? 'block' : 'none'};">
+            <input type="date" value="${product.salesPeriod?.startDate || ''}" 
+                   onchange="updateProductData(${index}, 'salesPeriod.startDate', this.value)"
+                   placeholder="販売開始日" style="width: 100%; margin-bottom: 2px;">
+            <input type="date" value="${product.salesPeriod?.endDate || ''}" 
+                   onchange="updateProductData(${index}, 'salesPeriod.endDate', this.value)"
+                   placeholder="販売終了日" style="width: 100%; margin-bottom: 2px;">
+            <input type="time" value="${product.salesPeriod?.startTime || ''}" 
+                   onchange="updateProductData(${index}, 'salesPeriod.startTime', this.value)"
+                   placeholder="開始時刻" style="width: 48%; margin-right: 2%;">
+            <input type="time" value="${product.salesPeriod?.endTime || ''}" 
+                   onchange="updateProductData(${index}, 'salesPeriod.endTime', this.value)"
+                   placeholder="終了時刻" style="width: 48%;">
+          </div>
+        </div>
+      </td>
+      <td>
         <textarea onchange="updateProductData(${index}, 'description', this.value)"
                   placeholder="商品の説明を入力">${product.description || ''}</textarea>
       </td>
@@ -1812,6 +1836,24 @@
         <input type="time" value="${product.deliveryCutoff || ''}" 
                onchange="updateProductData(${index}, 'deliveryCutoff', this.value || null)"
                placeholder="HH:MM">
+      </td>
+      <td>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 12px; color: #666;">
+            <input type="checkbox" ${product.deliveryTimeSlots?.enabled ? 'checked' : ''} 
+                   onchange="toggleDeliveryTimeSlots(${index}, this.checked)"> 時間帯指定
+          </label>
+          <div id="delivery-time-slots-${index}" style="display: ${product.deliveryTimeSlots?.enabled ? 'block' : 'none'};">
+            <select onchange="updateProductData(${index}, 'deliveryTimeSlots.timeSlots', this.value)" 
+                    style="width: 100%; margin-bottom: 2px;">
+              <option value="all" ${product.deliveryTimeSlots?.timeSlots === 'all' ? 'selected' : ''}>全時間帯</option>
+              <option value="morning" ${product.deliveryTimeSlots?.timeSlots === 'morning' ? 'selected' : ''}>8時-12時のみ</option>
+              <option value="afternoon" ${product.deliveryTimeSlots?.timeSlots === 'afternoon' ? 'selected' : ''}>14時-18時のみ</option>
+              <option value="evening" ${product.deliveryTimeSlots?.timeSlots === 'evening' ? 'selected' : ''}>18時-21時のみ</option>
+              <option value="none" ${product.deliveryTimeSlots?.timeSlots === 'none' ? 'selected' : ''}>時間指定なし</option>
+            </select>
+          </div>
+        </div>
       </td>
       <td>
         <input type="number" step="0.1" value="${product.deliveryWeight || ''}" 
@@ -1938,6 +1980,36 @@
   }
   
   /**
+   * 販売期間指定のトグル
+   */
+  function toggleSalesPeriod(index, enabled) {
+    if (!productsData[index].salesPeriod) {
+      productsData[index].salesPeriod = {};
+    }
+    productsData[index].salesPeriod.enabled = enabled;
+    
+    const rangeDiv = document.getElementById(`sales-period-${index}`);
+    if (rangeDiv) {
+      rangeDiv.style.display = enabled ? 'block' : 'none';
+    }
+  }
+  
+  /**
+   * 配送時間帯指定のトグル
+   */
+  function toggleDeliveryTimeSlots(index, enabled) {
+    if (!productsData[index].deliveryTimeSlots) {
+      productsData[index].deliveryTimeSlots = {};
+    }
+    productsData[index].deliveryTimeSlots.enabled = enabled;
+    
+    const rangeDiv = document.getElementById(`delivery-time-slots-${index}`);
+    if (rangeDiv) {
+      rangeDiv.style.display = enabled ? 'block' : 'none';
+    }
+  }
+  
+  /**
    * 商品行を追加
    */
   function addProductRow() {
@@ -1960,11 +2032,22 @@
         endDate: '',
         cutoff: ''
       },
+      salesPeriod: {
+        enabled: false,
+        startDate: '',
+        endDate: '',
+        startTime: '',
+        endTime: ''
+      },
       description: '',
       imageUrl: '',
       deliveryAvailable: false,
       deliveryMinDays: 7,
       deliveryCutoff: null,
+      deliveryTimeSlots: {
+        enabled: false,
+        timeSlots: 'all'
+      },
       deliveryWeight: 0,
       deliverySize: 'M',
       deliveryFrozen: false,
