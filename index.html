@@ -1714,18 +1714,44 @@
       let cutoffMsg = '';
 
       selectedProducts.forEach(prod => {
-        const minDays = prod.deliveryMinDays != null ? prod.deliveryMinDays : 7;
-        const cutoff = prod.deliveryCutoff || '12:00';
-        let prodMinDate = getBusinessDate(today, minDays);
-        if (cutoff) {
-          const [h, m] = cutoff.split(':').map(Number);
-          let cutoffDate = new Date(today);
-          cutoffDate.setHours(h, m, 0, 0);
-          if (now > cutoffDate) {
-            prodMinDate = getBusinessDate(prodMinDate, 1);
-            cutoffMsg = '※本日の配送締切を過ぎたため、翌営業日以降の配送となります。';
+        let prodMinDate;
+        
+        // 日付範囲指定が有効な場合
+        if (prod.deliveryDateRange && prod.deliveryDateRange.enabled) {
+          const startDate = new Date(prod.deliveryDateRange.startDate);
+          const endDate = new Date(prod.deliveryDateRange.endDate);
+          
+          // 日付範囲の開始日を最小日として設定
+          prodMinDate = new Date(startDate);
+          
+          // 締切時刻考慮（日付範囲指定時）
+          if (prod.deliveryDateRange.cutoff) {
+            const [h, m] = prod.deliveryDateRange.cutoff.split(':').map(Number);
+            let cutoffDate = new Date(today);
+            cutoffDate.setHours(h, m, 0, 0);
+            if (now > cutoffDate && startDate <= today) {
+              // 今日が範囲内で締切を過ぎている場合は翌営業日以降
+              prodMinDate = new Date(today);
+              prodMinDate.setDate(prodMinDate.getDate() + 1);
+              cutoffMsg = '※本日の配送締切を過ぎたため、翌営業日以降の配送となります。';
+            }
+          }
+        } else {
+          // 従来の相対日数指定
+          const minDays = prod.deliveryMinDays != null ? prod.deliveryMinDays : 7;
+          const cutoff = prod.deliveryCutoff || '12:00';
+          prodMinDate = getBusinessDate(today, minDays);
+          if (cutoff) {
+            const [h, m] = cutoff.split(':').map(Number);
+            let cutoffDate = new Date(today);
+            cutoffDate.setHours(h, m, 0, 0);
+            if (now > cutoffDate) {
+              prodMinDate = getBusinessDate(prodMinDate, 1);
+              cutoffMsg = '※本日の配送締切を過ぎたため、翌営業日以降の配送となります。';
+            }
           }
         }
+        
         // 平日のみ許可
         while (!isBusinessDay(prodMinDate)) {
           prodMinDate.setDate(prodMinDate.getDate() + 1);
@@ -1735,8 +1761,29 @@
         }
       });
 
-      // 最大30営業日後
-      let maxDate = getBusinessDate(today, 30);
+      // 最大日付の計算（日付範囲指定と従来の相対日数指定の両方に対応）
+      let maxDate = null;
+      selectedProducts.forEach(prod => {
+        let prodMaxDate;
+        
+        // 日付範囲指定が有効な場合
+        if (prod.deliveryDateRange && prod.deliveryDateRange.enabled) {
+          prodMaxDate = new Date(prod.deliveryDateRange.endDate);
+        } else {
+          // 従来の相対日数指定（最大30営業日後）
+          prodMaxDate = getBusinessDate(today, 30);
+        }
+        
+        if (!maxDate || prodMaxDate < maxDate) {
+          maxDate = prodMaxDate;
+        }
+      });
+      
+      // デフォルトの最大日付（30営業日後）を設定
+      if (!maxDate) {
+        maxDate = getBusinessDate(today, 30);
+      }
+      
       while (!isBusinessDay(maxMinDate)) maxMinDate.setDate(maxMinDate.getDate() + 1);
       while (!isBusinessDay(maxDate)) maxDate.setDate(maxDate.getDate() + 1);
 
@@ -2211,31 +2258,77 @@
       let cutoffMsg = '';
       selectedProducts.forEach(prod => {
         let prodMinDate;
-        if (prod.minType === 'business') {
-          prodMinDate = getBusinessDate(today, prod.minDays);
-        } else {
-          prodMinDate = new Date(today);
-          // 締切時刻考慮
-          if (prod.cutoff) {
-            const [h, m] = prod.cutoff.split(':').map(Number);
+        
+        // 日付範囲指定が有効な場合
+        if (prod.pickupDateRange && prod.pickupDateRange.enabled) {
+          const startDate = new Date(prod.pickupDateRange.startDate);
+          const endDate = new Date(prod.pickupDateRange.endDate);
+          
+          // 日付範囲の開始日を最小日として設定
+          prodMinDate = new Date(startDate);
+          
+          // 締切時刻考慮（日付範囲指定時）
+          if (prod.pickupDateRange.cutoff) {
+            const [h, m] = prod.pickupDateRange.cutoff.split(':').map(Number);
             let cutoffDate = new Date(today);
             cutoffDate.setHours(h, m, 0, 0);
-            if (now > cutoffDate) {
-              prodMinDate.setDate(prodMinDate.getDate() + prod.minDays + 1);
+            if (now > cutoffDate && startDate <= today) {
+              // 今日が範囲内で締切を過ぎている場合は翌日以降
+              prodMinDate = new Date(today);
+              prodMinDate.setDate(prodMinDate.getDate() + 1);
               cutoffMsg = '※一部商品は本日の締切時刻を過ぎているため、翌日以降の受取となります。';
+            }
+          }
+        } else {
+          // 従来の相対日数指定
+          if (prod.minType === 'business') {
+            prodMinDate = getBusinessDate(today, prod.minDays);
+          } else {
+            prodMinDate = new Date(today);
+            // 締切時刻考慮
+            if (prod.cutoff) {
+              const [h, m] = prod.cutoff.split(':').map(Number);
+              let cutoffDate = new Date(today);
+              cutoffDate.setHours(h, m, 0, 0);
+              if (now > cutoffDate) {
+                prodMinDate.setDate(prodMinDate.getDate() + prod.minDays + 1);
+                cutoffMsg = '※一部商品は本日の締切時刻を過ぎているため、翌日以降の受取となります。';
+              } else {
+                prodMinDate.setDate(prodMinDate.getDate() + prod.minDays);
+              }
             } else {
               prodMinDate.setDate(prodMinDate.getDate() + prod.minDays);
             }
-          } else {
-            prodMinDate.setDate(prodMinDate.getDate() + prod.minDays);
           }
         }
+        
         if (!maxMinDate || prodMinDate > maxMinDate) {
           maxMinDate = prodMinDate;
         }
       });
-      // 最大30営業日後
-      let maxDate = getBusinessDate(today, 30);
+      // 最大日付の計算（日付範囲指定と従来の相対日数指定の両方に対応）
+      let maxDate = null;
+      selectedProducts.forEach(prod => {
+        let prodMaxDate;
+        
+        // 日付範囲指定が有効な場合
+        if (prod.pickupDateRange && prod.pickupDateRange.enabled) {
+          prodMaxDate = new Date(prod.pickupDateRange.endDate);
+        } else {
+          // 従来の相対日数指定（最大30営業日後）
+          prodMaxDate = getBusinessDate(today, 30);
+        }
+        
+        if (!maxDate || prodMaxDate < maxDate) {
+          maxDate = prodMaxDate;
+        }
+      });
+      
+      // デフォルトの最大日付（30営業日後）を設定
+      if (!maxDate) {
+        maxDate = getBusinessDate(today, 30);
+      }
+      
       dateInput.min = maxMinDate.toISOString().split('T')[0];
       dateInput.max = maxDate.toISOString().split('T')[0];
       
@@ -2307,6 +2400,36 @@
       
       // 選択された日付の曜日をチェック
       const selectedDate = new Date(dateInput.value);
+      
+      // 日付範囲指定の検証
+      const productItems = document.querySelectorAll('.product-item');
+      let hasDateRangeRestriction = false;
+      let dateRangeError = '';
+      
+      productItems.forEach(itemDiv => {
+        const select = itemDiv.querySelector('select');
+        const qtyInput = itemDiv.querySelector('input[type="number"]');
+        if (select && select.value && qtyInput && qtyInput.value && parseInt(qtyInput.value) >= 1) {
+          const prod = allProducts.find(p => p.name === select.value);
+          if (prod && prod.pickupDateRange && prod.pickupDateRange.enabled) {
+            hasDateRangeRestriction = true;
+            const startDate = new Date(prod.pickupDateRange.startDate);
+            const endDate = new Date(prod.pickupDateRange.endDate);
+            
+            if (selectedDate < startDate || selectedDate > endDate) {
+              dateRangeError = `「${prod.name}」は${formatDateForDisplay(startDate)}～${formatDateForDisplay(endDate)}の期間のみ受取可能です。`;
+            }
+          }
+        }
+      });
+      
+      if (dateRangeError) {
+        showError('pickup_date', dateRangeError);
+        timeSelect.value = '';
+        timeSelect.disabled = true;
+        return;
+      }
+      
       const dayOfWeek = getDayOfWeekKey(selectedDate.getDay());
       const storeHours = selectedStore.hours[dayOfWeek];
       
@@ -2355,7 +2478,36 @@
         showError('delivery_date', '配送希望日を選択してください');
         return;
       }
+      
       const d = new Date(dateInput.value);
+      
+      // 日付範囲指定の検証
+      const productItems = document.querySelectorAll('.product-item');
+      let dateRangeError = '';
+      
+      productItems.forEach(itemDiv => {
+        const select = itemDiv.querySelector('select');
+        const qtyInput = itemDiv.querySelector('input[type="number"]');
+        if (select && select.value && qtyInput && qtyInput.value && parseInt(qtyInput.value) >= 1) {
+          const prod = allProducts.find(p => p.name === select.value);
+          if (prod && prod.deliveryDateRange && prod.deliveryDateRange.enabled) {
+            const startDate = new Date(prod.deliveryDateRange.startDate);
+            const endDate = new Date(prod.deliveryDateRange.endDate);
+            
+            if (d < startDate || d > endDate) {
+              dateRangeError = `「${prod.name}」は${formatDateForDisplay(startDate)}～${formatDateForDisplay(endDate)}の期間のみ配送可能です。`;
+            }
+          }
+        }
+      });
+      
+      if (dateRangeError) {
+        showError('delivery_date', dateRangeError);
+        timeSelect.value = '';
+        timeSelect.disabled = true;
+        return;
+      }
+      
       if (!isBusinessDay(d)) {
         showError('delivery_date', '配送は平日のみ対応しております');
         // 次の平日に補正
@@ -2379,6 +2531,17 @@
       const day = date.getDate().toString().padStart(2, '0');
       const formatted = `${year}-${month}-${day}`;
       return formatted;
+    }
+    
+    /**
+     * 日付を表示用の形式（M/D）に変換
+     * @param {Date} date - 日付オブジェクト
+     * @return {string} M/D形式の文字列
+     */
+    function formatDateForDisplay(date) {
+      const month = date.getMonth() + 1;
+      const day = date.getDate();
+      return `${month}/${day}`;
     }
 
     /**
