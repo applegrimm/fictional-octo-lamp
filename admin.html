@@ -862,6 +862,8 @@
                 <th style="width: 120px;">最小日数</th>
                 <th style="width: 120px;">締切時間</th>
                 <th style="width: 140px;">日数タイプ</th>
+                <th style="width: 200px;">受取日範囲指定</th>
+                <th style="width: 200px;">配送日範囲指定</th>
                 <th style="width: 400px;">説明</th>
                 <th style="width: 260px;">画像URL/アップロード</th>
                 <th style="width: 140px;">宅配対応</th>
@@ -1741,6 +1743,44 @@
         </select>
       </td>
       <td>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 12px; color: #666;">
+            <input type="checkbox" ${product.pickupDateRange?.enabled ? 'checked' : ''} 
+                   onchange="togglePickupDateRange(${index}, this.checked)"> 日付範囲指定
+          </label>
+          <div id="pickup-date-range-${index}" style="display: ${product.pickupDateRange?.enabled ? 'block' : 'none'};">
+            <input type="date" value="${product.pickupDateRange?.startDate || ''}" 
+                   onchange="updateProductData(${index}, 'pickupDateRange.startDate', this.value)"
+                   placeholder="開始日" style="width: 100%; margin-bottom: 2px;">
+            <input type="date" value="${product.pickupDateRange?.endDate || ''}" 
+                   onchange="updateProductData(${index}, 'pickupDateRange.endDate', this.value)"
+                   placeholder="終了日" style="width: 100%; margin-bottom: 2px;">
+            <input type="time" value="${product.pickupDateRange?.cutoff || ''}" 
+                   onchange="updateProductData(${index}, 'pickupDateRange.cutoff', this.value)"
+                   placeholder="締切時間" style="width: 100%;">
+          </div>
+        </div>
+      </td>
+      <td>
+        <div style="display: flex; flex-direction: column; gap: 4px;">
+          <label style="font-size: 12px; color: #666;">
+            <input type="checkbox" ${product.deliveryDateRange?.enabled ? 'checked' : ''} 
+                   onchange="toggleDeliveryDateRange(${index}, this.checked)"> 日付範囲指定
+          </label>
+          <div id="delivery-date-range-${index}" style="display: ${product.deliveryDateRange?.enabled ? 'block' : 'none'};">
+            <input type="date" value="${product.deliveryDateRange?.startDate || ''}" 
+                   onchange="updateProductData(${index}, 'deliveryDateRange.startDate', this.value)"
+                   placeholder="開始日" style="width: 100%; margin-bottom: 2px;">
+            <input type="date" value="${product.deliveryDateRange?.endDate || ''}" 
+                   onchange="updateProductData(${index}, 'deliveryDateRange.endDate', this.value)"
+                   placeholder="終了日" style="width: 100%; margin-bottom: 2px;">
+            <input type="time" value="${product.deliveryDateRange?.cutoff || ''}" 
+                   onchange="updateProductData(${index}, 'deliveryDateRange.cutoff', this.value)"
+                   placeholder="締切時間" style="width: 100%;">
+          </div>
+        </div>
+      </td>
+      <td>
         <textarea onchange="updateProductData(${index}, 'description', this.value)"
                   placeholder="商品の説明を入力">${product.description || ''}</textarea>
       </td>
@@ -1834,7 +1874,18 @@
     if (!productsData[index]) {
       productsData[index] = {};
     }
-    productsData[index][field] = value;
+    
+    // 日付範囲指定のネストしたフィールドを処理
+    if (field.includes('.')) {
+      const [parentField, childField] = field.split('.');
+      if (!productsData[index][parentField]) {
+        productsData[index][parentField] = {};
+      }
+      productsData[index][parentField][childField] = value;
+    } else {
+      productsData[index][field] = value;
+    }
+    
     console.log(`商品[${index}]の${field}を更新:`, value);
 
     // プレビュー画像更新
@@ -1857,6 +1908,36 @@
   }
   
   /**
+   * 受取日範囲指定のトグル
+   */
+  function togglePickupDateRange(index, enabled) {
+    if (!productsData[index].pickupDateRange) {
+      productsData[index].pickupDateRange = {};
+    }
+    productsData[index].pickupDateRange.enabled = enabled;
+    
+    const rangeDiv = document.getElementById(`pickup-date-range-${index}`);
+    if (rangeDiv) {
+      rangeDiv.style.display = enabled ? 'block' : 'none';
+    }
+  }
+  
+  /**
+   * 配送日範囲指定のトグル
+   */
+  function toggleDeliveryDateRange(index, enabled) {
+    if (!productsData[index].deliveryDateRange) {
+      productsData[index].deliveryDateRange = {};
+    }
+    productsData[index].deliveryDateRange.enabled = enabled;
+    
+    const rangeDiv = document.getElementById(`delivery-date-range-${index}`);
+    if (rangeDiv) {
+      rangeDiv.style.display = enabled ? 'block' : 'none';
+    }
+  }
+  
+  /**
    * 商品行を追加
    */
   function addProductRow() {
@@ -1867,6 +1948,18 @@
       minDays: 1,
       cutoff: null,
       minType: 'calendar',
+      pickupDateRange: {
+        enabled: false,
+        startDate: '',
+        endDate: '',
+        cutoff: ''
+      },
+      deliveryDateRange: {
+        enabled: false,
+        startDate: '',
+        endDate: '',
+        cutoff: ''
+      },
       description: '',
       imageUrl: '',
       deliveryAvailable: false,
