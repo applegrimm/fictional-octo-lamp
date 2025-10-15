@@ -198,8 +198,8 @@
     <div id="reservation-details" class="payment-info" style="display: none;">
       <h3>予約情報</h3>
       <p><strong>お名前:</strong> <span id="customer-name">-</span></p>
-      <p><strong>受取店舗:</strong> <span id="pickup-store">-</span></p>
-      <p><strong>受取日時:</strong> <span id="pickup-datetime">-</span></p>
+      <p><strong id="store-label">受取店舗:</strong> <span id="pickup-store">-</span></p>
+      <p><strong id="datetime-label">受取日時:</strong> <span id="pickup-datetime">-</span></p>
       <p><strong>ご注文内容:</strong></p>
       <div id="order-items">-</div>
     </div>
@@ -458,9 +458,21 @@
       const metadata = paymentData.metadata || paymentData;
       
       document.getElementById('customer-name').textContent = metadata.customer_name || '-';
-      document.getElementById('pickup-store').textContent = metadata.pickup_store || '-';
-      document.getElementById('pickup-datetime').textContent = 
-        `${metadata.pickup_date || '-'} ${metadata.pickup_time || '-'}`;
+      
+      // 配送予約の場合は「宅配便」と表示
+      const isDelivery = metadata.delivery_method === 'delivery';
+      const storeDisplay = isDelivery ? '宅配便' : (metadata.pickup_store || '-');
+      document.getElementById('pickup-store').textContent = storeDisplay;
+      
+      // ラベルの表示も配送/受取で分岐
+      document.getElementById('store-label').textContent = isDelivery ? '配送方法:' : '受取店舗:';
+      document.getElementById('datetime-label').textContent = isDelivery ? '配送日時:' : '受取日時:';
+      
+      // 日時の表示も配送/受取で分岐
+      const dateTimeDisplay = isDelivery 
+        ? `${metadata.delivery_date || '-'} ${metadata.delivery_time_slot || '-'}`
+        : `${metadata.pickup_date || '-'} ${metadata.pickup_time || '-'}`;
+      document.getElementById('pickup-datetime').textContent = dateTimeDisplay;
       
       // 注文商品リストを表示
       const itemsContainer = document.getElementById('order-items');
