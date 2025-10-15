@@ -1228,6 +1228,49 @@
         deliveryDateEl.addEventListener('change', validateDeliveryDate);
         // 日付入力時のリアルタイム検証を追加
         deliveryDateEl.addEventListener('input', validateDeliveryDate);
+        // 日付入力フィールドの制御を強化
+        deliveryDateEl.addEventListener('focus', function() {
+          console.log('配送日フィールドにフォーカス - 現在のmin/max:', this.min, this.max);
+        });
+        // キーボード入力も制御
+        deliveryDateEl.addEventListener('keydown', function(e) {
+          // 手動入力による範囲外の日付入力を防ぐ
+          setTimeout(() => {
+            if (this.value) {
+              const inputDate = new Date(this.value);
+              const minDate = new Date(this.min);
+              const maxDate = new Date(this.max);
+              
+              if (inputDate < minDate || inputDate > maxDate) {
+                console.log('範囲外の日付が入力されました:', this.value);
+                // 範囲外の場合は有効な日付に補正
+                if (inputDate < minDate) {
+                  this.value = this.min;
+                } else if (inputDate > maxDate) {
+                  this.value = this.max;
+                }
+                validateDeliveryDate();
+              }
+            }
+          }, 100);
+        });
+        
+        // 定期的にmin/max属性をチェック・再設定（カレンダー表示時など）
+        deliveryDateEl.addEventListener('click', function() {
+          console.log('配送日フィールドクリック - 現在のmin/max:', this.min, this.max);
+          // クリック時にmin/max属性を再確認
+          setTimeout(() => {
+            if (this.min && this.max) {
+              console.log('min/max属性は設定済み:', this.min, this.max);
+            } else {
+              console.log('min/max属性が未設定 - 再設定を試行');
+              // 商品選択に基づいて日付制御を再実行
+              if (typeof updateDeliveryDateControl === 'function') {
+                updateDeliveryDateControl();
+              }
+            }
+          }, 50);
+        });
       }
       // 配送先＝注文者と同じチェック
       const sameCb = document.getElementById('same_as_orderer');
@@ -1797,20 +1840,42 @@
       while (!isBusinessDay(maxMinDate)) maxMinDate.setDate(maxMinDate.getDate() + 1);
       while (!isBusinessDay(maxDate)) maxDate.setDate(maxDate.getDate() + 1);
 
-      dateInput.min = maxMinDate.toISOString().split('T')[0];
-      dateInput.max = maxDate.toISOString().split('T')[0];
+      const minDateStr = maxMinDate.toISOString().split('T')[0];
+      const maxDateStr = maxDate.toISOString().split('T')[0];
+      
+      // min/max属性を設定（強制的に再設定）
+      dateInput.setAttribute('min', minDateStr);
+      dateInput.setAttribute('max', maxDateStr);
+      dateInput.min = minDateStr;
+      dateInput.max = maxDateStr;
+      
+      // 属性が正しく設定されているか確認
+      console.log('日付入力フィールドの属性確認:');
+      console.log('- min属性:', dateInput.getAttribute('min'), '(設定値:', minDateStr, ')');
+      console.log('- max属性:', dateInput.getAttribute('max'), '(設定値:', maxDateStr, ')');
+      console.log('- minプロパティ:', dateInput.min);
+      console.log('- maxプロパティ:', dateInput.max);
+      
+      // デバッグ情報をコンソールに出力
+      console.log('配送日制御デバッグ情報:');
+      console.log('- 最小日:', minDateStr, '(Date:', maxMinDate, ')');
+      console.log('- 最大日:', maxDateStr, '(Date:', maxDate, ')');
+      console.log('- 選択商品:', selectedProducts.map(p => p.name));
+      console.log('- 日付範囲制限あり:', hasDateRangeRestriction);
       
       // 現在の値が範囲外の場合は有効な日付に補正
       const currentValue = dateInput.value;
       if (currentValue) {
         const currentDate = new Date(currentValue);
         if (currentDate < maxMinDate) {
-          dateInput.value = maxMinDate.toISOString().split('T')[0];
+          console.log('- 現在の値が最小日より前のため補正:', currentValue, '→', minDateStr);
+          dateInput.value = minDateStr;
         } else if (currentDate > maxDate) {
-          dateInput.value = maxDate.toISOString().split('T')[0];
+          console.log('- 現在の値が最大日より後のため補正:', currentValue, '→', maxDateStr);
+          dateInput.value = maxDateStr;
         }
       } else {
-        dateInput.value = maxMinDate.toISOString().split('T')[0];
+        dateInput.value = minDateStr;
       }
 
       timeSelect.disabled = false;
