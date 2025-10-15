@@ -1226,6 +1226,8 @@
       const deliveryDateEl = document.getElementById('delivery_date');
       if (deliveryDateEl) {
         deliveryDateEl.addEventListener('change', validateDeliveryDate);
+        // 日付入力時のリアルタイム検証を追加
+        deliveryDateEl.addEventListener('input', validateDeliveryDate);
       }
       // 配送先＝注文者と同じチェック
       const sameCb = document.getElementById('same_as_orderer');
@@ -1797,7 +1799,19 @@
 
       dateInput.min = maxMinDate.toISOString().split('T')[0];
       dateInput.max = maxDate.toISOString().split('T')[0];
-      dateInput.value = dateInput.min;
+      
+      // 現在の値が範囲外の場合は有効な日付に補正
+      const currentValue = dateInput.value;
+      if (currentValue) {
+        const currentDate = new Date(currentValue);
+        if (currentDate < maxMinDate) {
+          dateInput.value = maxMinDate.toISOString().split('T')[0];
+        } else if (currentDate > maxDate) {
+          dateInput.value = maxDate.toISOString().split('T')[0];
+        }
+      } else {
+        dateInput.value = maxMinDate.toISOString().split('T')[0];
+      }
 
       timeSelect.disabled = false;
       
@@ -2519,6 +2533,43 @@
         showError('delivery_date', dateRangeError);
         timeSelect.value = '';
         timeSelect.disabled = true;
+        
+        // 範囲外の日付が入力された場合、有効な日付に自動補正
+        const productItems = document.querySelectorAll('.product-item');
+        let validDate = null;
+        
+        productItems.forEach(itemDiv => {
+          const select = itemDiv.querySelector('select');
+          const qtyInput = itemDiv.querySelector('input[type="number"]');
+          if (select && select.value && qtyInput && qtyInput.value && parseInt(qtyInput.value) >= 1) {
+            const prod = allProducts.find(p => p.name === select.value);
+            if (prod && prod.deliveryDateRange && prod.deliveryDateRange.enabled) {
+              const startDate = new Date(prod.deliveryDateRange.startDate);
+              const endDate = new Date(prod.deliveryDateRange.endDate);
+              
+              // 入力された日付が範囲外の場合、最も近い有効な日付に補正
+              if (d < startDate) {
+                validDate = new Date(startDate);
+              } else if (d > endDate) {
+                validDate = new Date(endDate);
+              }
+            }
+          }
+        });
+        
+        // 有効な日付が見つかった場合、自動補正
+        if (validDate) {
+          // 平日でない場合は次の平日に調整
+          while (!isBusinessDay(validDate)) {
+            validDate.setDate(validDate.getDate() + 1);
+          }
+          dateInput.value = formatDateForInput(validDate);
+          // エラーメッセージを一時的に表示後、クリア
+          setTimeout(() => {
+            showError('delivery_date', '');
+            validateDeliveryDate(); // 補正後の日付で再検証
+          }, 2000);
+        }
         return;
       }
       
@@ -3642,6 +3693,28 @@
       const deliveryDate = document.getElementById('delivery_date');
       if (!deliveryDate || !deliveryDate.value) {
         errors.push('• 配送希望日を選択してください');
+      } else {
+        // 日付範囲指定の検証
+        const selectedDate = new Date(deliveryDate.value);
+        const productItems = document.querySelectorAll('.product-item');
+        
+        productItems.forEach(itemDiv => {
+          const select = itemDiv.querySelector('select');
+          const qtyInput = itemDiv.querySelector('input[type="number"]');
+          if (select && select.value && qtyInput && qtyInput.value && parseInt(qtyInput.value) >= 1) {
+            const prod = allProducts.find(p => p.name === select.value);
+            if (prod && prod.deliveryDateRange && prod.deliveryDateRange.enabled) {
+              const startDate = new Date(prod.deliveryDateRange.startDate);
+              const endDate = new Date(prod.deliveryDateRange.endDate);
+              
+              if (selectedDate < startDate || selectedDate > endDate) {
+                const startDateStr = formatDateForDisplay(startDate);
+                const endDateStr = formatDateForDisplay(endDate);
+                errors.push(`• 「${prod.name}」は${startDateStr}～${endDateStr}の期間のみ配送可能です`);
+              }
+            }
+          }
+        });
       }
       
       // 配送時間帯チェック
