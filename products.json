@@ -182,7 +182,8 @@
       "endDate": "2025-11-30"
     },
     "deliveryTimeSlots": {
-      "enabled": false
+      "enabled": false,
+      "timeSlots": "all"
     }
   }
 ]
