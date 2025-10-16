@@ -346,101 +346,6 @@
       position: relative;
     }
     
-    /* =============================
-       分割ビューテーブルスタイル
-    ============================= */
-    .split-table-container {
-      display: flex;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-      overflow: hidden;
-      min-height: 400px;
-      width: 100%; /* コンテナの幅を100%に設定 */
-    }
-    
-    .fixed-columns {
-      flex-shrink: 0;
-      border-right: 2px solid #e9ecef;
-      background: #f8f9fa;
-      width: 630px; /* ID(80) + 店舗名(200) + 管理シークレット(150) + 営業時間(200) */
-    }
-    
-    .fixed-table {
-      overflow: visible;
-      box-shadow: none;
-      border-radius: 0;
-      width: 100%;
-    }
-    
-    .scrollable-columns {
-      flex: 1;
-      overflow-x: auto;
-      overflow-y: hidden;
-      min-width: 420px; /* 最小幅を設定 */
-      width: auto; /* 残りの幅を使用 */
-    }
-    
-    .scrollable-table {
-      min-width: 420px; /* グループ(120px) + 休業日(200px) + 操作(100px) */
-      box-shadow: none;
-      border-radius: 0;
-      width: 100%;
-    }
-    
-    /* 分割ビューのスクロールバー */
-    .scrollable-table::-webkit-scrollbar {
-      height: 12px;
-    }
-    
-    .scrollable-table::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 6px;
-    }
-    
-    .scrollable-table::-webkit-scrollbar-thumb {
-      background: #667eea;
-      border-radius: 6px;
-      border: 2px solid #f1f1f1;
-    }
-    
-    .scrollable-table::-webkit-scrollbar-thumb:hover {
-      background: #5a6fd8;
-    }
-    
-    /* 固定列のヘッダーと行の高さを同期 */
-    .fixed-table .data-table th,
-    .fixed-table .data-table td {
-      height: auto; /* 自動調整 */
-      min-height: 60px;
-    }
-    
-    .scrollable-table .data-table th,
-    .scrollable-table .data-table td {
-      height: auto; /* 自動調整 */
-      min-height: 60px;
-    }
-    
-    /* 分割ビューのテーブル幅を調整 */
-    .fixed-table .data-table {
-      width: 630px; /* ID(80) + 店舗名(200) + 管理シークレット(150) + 営業時間(200) */
-      table-layout: fixed; /* 固定レイアウトで幅を確実に適用 */
-    }
-    
-    .scrollable-table .data-table {
-      width: 420px; /* グループ(120) + 休業日(200) + 操作(100) */
-      table-layout: fixed; /* 固定レイアウトで幅を確実に適用 */
-    }
-    
-    /* デバッグ用：分割ビューの境界を視覚化（本番では削除） */
-    /* .fixed-columns {
-      border: 2px solid #28a745;
-    }
-    
-    .scrollable-columns {
-      border: 2px solid #dc3545;
-    } */
-    
     /* 上部スクロールバー用のコンテナ */
     .top-scrollbar {
       width: 100%;
@@ -588,23 +493,21 @@
     .hours-input {
       display: flex;
       flex-direction: column;
-      gap: 2px;
-      min-width: 180px;
-      max-width: 180px;
+      gap: 5px;
+      min-width: 200px;
     }
     
     .hours-row {
       display: flex;
       align-items: center;
-      gap: 2px;
-      font-size: 0.7rem;
-      flex-wrap: wrap;
+      gap: 5px;
+      font-size: 0.8rem;
     }
     
     .hours-row input[type="time"] {
-      width: 60px;
-      font-size: 0.7rem;
-      padding: 2px;
+      width: 70px;
+      font-size: 0.8rem;
+      padding: 4px;
     }
     
     .hours-row input[type="checkbox"] {
@@ -612,12 +515,8 @@
     }
     
     .hours-row label {
-      min-width: 20px;
-      font-size: 0.7rem;
-    }
-    
-    .hours-row span {
-      font-size: 0.7rem;
+      min-width: 30px;
+      font-size: 0.8rem;
     }
     
     /* =============================
@@ -721,35 +620,6 @@
       .data-table th,
       .data-table td {
         padding: 8px 6px;
-      }
-      
-      /* 分割ビューのモバイル対応 */
-      .split-table-container {
-        flex-direction: column;
-        width: 100%;
-      }
-      
-      .fixed-columns {
-        border-right: none;
-        border-bottom: 2px solid #e9ecef;
-        width: 100%;
-      }
-      
-      .fixed-table .data-table {
-        width: 100%;
-      }
-      
-      .scrollable-columns {
-        overflow-x: auto;
-        width: 100%;
-      }
-      
-      .scrollable-table {
-        min-width: 100%;
-      }
-      
-      .scrollable-table .data-table {
-        width: 100%;
       }
       
       /* 宅配関連フィールドのモバイル対応 */
@@ -921,44 +791,29 @@
           </div>
         </div>
         
-        <!-- 分割ビューテーブル -->
-        <div class="split-table-container">
-          <!-- 左側固定列（重要な列） -->
-          <div class="fixed-columns">
-            <div class="table-container fixed-table">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th style="width: 80px;">ID</th>
-                    <th style="width: 200px;">店舗名</th>
-                    <th style="width: 150px;">管理シークレット</th>
-                    <th style="width: 200px;">営業時間</th>
-                  </tr>
-                </thead>
-                <tbody id="stores-fixed-tbody">
-                  <!-- 固定列のデータが動的に追加される -->
-                </tbody>
-              </table>
-            </div>
-          </div>
-          
-          <!-- 右側スクロール可能列（その他の列） -->
-          <div class="scrollable-columns">
-            <div class="table-container scrollable-table" id="stores-scrollable-container">
-              <table class="data-table">
-                <thead>
-                  <tr>
-                    <th style="width: 120px;">グループ</th>
-                    <th style="width: 200px;">休業日</th>
-                    <th style="width: 100px;">操作</th>
-                  </tr>
-                </thead>
-                <tbody id="stores-scrollable-tbody">
-                  <!-- スクロール可能列のデータが動的に追加される -->
-                </tbody>
-              </table>
-            </div>
-          </div>
+        <!-- 上部スクロールバー -->
+        <div class="top-scrollbar" id="stores-top-scrollbar">
+          <div style="width: 2200px; height: 1px;"></div>
+        </div>
+        
+        <div class="table-container" id="stores-table-container">
+          <table class="data-table" id="stores-table">
+            <thead>
+              <tr>
+                <th style="width: 80px;">ID</th>
+                <th style="width: 200px;">店舗名</th>
+                <th style="width: 120px;">グループ</th>
+                <th style="width: 120px;">カテゴリ</th>
+                <th style="width: 150px;">管理シークレット</th>
+                <th style="width: 500px;">営業時間</th>
+                <th style="width: 200px;">休業日</th>
+                <th style="width: 100px;">操作</th>
+              </tr>
+            </thead>
+            <tbody id="stores-tbody">
+              <!-- 店舗データが動的に追加される -->
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -1232,14 +1087,8 @@
     // 既存のJSONファイルを読み込み
     loadExistingData();
     
-    // 分割ビューのスクロール同期を初期化
+    // 上部スクロールバーの初期化
     initializeDualScrollbars();
-    
-    // デバッグ用：初期化完了を確認
-    setTimeout(() => {
-      console.log('初期化完了 - storesData:', storesData.length + '件');
-      console.log('初期化完了 - productsData:', productsData.length + '件');
-    }, 1000);
   });
   
   // =============================
@@ -1298,9 +1147,6 @@
         if (storesResponse.ok) {
           storesData = await storesResponse.json();
           console.log('店舗データ読み込み成功:', storesData.length + '件');
-          console.log('店舗データサンプル:', storesData[0]);
-        } else {
-          console.warn('stores.jsonの読み込みに失敗: HTTP', storesResponse.status);
         }
       } catch (error) {
         console.warn('stores.jsonの読み込みに失敗:', error);
@@ -1334,50 +1180,28 @@
   // =============================
   
   /**
-   * 店舗テーブルを更新（分割ビュー対応）
+   * 店舗テーブルを更新
    */
   function updateStoresTable() {
-    try {
-      console.log('店舗テーブル更新開始:', storesData.length + '件');
-      
-      const fixedTbody = document.getElementById('stores-fixed-tbody');
-      const scrollableTbody = document.getElementById('stores-scrollable-tbody');
-      
-      if (!fixedTbody || !scrollableTbody) {
-        console.error('テーブル要素が見つかりません:', { fixedTbody, scrollableTbody });
-        return;
-      }
-      
-      fixedTbody.innerHTML = '';
-      scrollableTbody.innerHTML = '';
-      
-      storesData.forEach((store, index) => {
-        try {
-          const fixedRow = createStoreFixedRow(store, index);
-          const scrollableRow = createStoreScrollableRow(store, index);
-          
-          fixedTbody.appendChild(fixedRow);
-          scrollableTbody.appendChild(scrollableRow);
-        } catch (error) {
-          console.error(`店舗[${index}]の行作成エラー:`, error, store);
-        }
-      });
-      
-      // 店舗がない場合は初期行を追加
-      if (storesData.length === 0) {
-        addStoreRow();
-      }
-      
-      console.log('店舗テーブル更新完了');
-    } catch (error) {
-      console.error('店舗テーブル更新エラー:', error);
+    const tbody = document.getElementById('stores-tbody');
+    tbody.innerHTML = '';
+    
+    storesData.forEach((store, index) => {
+      const row = createStoreRow(store, index);
+      tbody.appendChild(row);
+    });
+    
+    // 店舗がない場合は初期行を追加
+    if (storesData.length === 0) {
+      addStoreRow();
     }
+    
   }
   
   /**
-   * 店舗固定列行を作成（ID、店舗名、管理シークレット、営業時間）
+   * 店舗行を作成
    */
-  function createStoreFixedRow(store, index) {
+  function createStoreRow(store, index) {
     const row = document.createElement('tr');
     row.innerHTML = `
       <td>
@@ -1391,24 +1215,6 @@
                placeholder="店舗名を入力">
       </td>
       <td>
-        <input type="text" value="${store.managementSecret || ''}" 
-               onchange="updateStoreData(${index}, 'managementSecret', this.value)"
-               placeholder="管理用シークレット">
-      </td>
-      <td>
-        ${createHoursInput(store.hours || {}, index)}
-      </td>
-    `;
-    return row;
-  }
-  
-  /**
-   * 店舗スクロール可能列行を作成（グループ、休業日、操作）
-   */
-  function createStoreScrollableRow(store, index) {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td>
         <select onchange="updateStoreData(${index}, 'group', this.value)" 
                 style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
           <option value="">グループを選択</option>
@@ -1419,6 +1225,19 @@
           <option value="kirabi_single" ${store.group === 'kirabi_single' ? 'selected' : ''}>きらび</option>
           <option value="marutomi" ${store.group === 'marutomi' ? 'selected' : ''}>まるとみ</option>
         </select>
+      </td>
+      <td>
+        <input type="text" value="${store.category || ''}" 
+               onchange="updateStoreData(${index}, 'category', this.value)"
+               placeholder="例: 焼肉">
+      </td>
+      <td>
+        <input type="text" value="${store.managementSecret || ''}" 
+               onchange="updateStoreData(${index}, 'managementSecret', this.value)"
+               placeholder="管理用シークレット">
+      </td>
+      <td>
+        ${createHoursInput(store.hours || {}, index)}
       </td>
       <td>
         <textarea onchange="updateStoreData(${index}, 'unavailable_dates', this.value.split(',').map(d => d.trim()).filter(d => d))"
@@ -1508,6 +1327,17 @@
       
       if (groupNames[value]) {
         storesData[index]['groupName'] = groupNames[value];
+        // カテゴリも自動設定
+        const categories = {
+          'burns': '焼肉',
+          'kirabi': '焼肉・韓国料理',
+          'applegrimm': 'スイーツ・カフェ',
+          'pizzeria': 'ピザ・イタリアン',
+          'kirabi': 'スイーツ・カフェ'
+        };
+        if (categories[value]) {
+          storesData[index]['category'] = categories[value];
+        }
         
         // テーブルを更新して新しい値を反映
         updateStoresTable();
@@ -1594,6 +1424,7 @@
       name: '',
       group: '',
       groupName: '',
+      category: '',
       managementSecret: '',
       hours: {
         mon: ['09:00', '18:00'],
@@ -2326,26 +2157,26 @@
   }
   
   /**
-   * 分割ビューのスクロール同期を初期化
+   * 上部・下部両方のスクロールバーを初期化
    */
   function initializeDualScrollbars() {
-    // 店舗管理タブの分割ビュー同期（固定列とスクロール可能列の縦スクロール同期）
-    const storesFixedTable = document.querySelector('.fixed-table .data-table');
-    const storesScrollableTable = document.querySelector('.scrollable-table .data-table');
+    // 店舗管理タブのスクロールバー同期
+    const storesTopScrollbar = document.getElementById('stores-top-scrollbar');
+    const storesTableContainer = document.getElementById('stores-table-container');
     
-    if (storesFixedTable && storesScrollableTable) {
-      // 固定列のスクロールイベント
-      storesFixedTable.addEventListener('scroll', function() {
-        storesScrollableTable.scrollTop = storesFixedTable.scrollTop;
+    if (storesTopScrollbar && storesTableContainer) {
+      // 下部→上部の同期
+      storesTableContainer.addEventListener('scroll', function() {
+        storesTopScrollbar.scrollLeft = storesTableContainer.scrollLeft;
       });
       
-      // スクロール可能列のスクロールイベント
-      storesScrollableTable.addEventListener('scroll', function() {
-        storesFixedTable.scrollTop = storesScrollableTable.scrollTop;
+      // 上部→下部の同期
+      storesTopScrollbar.addEventListener('scroll', function() {
+        storesTableContainer.scrollLeft = storesTopScrollbar.scrollLeft;
       });
     }
     
-    // 商品管理タブのスクロールバー同期（従来通り）
+    // 商品管理タブのスクロールバー同期
     const productsTopScrollbar = document.getElementById('products-top-scrollbar');
     const productsTableContainer = document.getElementById('products-table-container');
     
