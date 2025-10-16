@@ -355,30 +355,35 @@
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       overflow: hidden;
+      min-height: 400px; /* 最小高さを設定 */
     }
     
     .fixed-columns {
       flex-shrink: 0;
       border-right: 2px solid #e9ecef;
       background: #f8f9fa;
+      min-width: 930px; /* 固定幅を設定 */
     }
     
     .fixed-table {
       overflow: visible;
       box-shadow: none;
       border-radius: 0;
+      width: 100%;
     }
     
     .scrollable-columns {
       flex: 1;
       overflow-x: auto;
       overflow-y: hidden;
+      min-width: 0; /* フレックスアイテムの縮小を許可 */
     }
     
     .scrollable-table {
       min-width: 420px; /* グループ(120px) + 休業日(200px) + 操作(100px) */
       box-shadow: none;
       border-radius: 0;
+      width: 100%;
     }
     
     /* 分割ビューのスクロールバー */
@@ -404,12 +409,23 @@
     /* 固定列のヘッダーと行の高さを同期 */
     .fixed-table .data-table th,
     .fixed-table .data-table td {
-      height: 60px; /* デフォルトの行の高さに合わせる */
+      height: auto; /* 自動調整 */
+      min-height: 60px;
     }
     
     .scrollable-table .data-table th,
     .scrollable-table .data-table td {
-      height: 60px; /* 固定列と同じ高さに設定 */
+      height: auto; /* 自動調整 */
+      min-height: 60px;
+    }
+    
+    /* 分割ビューのテーブル幅を調整 */
+    .fixed-table .data-table {
+      width: 930px; /* ID(80) + 店舗名(200) + 管理シークレット(150) + 営業時間(500) */
+    }
+    
+    .scrollable-table .data-table {
+      width: 420px; /* グループ(120) + 休業日(200) + 操作(100) */
     }
     
     /* 上部スクロールバー用のコンテナ */
@@ -1186,8 +1202,14 @@
     // 既存のJSONファイルを読み込み
     loadExistingData();
     
-    // 上部スクロールバーの初期化
+    // 分割ビューのスクロール同期を初期化
     initializeDualScrollbars();
+    
+    // デバッグ用：初期化完了を確認
+    setTimeout(() => {
+      console.log('初期化完了 - storesData:', storesData.length + '件');
+      console.log('初期化完了 - productsData:', productsData.length + '件');
+    }, 1000);
   });
   
   // =============================
@@ -1246,6 +1268,9 @@
         if (storesResponse.ok) {
           storesData = await storesResponse.json();
           console.log('店舗データ読み込み成功:', storesData.length + '件');
+          console.log('店舗データサンプル:', storesData[0]);
+        } else {
+          console.warn('stores.jsonの読み込みに失敗: HTTP', storesResponse.status);
         }
       } catch (error) {
         console.warn('stores.jsonの読み込みに失敗:', error);
@@ -1282,23 +1307,40 @@
    * 店舗テーブルを更新（分割ビュー対応）
    */
   function updateStoresTable() {
-    const fixedTbody = document.getElementById('stores-fixed-tbody');
-    const scrollableTbody = document.getElementById('stores-scrollable-tbody');
-    
-    fixedTbody.innerHTML = '';
-    scrollableTbody.innerHTML = '';
-    
-    storesData.forEach((store, index) => {
-      const fixedRow = createStoreFixedRow(store, index);
-      const scrollableRow = createStoreScrollableRow(store, index);
+    try {
+      console.log('店舗テーブル更新開始:', storesData.length + '件');
       
-      fixedTbody.appendChild(fixedRow);
-      scrollableTbody.appendChild(scrollableRow);
-    });
-    
-    // 店舗がない場合は初期行を追加
-    if (storesData.length === 0) {
-      addStoreRow();
+      const fixedTbody = document.getElementById('stores-fixed-tbody');
+      const scrollableTbody = document.getElementById('stores-scrollable-tbody');
+      
+      if (!fixedTbody || !scrollableTbody) {
+        console.error('テーブル要素が見つかりません:', { fixedTbody, scrollableTbody });
+        return;
+      }
+      
+      fixedTbody.innerHTML = '';
+      scrollableTbody.innerHTML = '';
+      
+      storesData.forEach((store, index) => {
+        try {
+          const fixedRow = createStoreFixedRow(store, index);
+          const scrollableRow = createStoreScrollableRow(store, index);
+          
+          fixedTbody.appendChild(fixedRow);
+          scrollableTbody.appendChild(scrollableRow);
+        } catch (error) {
+          console.error(`店舗[${index}]の行作成エラー:`, error, store);
+        }
+      });
+      
+      // 店舗がない場合は初期行を追加
+      if (storesData.length === 0) {
+        addStoreRow();
+      }
+      
+      console.log('店舗テーブル更新完了');
+    } catch (error) {
+      console.error('店舗テーブル更新エラー:', error);
     }
   }
   
