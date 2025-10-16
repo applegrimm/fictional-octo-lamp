@@ -363,7 +363,7 @@
       flex-shrink: 0;
       border-right: 2px solid #e9ecef;
       background: #f8f9fa;
-      width: 930px; /* 固定幅を設定（min-widthからwidthに変更） */
+      width: 630px; /* ID(80) + 店舗名(200) + 管理シークレット(150) + 営業時間(200) */
     }
     
     .fixed-table {
@@ -423,7 +423,7 @@
     
     /* 分割ビューのテーブル幅を調整 */
     .fixed-table .data-table {
-      width: 930px; /* ID(80) + 店舗名(200) + 管理シークレット(150) + 営業時間(500) */
+      width: 630px; /* ID(80) + 店舗名(200) + 管理シークレット(150) + 営業時間(200) */
       table-layout: fixed; /* 固定レイアウトで幅を確実に適用 */
     }
     
@@ -432,14 +432,14 @@
       table-layout: fixed; /* 固定レイアウトで幅を確実に適用 */
     }
     
-    /* デバッグ用：分割ビューの境界を視覚化 */
-    .fixed-columns {
-      border: 2px solid #28a745; /* 緑色の境界線 */
+    /* デバッグ用：分割ビューの境界を視覚化（本番では削除） */
+    /* .fixed-columns {
+      border: 2px solid #28a745;
     }
     
     .scrollable-columns {
-      border: 2px solid #dc3545; /* 赤色の境界線 */
-    }
+      border: 2px solid #dc3545;
+    } */
     
     /* 上部スクロールバー用のコンテナ */
     .top-scrollbar {
@@ -588,21 +588,23 @@
     .hours-input {
       display: flex;
       flex-direction: column;
-      gap: 5px;
-      min-width: 200px;
+      gap: 2px;
+      min-width: 180px;
+      max-width: 180px;
     }
     
     .hours-row {
       display: flex;
       align-items: center;
-      gap: 5px;
-      font-size: 0.8rem;
+      gap: 2px;
+      font-size: 0.7rem;
+      flex-wrap: wrap;
     }
     
     .hours-row input[type="time"] {
-      width: 70px;
-      font-size: 0.8rem;
-      padding: 4px;
+      width: 60px;
+      font-size: 0.7rem;
+      padding: 2px;
     }
     
     .hours-row input[type="checkbox"] {
@@ -610,8 +612,12 @@
     }
     
     .hours-row label {
-      min-width: 30px;
-      font-size: 0.8rem;
+      min-width: 20px;
+      font-size: 0.7rem;
+    }
+    
+    .hours-row span {
+      font-size: 0.7rem;
     }
     
     /* =============================
@@ -926,7 +932,7 @@
                     <th style="width: 80px;">ID</th>
                     <th style="width: 200px;">店舗名</th>
                     <th style="width: 150px;">管理シークレット</th>
-                    <th style="width: 500px;">営業時間</th>
+                    <th style="width: 200px;">営業時間</th>
                   </tr>
                 </thead>
                 <tbody id="stores-fixed-tbody">
