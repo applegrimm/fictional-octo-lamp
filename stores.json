@@ -4,7 +4,6 @@
     "name": "あっぷるぐりむ 長野運動公園店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
-    "category": "スイーツ・カフェ",
     "managementSecret": "ag1-mg-09yxnnz6",
     "hours": {
       "mon": [
@@ -43,7 +42,6 @@
     "name": "あっぷるぐりむ 長野栗田店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
-    "category": "スイーツ・カフェ",
     "managementSecret": "ag2-mg-64e370hw",
     "hours": {
       "mon": [
@@ -82,7 +80,6 @@
     "name": "あっぷるぐりむ 長野小島田店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
-    "category": "スイーツ・カフェ",
     "managementSecret": "ag3-mg-yr2goj9u",
     "hours": {
       "mon": [
@@ -121,7 +118,6 @@
     "name": "あっぷるぐりむ FC佐久店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
-    "category": "スイーツ・カフェ",
     "managementSecret": "ag4-mg-sd2cg778",
     "hours": {
       "mon": [
@@ -160,7 +156,6 @@
     "name": "あっぷるぐりむ 上越北店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
-    "category": "スイーツ・カフェ",
     "managementSecret": "ag5-mg-4k0elppy",
     "hours": {
       "mon": [
@@ -199,7 +194,6 @@
     "name": "ピッツェリア 長野篠ノ井バイパス店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "category": "イタリアン・ピザ",
     "managementSecret": "pz1-mg-xs88creu",
     "hours": {
       "mon": [
@@ -238,7 +232,6 @@
     "name": "ピッツェリア 長野東和田店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "category": "イタリアン・ピザ",
     "managementSecret": "pz2-mg-939sxktx",
     "hours": {
       "mon": [
@@ -277,7 +270,6 @@
     "name": "ピッツェリア 上田店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "category": "イタリアン・ピザ",
     "managementSecret": "pz3-mg-bbb9hv33",
     "hours": {
       "mon": [
@@ -316,7 +308,6 @@
     "name": "ピッツェリア 上田しおだ野店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "category": "イタリアン・ピザ",
     "managementSecret": "pz4-mg-2ai1aywy",
     "hours": {
       "mon": [
@@ -355,7 +346,6 @@
     "name": "ピッツェリア 松本つかま店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "category": "イタリアン・ピザ",
     "managementSecret": "pz5-mg-3vtffbow",
     "hours": {
       "mon": [
@@ -394,7 +384,6 @@
     "name": "ピッツェリア 松本村井店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "category": "イタリアン・ピザ",
     "managementSecret": "pz6-mg-sjmysodz",
     "hours": {
       "mon": [
@@ -433,7 +422,6 @@
     "name": "ピッツェリア 新潟中央インター店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "category": "イタリアン・ピザ",
     "managementSecret": "pz7-mg-5299c630",
     "hours": {
       "mon": [
@@ -472,7 +460,6 @@
     "name": "ピッツェリア 燕三条店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "category": "イタリアン・ピザ",
     "managementSecret": "pz8-mg-xzkurwyz",
     "hours": {
       "mon": [
@@ -511,7 +498,6 @@
     "name": "ピッツェリア 長岡インター店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "category": "イタリアン・ピザ",
     "managementSecret": "pz9-mg-ar89iert",
     "hours": {
       "mon": [
@@ -550,7 +536,6 @@
     "name": "ピッツェリア 上越店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "category": "イタリアン・ピザ",
     "managementSecret": "pz10-mg-3qwvgjmp",
     "hours": {
       "mon": [
@@ -589,7 +574,6 @@
     "name": "焼肉バーンズ 長野平林店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "category": "焼肉",
     "managementSecret": "bk1-mg-wyqndhh1",
     "hours": {
       "mon": [
@@ -628,7 +612,6 @@
     "name": "焼肉バーンズ 須坂インター店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "category": "焼肉",
     "managementSecret": "bk2-mg-fzvsvix6",
     "hours": {
       "mon": [
@@ -667,7 +650,6 @@
     "name": "焼肉バーンズ 上越店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "category": "焼肉",
     "managementSecret": "bk3-mg-4993e4yb",
     "hours": {
       "mon": [
@@ -706,7 +688,6 @@
     "name": "焼肉バーンズ 黒部店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "category": "焼肉",
     "managementSecret": "bk4-mg-a7mshgpn",
     "hours": {
       "mon": [
@@ -745,7 +726,6 @@
     "name": "焼肉バーンズ 富山飯野店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "category": "焼肉",
     "managementSecret": "bk5-mg-x4bpalic",
     "hours": {
       "mon": [
@@ -784,7 +764,6 @@
     "name": "焼肉バーンズ 富山黒瀬店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "category": "焼肉",
     "managementSecret": "bk6-mg-0k76b73j",
     "hours": {
       "mon": [
@@ -823,7 +802,6 @@
     "name": "焼肉バーンズ 高岡四屋店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "category": "焼肉",
     "managementSecret": "bk7-mg-wtc2egz6",
     "hours": {
       "mon": [
@@ -862,7 +840,6 @@
     "name": "カルビ牧場 長岡インター店",
     "group": "kirabi",
     "groupName": "カルビ牧場",
-    "category": "焼肉・韓国料理",
     "managementSecret": "bk8-mg-n8w4vib5",
     "hours": {
       "mon": [
@@ -901,7 +878,6 @@
     "name": "カルビ牧場 燕三条店",
     "group": "kirabi",
     "groupName": "カルビ牧場",
-    "category": "焼肉・韓国料理",
     "managementSecret": "bk9-mg-efphrgsp",
     "hours": {
       "mon": [
@@ -940,7 +916,6 @@
     "name": "きらび 本店",
     "group": "kirabi_single",
     "groupName": "きらび",
-    "category": "和食・創作料理",
     "managementSecret": "kb1-mg-ibzwsj6p",
     "hours": {
       "mon": [
@@ -979,7 +954,6 @@
     "name": "まるとみ 上越高田店",
     "group": "marutomi",
     "groupName": "まるとみ",
-    "category": "和食・創作料理",
     "managementSecret": "mt1-mg-lv5ni2aa",
     "hours": {
       "mon": [
