@@ -355,14 +355,15 @@
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
       overflow: hidden;
-      min-height: 400px; /* 最小高さを設定 */
+      min-height: 400px;
+      width: 100%; /* コンテナの幅を100%に設定 */
     }
     
     .fixed-columns {
       flex-shrink: 0;
       border-right: 2px solid #e9ecef;
       background: #f8f9fa;
-      min-width: 930px; /* 固定幅を設定 */
+      width: 930px; /* 固定幅を設定（min-widthからwidthに変更） */
     }
     
     .fixed-table {
@@ -376,7 +377,8 @@
       flex: 1;
       overflow-x: auto;
       overflow-y: hidden;
-      min-width: 0; /* フレックスアイテムの縮小を許可 */
+      min-width: 420px; /* 最小幅を設定 */
+      width: auto; /* 残りの幅を使用 */
     }
     
     .scrollable-table {
@@ -422,10 +424,21 @@
     /* 分割ビューのテーブル幅を調整 */
     .fixed-table .data-table {
       width: 930px; /* ID(80) + 店舗名(200) + 管理シークレット(150) + 営業時間(500) */
+      table-layout: fixed; /* 固定レイアウトで幅を確実に適用 */
     }
     
     .scrollable-table .data-table {
       width: 420px; /* グループ(120) + 休業日(200) + 操作(100) */
+      table-layout: fixed; /* 固定レイアウトで幅を確実に適用 */
+    }
+    
+    /* デバッグ用：分割ビューの境界を視覚化 */
+    .fixed-columns {
+      border: 2px solid #28a745; /* 緑色の境界線 */
+    }
+    
+    .scrollable-columns {
+      border: 2px solid #dc3545; /* 赤色の境界線 */
     }
     
     /* 上部スクロールバー用のコンテナ */
@@ -707,19 +720,30 @@
       /* 分割ビューのモバイル対応 */
       .split-table-container {
         flex-direction: column;
+        width: 100%;
       }
       
       .fixed-columns {
         border-right: none;
         border-bottom: 2px solid #e9ecef;
+        width: 100%;
+      }
+      
+      .fixed-table .data-table {
+        width: 100%;
       }
       
       .scrollable-columns {
         overflow-x: auto;
+        width: 100%;
       }
       
       .scrollable-table {
         min-width: 100%;
+      }
+      
+      .scrollable-table .data-table {
+        width: 100%;
       }
       
       /* 宅配関連フィールドのモバイル対応 */
