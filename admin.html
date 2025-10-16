@@ -1218,11 +1218,12 @@
         <select onchange="updateStoreData(${index}, 'group', this.value)" 
                 style="width: 100%; padding: 4px; border: 1px solid #ccc; border-radius: 4px;">
           <option value="">グループを選択</option>
-          <option value="burns" ${store.group === 'burns' ? 'selected' : ''}>🍖 焼肉バーンズグループ</option>
-          <option value="kirabi" ${store.group === 'kirabi' ? 'selected' : ''}>🥩 カルビ牧場グループ</option>
-          <option value="applegrimm" ${store.group === 'applegrimm' ? 'selected' : ''}>🍰 あっぷるぐりむグループ</option>
-          <option value="pizzeria" ${store.group === 'pizzeria' ? 'selected' : ''}>🍕 ピッツェリアグループ</option>
-          <option value="kirabi" ${store.group === 'kirabi' ? 'selected' : ''}>🍰 きらびグループ</option>
+          <option value="burns" ${store.group === 'burns' ? 'selected' : ''}>焼肉バーンズ</option>
+          <option value="kirabi" ${store.group === 'kirabi' ? 'selected' : ''}>カルビ牧場</option>
+          <option value="applegrimm" ${store.group === 'applegrimm' ? 'selected' : ''}>あっぷるぐりむ</option>
+          <option value="pizzeria" ${store.group === 'pizzeria' ? 'selected' : ''}>ピッツェリア</option>
+          <option value="kirabi_single" ${store.group === 'kirabi_single' ? 'selected' : ''}>きらび</option>
+          <option value="marutomi" ${store.group === 'marutomi' ? 'selected' : ''}>まるとみ</option>
         </select>
       </td>
       <td>
@@ -1316,11 +1317,12 @@
     // グループ選択時にgroupNameを自動設定
     if (field === 'group') {
       const groupNames = {
-        'burns': '🍖 焼肉バーンズグループ',
-        'kirabi': '🥩 カルビ牧場グループ',
-        'applegrimm': '🍰 あっぷるぐりむグループ',
-        'pizzeria': '🍕 ピッツェリアグループ',
-        'kirabi': '🍰 きらびグループ'
+        'burns': '焼肉バーンズ',
+        'kirabi': 'カルビ牧場',
+        'applegrimm': 'あっぷるぐりむ',
+        'pizzeria': 'ピッツェリア',
+        'kirabi_single': 'きらび',
+        'marutomi': 'まるとみ'
       };
       
       if (groupNames[value]) {
@@ -1851,6 +1853,7 @@
               <option value="afternoon" ${product.deliveryTimeSlots?.timeSlots === 'afternoon' ? 'selected' : ''}>14時-18時のみ</option>
               <option value="evening" ${product.deliveryTimeSlots?.timeSlots === 'evening' ? 'selected' : ''}>18時-21時のみ</option>
               <option value="none" ${product.deliveryTimeSlots?.timeSlots === 'none' ? 'selected' : ''}>時間指定なし</option>
+              <option value="no_time_slot" ${product.deliveryTimeSlots?.timeSlots === 'no_time_slot' ? 'selected' : ''}>時間帯指定なし</option>
             </select>
           </div>
         </div>
