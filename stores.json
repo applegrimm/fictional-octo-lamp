@@ -1,7 +1,7 @@
 [
   {
     "id": "ag1",
-    "name": "長野運動公園店",
+    "name": "あっぷるぐりむ 長野運動公園店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
     "category": "スイーツ・カフェ",
@@ -40,7 +40,7 @@
   },
   {
     "id": "ag2",
-    "name": "長野栗田店",
+    "name": "あっぷるぐりむ 長野栗田店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
     "category": "スイーツ・カフェ",
@@ -79,7 +79,7 @@
   },
   {
     "id": "ag3",
-    "name": "長野小島田店",
+    "name": "あっぷるぐりむ 長野小島田店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
     "category": "スイーツ・カフェ",
@@ -118,7 +118,7 @@
   },
   {
     "id": "ag4",
-    "name": "FC佐久店",
+    "name": "あっぷるぐりむ FC佐久店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
     "category": "スイーツ・カフェ",
@@ -157,7 +157,7 @@
   },
   {
     "id": "ag5",
-    "name": "上越北店",
+    "name": "あっぷるぐりむ 上越北店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
     "category": "スイーツ・カフェ",
@@ -196,7 +196,7 @@
   },
   {
     "id": "pz1",
-    "name": "長野篠ノ井バイパス店",
+    "name": "ピッツェリア 長野篠ノ井バイパス店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
     "category": "イタリアン・ピザ",
@@ -235,7 +235,7 @@
   },
   {
     "id": "pz2",
-    "name": "長野東和田店",
+    "name": "ピッツェリア 長野東和田店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
     "category": "イタリアン・ピザ",
@@ -274,7 +274,7 @@
   },
   {
     "id": "pz3",
-    "name": "上田店",
+    "name": "ピッツェリア 上田店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
     "category": "イタリアン・ピザ",
@@ -313,7 +313,7 @@
   },
   {
     "id": "pz4",
-    "name": "上田しおだ野店",
+    "name": "ピッツェリア 上田しおだ野店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
     "category": "イタリアン・ピザ",
@@ -352,7 +352,7 @@
   },
   {
     "id": "pz5",
-    "name": "松本つかま店",
+    "name": "ピッツェリア 松本つかま店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
     "category": "イタリアン・ピザ",
@@ -391,7 +391,7 @@
   },
   {
     "id": "pz6",
-    "name": "松本村井店",
+    "name": "ピッツェリア 松本村井店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
     "category": "イタリアン・ピザ",
@@ -430,7 +430,7 @@
   },
   {
     "id": "pz7",
-    "name": "新潟中央インター店",
+    "name": "ピッツェリア 新潟中央インター店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
     "category": "イタリアン・ピザ",
@@ -469,7 +469,7 @@
   },
   {
     "id": "pz8",
-    "name": "燕三条店",
+    "name": "ピッツェリア 燕三条店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
     "category": "イタリアン・ピザ",
@@ -508,7 +508,7 @@
   },
   {
     "id": "pz9",
-    "name": "長岡インター店",
+    "name": "ピッツェリア 長岡インター店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
     "category": "イタリアン・ピザ",
@@ -547,7 +547,7 @@
   },
   {
     "id": "pz10",
-    "name": "上越店",
+    "name": "ピッツェリア 上越店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
     "category": "イタリアン・ピザ",
@@ -937,7 +937,7 @@
   },
   {
     "id": "kb1",
-    "name": "きらび本店",
+    "name": "きらび 本店",
     "group": "kirabi_single",
     "groupName": "きらび",
     "category": "和食・創作料理",
