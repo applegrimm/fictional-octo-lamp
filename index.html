@@ -616,11 +616,25 @@
         <span class="error-message" id="store-error"></span>
       </div>
 
+      <!-- お申し込み店舗グループ選択（配送選択時のみ表示） -->
+      <div id="application-store-group-section" style="display:none; margin: 8px 0 12px;">
+        <label for="application_store_group">お申し込み店舗グループ<span class="required">*</span></label>
+        <select id="application_store_group" name="application_store_group" required disabled>
+          <option value="">グループを選択してください</option>
+          <option value="burns">🍖 焼肉バーンズグループ</option>
+          <option value="kirabi">🥩 カルビ牧場グループ</option>
+          <option value="applegrimm">🍰 あっぷるぐりむグループ</option>
+          <option value="pizzeria">🍕 ピッツェリアグループ</option>
+          <option value="kirabi">🍰 きらびグループ</option>
+        </select>
+        <span class="error-message" id="application_store_group-error"></span>
+      </div>
+
       <!-- お申し込み店舗選択（配送選択時のみ表示） -->
       <div id="application-store-section" style="display:none; margin: 8px 0 12px;">
-        <label for="application_store">お申し込み店舗を選択してください。<span class="required">*</span></label>
+        <label for="application_store">お申し込み店舗<span class="required">*</span></label>
         <select id="application_store" name="application_store" required disabled>
-          <option value="">選択してください</option>
+          <option value="">先にグループを選択してください</option>
         </select>
         <span class="error-message" id="application_store-error"></span>
       </div>
@@ -1211,6 +1225,44 @@
         }
       });
 
+      // お申し込み店舗グループ選択のイベントリスナー
+      document.getElementById('application_store_group').addEventListener('change', function() {
+        const selectedGroup = this.value;
+        const applicationStoreSelect = document.getElementById('application_store');
+        
+        // お申し込み店舗選択肢をクリア
+        applicationStoreSelect.innerHTML = '<option value="">店舗を選択してください</option>';
+        
+        if (selectedGroup) {
+          // 選択されたグループの店舗のみ表示
+          const groupStores = allStores.filter(store => store.group === selectedGroup);
+          
+          if (groupStores.length > 0) {
+            groupStores.forEach(store => {
+              const option = document.createElement('option');
+              option.value = store.name;
+              option.textContent = store.name;
+              applicationStoreSelect.appendChild(option);
+            });
+            
+            applicationStoreSelect.disabled = false;
+            applicationStoreSelect.required = true;
+          } else {
+            // グループに店舗がない場合
+            const option = document.createElement('option');
+            option.value = '';
+            option.textContent = 'このグループには店舗がありません';
+            option.disabled = true;
+            applicationStoreSelect.appendChild(option);
+            applicationStoreSelect.disabled = true;
+            applicationStoreSelect.required = false;
+          }
+        } else {
+          applicationStoreSelect.disabled = true;
+          applicationStoreSelect.required = false;
+        }
+      });
+
       // 店舗選択のイベントリスナー
       document.getElementById('store').addEventListener('change', function() {
         if (currentDeliveryMethod === 'delivery') {
@@ -1479,16 +1531,11 @@
         storeSelect.appendChild(option);
       });
       
-      // 宅配便用 お申し込み店舗の選択肢も設定
+      // 宅配便用 お申し込み店舗の選択肢は初期化のみ（グループ選択後に動的に設定）
       const applicationStoreSelect = document.getElementById('application_store');
       if (applicationStoreSelect) {
-        applicationStoreSelect.innerHTML = '<option value="">選択してください</option>';
-        allStores.forEach(store => {
-          const opt = document.createElement('option');
-          opt.value = store.name;
-          opt.textContent = store.name;
-          applicationStoreSelect.appendChild(opt);
-        });
+        applicationStoreSelect.innerHTML = '<option value="">先にグループを選択してください</option>';
+        applicationStoreSelect.disabled = true;
       }
 
       // 商品選択肢を更新
@@ -1617,6 +1664,7 @@
       document.getElementById('pickup-date-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('pickup-time-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('orderer-address-section').style.display = isDelivery ? 'block' : 'none';
+      document.getElementById('application-store-group-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('application-store-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('delivery-address-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('noshi-section').style.display = isDelivery ? 'block' : 'none';
@@ -1629,6 +1677,12 @@
       pickupDateEl.required = !isDelivery;
       pickupTimeEl.required = !isDelivery;
       
+      // お申し込み店舗グループの有効/無効
+      const applicationStoreGroupEl = document.getElementById('application_store_group');
+      if (applicationStoreGroupEl) {
+        applicationStoreGroupEl.disabled = !isDelivery;
+        applicationStoreGroupEl.required = isDelivery;
+      }
       // お申し込み店舗の有効/無効
       const applicationStoreEl = document.getElementById('application_store');
       if (applicationStoreEl) {
@@ -3458,7 +3512,9 @@
         phone: formData.get('phone'),
         email: formData.get('email'),
         store: formData.get('store'),
+        storeGroup: formData.get('store-group') || '',
         applicationStore: formData.get('application_store') || '',
+        applicationStoreGroup: formData.get('application_store_group') || '',
         companyName: formData.get('company_name') || '',
         departmentName: formData.get('department_name') || '',
         contactPerson: formData.get('contact_person') || '',
@@ -3524,7 +3580,7 @@
         if (!data.store || !data.pickup_date || !data.pickup_time) return null;
       } else {
         if (!data.deliveryDate || !data.deliveryTimeSlot) return null;
-        if (!data.applicationStore) return null;
+        if (!data.applicationStoreGroup || !data.applicationStore) return null;
         // 会社情報は法人のみ必須
         if (isCorporateType) {
           if (!data.companyName || !data.contactPerson) return null;
