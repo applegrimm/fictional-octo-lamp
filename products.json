@@ -157,7 +157,7 @@
     "minDays": 0,
     "cutoff": "15:00",
     "minType": "business",
-    "description": "",
+    "description": "厳選した信州プレミアム牛肉をお手頃価格でお届けいたします。年末年始の会食や、大切な方への贈り物にもオススメです。",
     "deliveryAvailable": true,
     "deliveryMinDays": 0,
     "deliveryCutoff": null,
@@ -185,5 +185,140 @@
       "enabled": false,
       "timeSlots": "all"
     }
+  },
+  {
+    "id": "N2",
+    "name": "味百華　二段重　全60品",
+    "price": 17000,
+    "minDays": 1,
+    "cutoff": null,
+    "minType": "calendar",
+    "pickupDateRange": {
+      "enabled": false,
+      "startDate": "2025-12-29",
+      "endDate": "2025-12-30",
+      "cutoff": ""
+    },
+    "deliveryDateRange": {
+      "enabled": true,
+      "startDate": "2025-12-29",
+      "endDate": "2025-12-30",
+      "cutoff": ""
+    },
+    "salesPeriod": {
+      "enabled": true,
+      "startDate": "2025-10-15",
+      "endDate": "2025-11-30",
+      "startTime": "",
+      "endTime": ""
+    },
+    "description": "",
+    "imageUrl": "https://applegrimm.github.io/fictional-octo-lamp/images/products/N2.jpg",
+    "deliveryAvailable": true,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": null,
+    "deliveryTimeSlots": {
+      "enabled": true,
+      "timeSlots": "no_time_slot"
+    },
+    "deliveryWeight": 0,
+    "deliverySize": "M",
+    "deliveryFrozen": true,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": false,
+    "noshiOptions": [
+      "なし"
+    ],
+    "visible": true
+  },
+  {
+    "id": "N3",
+    "name": "博多 日本料理てら岡監修　特大重おせち　一段重　全51品",
+    "price": 19000,
+    "minDays": 1,
+    "cutoff": null,
+    "minType": "calendar",
+    "pickupDateRange": {
+      "enabled": false,
+      "startDate": "",
+      "endDate": "",
+      "cutoff": ""
+    },
+    "deliveryDateRange": {
+      "enabled": true,
+      "startDate": "2025-12-29",
+      "endDate": "2025-12-30",
+      "cutoff": ""
+    },
+    "salesPeriod": {
+      "enabled": true,
+      "startDate": "2025-10-15",
+      "endDate": "2025-11-30",
+      "startTime": "",
+      "endTime": ""
+    },
+    "description": "",
+    "imageUrl": "https://applegrimm.github.io/fictional-octo-lamp/images/products/N3.jpg",
+    "deliveryAvailable": true,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": null,
+    "deliveryTimeSlots": {
+      "enabled": true,
+      "timeSlots": "no_time_slot"
+    },
+    "deliveryWeight": 0,
+    "deliverySize": "M",
+    "deliveryFrozen": true,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": false,
+    "noshiOptions": [
+      "なし"
+    ],
+    "visible": true
+  },
+  {
+    "id": "N4",
+    "name": "味百華　四段重　全58品",
+    "price": 22000,
+    "minDays": 1,
+    "cutoff": null,
+    "minType": "calendar",
+    "pickupDateRange": {
+      "enabled": false,
+      "startDate": "",
+      "endDate": "",
+      "cutoff": ""
+    },
+    "deliveryDateRange": {
+      "enabled": true,
+      "startDate": "2025-12-29",
+      "endDate": "2025-12-30",
+      "cutoff": ""
+    },
+    "salesPeriod": {
+      "enabled": true,
+      "startDate": "2025-10-15",
+      "endDate": "2025-11-30",
+      "startTime": "",
+      "endTime": ""
+    },
+    "description": "",
+    "imageUrl": "https://applegrimm.github.io/fictional-octo-lamp/images/products/N4.jpg",
+    "deliveryAvailable": true,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": null,
+    "deliveryTimeSlots": {
+      "enabled": true,
+      "timeSlots": "no_time_slot"
+    },
+    "deliveryWeight": 0,
+    "deliverySize": "M",
+    "deliveryFrozen": false,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": false,
+    "noshiOptions": [
+      "なし"
+    ],
+    "visible": true
   }
 ]
