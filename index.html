@@ -1740,6 +1740,11 @@
       } else {
         updatePickupDateControl();
       }
+      
+      // 配送方法変更時のし種類選択肢を更新
+      if (isDelivery) {
+        updateNoshiOptions();
+      }
     }
 
     // ============================
@@ -3455,6 +3460,88 @@
     // ========================================
     
     /**
+     * のし種類選択肢を商品の対応可否に応じて更新
+     */
+    function updateNoshiOptions() {
+      const noshiSelect = document.getElementById('noshi_option_select');
+      if (!noshiSelect) return;
+      
+      const productItems = document.querySelectorAll('.product-item');
+      let hasNoshiUnavailableProduct = false;
+      
+      // 選択された商品の中にのし対応不可の商品があるかチェック
+      productItems.forEach(itemDiv => {
+        const select = itemDiv.querySelector('select');
+        const qtyInput = itemDiv.querySelector('input[type="number"]');
+        
+        if (select.value && qtyInput.value && qtyInput.value > 0) {
+          const product = allProducts.find(p => p.name === select.value);
+          if (product && product.noshiAvailable === false) {
+            hasNoshiUnavailableProduct = true;
+          }
+        }
+      });
+      
+      // のし対応不可の商品が含まれている場合、選択肢を「なし」のみに制限
+      if (hasNoshiUnavailableProduct) {
+        // 現在の選択値を保存
+        const currentValue = noshiSelect.value;
+        
+        // 選択肢を「なし」のみに変更
+        noshiSelect.innerHTML = '<option value="なし">なし</option>';
+        
+        // 現在の選択が「なし」でない場合は「なし」に変更
+        if (currentValue !== 'なし') {
+          noshiSelect.value = 'なし';
+        }
+        
+        // 説明文を更新
+        const noshiSection = document.getElementById('noshi-section');
+        const existingNote = noshiSection.querySelector('.noshi-note');
+        if (existingNote) {
+          existingNote.remove();
+        }
+        
+        const note = document.createElement('div');
+        note.className = 'noshi-note';
+        note.style.cssText = 'font-size: 0.85em; color:#e74c3c; margin-top:4px; font-weight:bold;';
+        note.textContent = '※選択された商品にのし対応不可の商品が含まれているため、「なし」のみ選択可能です';
+        noshiSelect.parentNode.appendChild(note);
+        
+      } else {
+        // のし対応不可の商品がない場合、通常の選択肢を復元
+        const currentValue = noshiSelect.value;
+        
+        noshiSelect.innerHTML = `
+          <option value="なし">なし</option>
+          <option value="御歳暮">御歳暮</option>
+          <option value="御中元">御中元</option>
+          <option value="内祝い">内祝い</option>
+          <option value="お祝い">お祝い</option>
+          <option value="その他">その他</option>
+        `;
+        
+        // 元の選択値を復元（存在する場合）
+        if (currentValue && noshiSelect.querySelector(`option[value="${currentValue}"]`)) {
+          noshiSelect.value = currentValue;
+        } else {
+          noshiSelect.value = 'なし';
+        }
+        
+        // 説明文を元に戻す
+        const existingNote = document.querySelector('.noshi-note');
+        if (existingNote) {
+          existingNote.remove();
+        }
+        
+        const note = document.createElement('div');
+        note.style.cssText = 'font-size: 0.85em; color:#666; margin-top:4px;';
+        note.textContent = '※冷凍品のため略式の短冊のしのみ対応いたします';
+        noshiSelect.parentNode.appendChild(note);
+      }
+    }
+
+    /**
      * 合計金額を計算して表示
      */
     function updateTotalAmount() {
@@ -3514,6 +3601,9 @@
         // 商品未選択でも決済ボタンを表示
         paymentBtn.style.display = 'block';
       }
+      
+      // のし種類選択肢を商品の対応可否に応じて更新
+      updateNoshiOptions();
     }
     
     /**
