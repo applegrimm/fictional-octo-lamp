@@ -219,7 +219,7 @@
     "deliveryCutoff": null,
     "deliveryTimeSlots": {
       "enabled": true,
-      "timeSlots": "no_time_slot"
+      "timeSlots": "none"
     },
     "deliveryWeight": 0,
     "deliverySize": "M",
@@ -264,7 +264,7 @@
     "deliveryCutoff": null,
     "deliveryTimeSlots": {
       "enabled": true,
-      "timeSlots": "no_time_slot"
+      "timeSlots": "none"
     },
     "deliveryWeight": 0,
     "deliverySize": "M",
@@ -309,7 +309,7 @@
     "deliveryCutoff": null,
     "deliveryTimeSlots": {
       "enabled": true,
-      "timeSlots": "no_time_slot"
+      "timeSlots": "none"
     },
     "deliveryWeight": 0,
     "deliverySize": "M",
