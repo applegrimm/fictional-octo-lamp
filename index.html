@@ -629,7 +629,7 @@
 
       <!-- お申し込み店舗グループ選択（配送選択時のみ表示） -->
       <div id="application-store-group-section" style="display:none; margin: 8px 0 12px;">
-        <label for="application_store_group">お申し込み店舗グループ<span class="required">*</span></label>
+        <label for="application_store_group">店舗グループ<span class="required">*</span></label>
         <select id="application_store_group" name="application_store_group" required disabled>
           <option value="">グループを選択してください</option>
           <option value="burns">焼肉バーンズ</option>
@@ -1150,6 +1150,12 @@
     function attachProductSelectListener() {
       document.querySelectorAll('.product-item select').forEach(select => {
         select.addEventListener('change', () => {
+          // 商品が選択された場合、数量が空なら自動的に「1」を入力
+          const quantityInput = select.parentElement.querySelector('input[type="number"]');
+          if (select.value && quantityInput && !quantityInput.value) {
+            quantityInput.value = '1';
+          }
+          
           if (currentDeliveryMethod === 'delivery') {
             updateDeliveryDateControl();
           } else {
@@ -1633,7 +1639,13 @@
     function updateProductDescription(select) {
       const descDiv = select.parentElement.querySelector('.product-desc');
       const imgEl = select.parentElement.querySelector('.product-image img');
+      const quantityInput = select.parentElement.querySelector('input[type="number"]');
       const selectedProduct = allProducts.find(p => p.name === select.value);
+      
+      // 商品が選択された場合、数量が空なら自動的に「1」を入力
+      if (selectedProduct && quantityInput && !quantityInput.value) {
+        quantityInput.value = '1';
+      }
       
       if (selectedProduct && selectedProduct.description) {
         descDiv.textContent = selectedProduct.description;
