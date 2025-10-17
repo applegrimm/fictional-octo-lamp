@@ -617,6 +617,16 @@
         <span class="error-message" id="store-error"></span>
       </div>
 
+      <!-- 商品情報を知った店舗についての説明（配送選択時のみ表示） -->
+      <div id="application-store-explanation" style="display:none; margin: 16px 0 12px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; border-radius: 4px;">
+        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #333;">
+          <strong>商品情報を知った店舗について</strong><br>
+          商品情報をお知りになった店舗の選択をお願いしております。<br>
+          この情報は各店舗の売上管理とサービス向上のため使用させていただきます。<br>
+          お客様にはご面倒をおかけいたしますが、ご協力をお願いいたします。
+        </p>
+      </div>
+
       <!-- お申し込み店舗グループ選択（配送選択時のみ表示） -->
       <div id="application-store-group-section" style="display:none; margin: 8px 0 12px;">
         <label for="application_store_group">お申し込み店舗グループ<span class="required">*</span></label>
@@ -634,7 +644,7 @@
 
       <!-- お申し込み店舗選択（配送選択時のみ表示） -->
       <div id="application-store-section" style="display:none; margin: 8px 0 12px;">
-        <label for="application_store">お申し込み店舗<span class="required">*</span></label>
+        <label for="application_store">商品情報を知った店舗<span class="required">*</span></label>
         <select id="application_store" name="application_store" required disabled>
           <option value="">先にグループを選択してください</option>
         </select>
@@ -1666,6 +1676,7 @@
       document.getElementById('pickup-date-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('pickup-time-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('orderer-address-section').style.display = isDelivery ? 'block' : 'none';
+      document.getElementById('application-store-explanation').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('application-store-group-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('application-store-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('delivery-address-section').style.display = isDelivery ? 'block' : 'none';
@@ -3743,7 +3754,7 @@
       // お申し込み店舗チェック
       const applicationStore = document.getElementById('application_store');
       if (!applicationStore || !applicationStore.value) {
-        errors.push('• お申し込み店舗を選択してください');
+        errors.push('• 商品情報を知った店舗を選択してください');
       }
       
       // 会社名チェック
@@ -3900,7 +3911,7 @@
             return;
           }
           if (!reservationData.applicationStore) {
-            alert('「お申し込み店舗」を選択してください。');
+            alert('「商品情報を知った店舗」を選択してください。');
             return;
           }
         }
