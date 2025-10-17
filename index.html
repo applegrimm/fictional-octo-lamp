@@ -766,7 +766,7 @@
           <option value="お祝い">お祝い</option>
           <option value="その他">その他</option>
         </select>
-        <div style="font-size: 0.85em; color:#666; margin-top:4px;">※冷凍品のため略式の短冊のしのみ対応いたします</div>
+        <div id="noshi-default-note" style="font-size: 0.85em; color:#666; margin-top:4px;">※冷凍品のため略式の短冊のしのみ対応いたします</div>
         <span class="error-message" id="noshi_option-error"></span>
       </div>
       
@@ -2797,7 +2797,7 @@
           { value: '16:00-18:00', text: '16時-18時' },
           { value: '18:00-20:00', text: '18時-20時' },
           { value: '19:00-21:00', text: '19時-21時' },
-          { value: 'no_time_slot', text: '時間帯指定なし' }
+          { value: '時間指定なし', text: '時間帯指定なし' }
         ],
         'morning': [
           { value: '08:00-12:00', text: '8時-12時' }
@@ -2811,7 +2811,7 @@
           { value: '19:00-21:00', text: '19時-21時' }
         ],
         'none': [
-          { value: 'no_time_slot', text: '時間指定なし' }
+          { value: '時間帯指定なし', text: '時間帯指定なし' }
         ]
       };
       
@@ -2837,10 +2837,10 @@
           timeSelect.appendChild(optionElement);
         });
       } else {
-        // 共通の時間帯がない場合は「時間指定なし」のみ
+        // 共通の時間帯がない場合は「時間帯指定なし」のみ
         const optionElement = document.createElement('option');
-        optionElement.value = 'no_time_slot';
-        optionElement.textContent = '時間指定なし';
+        optionElement.value = '時間帯指定なし';
+        optionElement.textContent = '時間帯指定なし';
         timeSelect.appendChild(optionElement);
       }
     }
@@ -2924,7 +2924,7 @@
             const allowedTimeSlots = product.deliveryTimeSlots.timeSlots;
             
             // 時間帯制限のチェック
-            if (allowedTimeSlots === 'none' && selectedTimeSlot !== 'no_time_slot') {
+            if (allowedTimeSlots === 'none' && selectedTimeSlot !== '時間帯指定なし') {
               errors.push(`「${product.name}」は時間指定不可の商品です`);
             } else if (allowedTimeSlots !== 'all' && allowedTimeSlots !== 'none') {
               // 特定の時間帯のみ許可の場合
@@ -3496,10 +3496,17 @@
         }
         
         // 説明文を更新
-        const noshiSection = document.getElementById('noshi-section');
-        const existingNote = noshiSection.querySelector('.noshi-note');
+        const defaultNote = document.getElementById('noshi-default-note');
+        const existingNote = document.querySelector('.noshi-note');
+        
+        // 既存のカスタムノートを削除
         if (existingNote) {
           existingNote.remove();
+        }
+        
+        // デフォルトノートを非表示
+        if (defaultNote) {
+          defaultNote.style.display = 'none';
         }
         
         const note = document.createElement('div');
@@ -3534,10 +3541,11 @@
           existingNote.remove();
         }
         
-        const note = document.createElement('div');
-        note.style.cssText = 'font-size: 0.85em; color:#666; margin-top:4px;';
-        note.textContent = '※冷凍品のため略式の短冊のしのみ対応いたします';
-        noshiSelect.parentNode.appendChild(note);
+        // デフォルトノートを表示
+        const defaultNote = document.getElementById('noshi-default-note');
+        if (defaultNote) {
+          defaultNote.style.display = 'block';
+        }
       }
     }
 
@@ -3958,7 +3966,7 @@
       const deliveryTimeSlot = document.getElementById('delivery_time_slot');
       if (!deliveryTimeSlot || !deliveryTimeSlot.value) {
         errors.push('• 配送時間帯を選択してください');
-      } else if (deliveryTimeSlot.value !== 'no_time_slot') {
+      } else if (deliveryTimeSlot.value !== '時間帯指定なし') {
         // 時間指定ありの場合、商品の時間帯制限をチェック
         const timeSlotErrors = validateDeliveryTimeSlotFrontend(deliveryTimeSlot.value);
         errors.push(...timeSlotErrors);
