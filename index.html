@@ -3505,8 +3505,7 @@
         }
         
         // 説明文を更新
-        const timeSlotSection = document.getElementById('delivery-time-slot-section');
-        const existingNote = timeSlotSection.querySelector('.timeslot-note');
+        const existingNote = document.querySelector('.timeslot-note');
         if (existingNote) {
           existingNote.remove();
         }
