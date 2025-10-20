@@ -1436,7 +1436,14 @@
       const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
           if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
-            setTimeout(updatePickupDateControl, 100);
+            // 配送方式に応じて適切な日付制御を更新
+            setTimeout(() => {
+              if (currentDeliveryMethod === 'delivery') {
+                updateDeliveryDateControl();
+              } else {
+                updatePickupDateControl();
+              }
+            }, 100);
           }
         });
       });
@@ -1600,10 +1607,10 @@
       itemDiv.className = 'product-item';
       
       itemDiv.innerHTML = `
-        <select onchange="updateProductDescription(this); updatePickupDateControl();">
+        <select onchange="updateProductDescription(this); if(currentDeliveryMethod === 'delivery') updateDeliveryDateControl(); else updatePickupDateControl();">
           <option value="">商品を選択</option>
         </select>
-        <input type="number" min="1" placeholder="数量" onchange="updatePickupDateControl();">
+        <input type="number" min="1" placeholder="数量" onchange="if(currentDeliveryMethod === 'delivery') updateDeliveryDateControl(); else updatePickupDateControl();">
         <button type="button" class="remove-product-btn" onclick="removeProductItem(this)">削除</button>
         <div class="product-desc"></div>
         <div class="product-image"><img alt="商品画像" loading="lazy" style="display:none;"></div>
@@ -1631,7 +1638,12 @@
       const container = document.getElementById('product-list-area');
       if (container.children.length > 1) {
         button.parentElement.remove();
-        updatePickupDateControl();
+        // 配送方式に応じて適切な日付制御を更新
+        if (currentDeliveryMethod === 'delivery') {
+          updateDeliveryDateControl();
+        } else {
+          updatePickupDateControl();
+        }
       }
     }
 
