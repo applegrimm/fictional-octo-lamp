@@ -1744,6 +1744,7 @@
       // 配送方法変更時のし種類選択肢を更新
       if (isDelivery) {
         updateNoshiOptions();
+        updateDeliveryTimeSlotOptions();
       }
     }
 
@@ -3460,6 +3461,115 @@
     // ========================================
     
     /**
+     * 配送時間帯選択肢を商品の制限に応じて更新
+     */
+    function updateDeliveryTimeSlotOptions() {
+      const timeSlotSelect = document.getElementById('delivery_time_slot');
+      if (!timeSlotSelect) return;
+      
+      const productItems = document.querySelectorAll('.product-item');
+      let hasTimeSlotRestrictedProduct = false;
+      
+      // 選択された商品の中に時間帯制限のある商品があるかチェック
+      const restrictedProducts = [];
+      const allowedProducts = [];
+      
+      productItems.forEach(itemDiv => {
+        const select = itemDiv.querySelector('select');
+        const qtyInput = itemDiv.querySelector('input[type="number"]');
+        
+        if (select.value && qtyInput.value && qtyInput.value > 0) {
+          const product = allProducts.find(p => p.name === select.value);
+          if (product && product.deliveryTimeSlots && product.deliveryTimeSlots.enabled) {
+            if (product.deliveryTimeSlots.timeSlots === 'none') {
+              hasTimeSlotRestrictedProduct = true;
+              restrictedProducts.push(product.name);
+            } else {
+              allowedProducts.push(product.name);
+            }
+          }
+        }
+      });
+      
+      // 時間帯制限のある商品が含まれている場合、選択肢を「時間帯指定なし」のみに制限
+      if (hasTimeSlotRestrictedProduct) {
+        // 現在の選択値を保存
+        const currentValue = timeSlotSelect.value;
+        
+        // 選択肢を「時間帯指定なし」のみに変更
+        timeSlotSelect.innerHTML = '<option value="時間帯指定なし">時間帯指定なし</option>';
+        
+        // 現在の選択が「時間帯指定なし」でない場合は「時間帯指定なし」に変更
+        if (currentValue !== '時間帯指定なし') {
+          timeSlotSelect.value = '時間帯指定なし';
+        }
+        
+        // 説明文を更新
+        const timeSlotSection = document.getElementById('delivery-time-slot-section');
+        const existingNote = timeSlotSection.querySelector('.timeslot-note');
+        if (existingNote) {
+          existingNote.remove();
+        }
+        
+        const note = document.createElement('div');
+        note.className = 'timeslot-note';
+        note.style.cssText = 'font-size: 0.85em; color:#e74c3c; margin-top:4px; font-weight:bold;';
+        let noteText = '※申し訳ございませんが、選択された商品の中に時間帯指定ができない商品が含まれているため、「時間帯指定なし」のみご選択いただけます';
+        if (allowedProducts.length > 0) {
+          noteText += `\n\n【商品の分類】`;
+          noteText += `\n・時間帯指定不可の商品: ${restrictedProducts.join(', ')}`;
+          noteText += `\n・時間帯指定可能な商品: ${allowedProducts.join(', ')}`;
+          noteText += '\n\n【ご案内】';
+          noteText += '\n時間帯指定の制限が異なる商品を同時にご注文いただくことができません。';
+          noteText += '\n大変お手数をおかけいたしますが、以下の方法でご注文をお願いいたします：';
+          noteText += '\n・時間帯指定不可の商品のみでご注文いただく';
+          noteText += '\n・時間帯指定可能な商品のみでご注文いただく';
+          noteText += '\n（異なる制限の商品をご希望の場合は、別々の注文として分けてご注文ください）';
+        }
+        note.textContent = noteText;
+        timeSlotSelect.parentNode.appendChild(note);
+        
+      } else {
+        // 時間帯制限のある商品がない場合、通常の選択肢を復元
+        const currentValue = timeSlotSelect.value;
+        
+        // 通常の選択肢を復元（配送時間帯選択肢を再構築）
+        restoreDeliveryTimeSlotOptions();
+        
+        // 元の選択値を復元（存在する場合）
+        if (currentValue && timeSlotSelect.querySelector(`option[value="${currentValue}"]`)) {
+          timeSlotSelect.value = currentValue;
+        } else {
+          timeSlotSelect.value = '時間帯指定なし';
+        }
+        
+        // 説明文を削除
+        const existingNote = document.querySelector('.timeslot-note');
+        if (existingNote) {
+          existingNote.remove();
+        }
+      }
+    }
+
+    /**
+     * 配送時間帯選択肢を通常の状態に復元
+     */
+    function restoreDeliveryTimeSlotOptions() {
+      const timeSlotSelect = document.getElementById('delivery_time_slot');
+      if (!timeSlotSelect) return;
+      
+      // 通常の選択肢を復元
+      timeSlotSelect.innerHTML = `
+        <option value="時間帯指定なし">時間帯指定なし</option>
+        <option value="08:00-12:00">8時-12時</option>
+        <option value="14:00-16:00">14時-16時</option>
+        <option value="16:00-18:00">16時-18時</option>
+        <option value="18:00-20:00">18時-20時</option>
+        <option value="19:00-21:00">19時-21時</option>
+      `;
+    }
+
+    /**
      * のし種類選択肢を商品の対応可否に応じて更新
      */
     function updateNoshiOptions() {
@@ -3470,14 +3580,22 @@
       let hasNoshiUnavailableProduct = false;
       
       // 選択された商品の中にのし対応不可の商品があるかチェック
+      const noshiRestrictedProducts = [];
+      const noshiAllowedProducts = [];
+      
       productItems.forEach(itemDiv => {
         const select = itemDiv.querySelector('select');
         const qtyInput = itemDiv.querySelector('input[type="number"]');
         
         if (select.value && qtyInput.value && qtyInput.value > 0) {
           const product = allProducts.find(p => p.name === select.value);
-          if (product && product.noshiAvailable === false) {
-            hasNoshiUnavailableProduct = true;
+          if (product) {
+            if (product.noshiAvailable === false) {
+              hasNoshiUnavailableProduct = true;
+              noshiRestrictedProducts.push(product.name);
+            } else {
+              noshiAllowedProducts.push(product.name);
+            }
           }
         }
       });
@@ -3512,7 +3630,19 @@
         const note = document.createElement('div');
         note.className = 'noshi-note';
         note.style.cssText = 'font-size: 0.85em; color:#e74c3c; margin-top:4px; font-weight:bold;';
-        note.textContent = '※選択された商品にのし対応不可の商品が含まれているため、「なし」のみ選択可能です';
+        let noteText = '※申し訳ございませんが、選択された商品の中にのし対応ができない商品が含まれているため、「なし」のみご選択いただけます';
+        if (noshiAllowedProducts.length > 0) {
+          noteText += `\n\n【商品の分類】`;
+          noteText += `\n・のし対応不可の商品: ${noshiRestrictedProducts.join(', ')}`;
+          noteText += `\n・のし対応可能な商品: ${noshiAllowedProducts.join(', ')}`;
+          noteText += '\n\n【ご案内】';
+          noteText += '\nのし対応の制限が異なる商品を同時にご注文いただくことができません。';
+          noteText += '\n大変お手数をおかけいたしますが、以下の方法でご注文をお願いいたします：';
+          noteText += '\n・のし対応不可の商品のみでご注文いただく';
+          noteText += '\n・のし対応可能な商品のみでご注文いただく';
+          noteText += '\n（異なる制限の商品をご希望の場合は、別々の注文として分けてご注文ください）';
+        }
+        note.textContent = noteText;
         noshiSelect.parentNode.appendChild(note);
         
       } else {
@@ -3612,6 +3742,9 @@
       
       // のし種類選択肢を商品の対応可否に応じて更新
       updateNoshiOptions();
+      
+      // 配送時間帯選択肢を商品の制限に応じて更新
+      updateDeliveryTimeSlotOptions();
     }
     
     /**
