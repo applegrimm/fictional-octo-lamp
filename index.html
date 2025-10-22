@@ -680,9 +680,10 @@
         <div>
           <label for="orderer_postal">郵便番号<span class="required">*</span></label>
           <div style="display:flex; gap:8px;">
-            <input type="text" id="orderer_postal" name="orderer_postal" placeholder="123-4567" inputmode="numeric" maxlength="8">
+            <input type="text" id="orderer_postal" name="orderer_postal" placeholder="1234567" inputmode="numeric" maxlength="7" pattern="[0-9]{7}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
             <button type="button" id="orderer_zip_search" class="add-product-btn" style="margin-top:0;">住所検索</button>
           </div>
+          <small style="color: #666; font-size: 0.9em; display: block; margin-top: 4px;">※ ハイフンなしで7桁の数字を入力してください（例：1234567）</small>
           <span class="error-message" id="orderer_postal-error"></span>
         </div>
         <div>
@@ -713,9 +714,10 @@
         <div>
           <label for="delivery_postal">郵便番号<span class="required">*</span></label>
           <div style="display:flex; gap:8px;">
-            <input type="text" id="delivery_postal" name="delivery_postal" placeholder="100-0001" inputmode="numeric" maxlength="8">
+            <input type="text" id="delivery_postal" name="delivery_postal" placeholder="1000001" inputmode="numeric" maxlength="7" pattern="[0-9]{7}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
             <button type="button" id="delivery_zip_search" class="add-product-btn" style="margin-top:0;">住所検索</button>
           </div>
+          <small style="color: #666; font-size: 0.9em; display: block; margin-top: 4px;">※ ハイフンなしで7桁の数字を入力してください（例：1000001）</small>
           <span class="error-message" id="delivery_postal-error"></span>
         </div>
         <div>
