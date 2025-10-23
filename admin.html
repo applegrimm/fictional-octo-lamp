@@ -911,6 +911,35 @@
             </button>
           </div>
         </div>
+
+        <!-- Stripeモード切替ブロック -->
+        <div class="table-container" style="margin-top: 20px;">
+          <div style="padding: 20px;">
+            <h3>💳 Stripe決済モード切替</h3>
+            <div style="display: flex; gap: 16px; align-items: center; flex-wrap: wrap; margin-bottom: 12px;">
+              <div>
+                <span style="font-weight: 600; margin-right: 8px;">現在のモード:</span>
+                <span id="current-stripe-mode" style="font-size: 1.1rem; font-weight: 700; color: #667eea;">読み込み中...</span>
+              </div>
+              <div style="display: flex; gap: 10px;">
+                <button id="test-mode-btn" class="btn btn-warning" type="button" onclick="switchToTestMode()">🧪 テストモードに切替</button>
+                <button id="live-mode-btn" class="btn btn-danger" type="button" onclick="switchToLiveMode()">🚀 本番モードに切替</button>
+              </div>
+            </div>
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 6px; padding: 12px;">
+              <div style="color: #856404; font-weight: 600; margin-bottom: 6px;">⚠️ 注意事項</div>
+              <ul style="color: #856404; margin: 0 0 6px 18px;">
+                <li>テストモード: 実際の課金は発生しません（テストカードをご利用ください）</li>
+                <li>本番モード: 実際の課金が発生します。切替時は確認ダイアログが表示されます</li>
+                <li>この設定はブラウザのlocalStorageに保存されます（ブラウザ単位）</li>
+              </ul>
+              <div style="display:flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-info" type="button" onclick="checkStripeMode()">🔍 現在の設定を確認</button>
+                <button class="btn btn-secondary" type="button" onclick="resetStripeMode()">🔄 設定をリセット（TESTに戻す）</button>
+              </div>
+            </div>
+          </div>
+        </div>
         
         <!-- GitHub設定フォーム -->
         <div class="table-container">
@@ -1089,6 +1118,9 @@
     
     // 上部スクロールバーの初期化
     initializeDualScrollbars();
+    
+    // StripeモードUI初期化
+    try { updateModeButtons(); } catch (e) { console.warn('StripeモードUI初期化警告:', e); }
   });
   
   // =============================
