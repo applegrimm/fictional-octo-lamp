@@ -3777,6 +3777,8 @@
       const isCorporateType = formType === 'corporate';
       
       const data = {
+        // 掛け売りフォーム識別のための種別
+        formType: formType,
         name: formData.get('name'),
         phone: formData.get('phone'),
         email: formData.get('email'),
