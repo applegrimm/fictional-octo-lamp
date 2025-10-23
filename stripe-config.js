@@ -427,7 +427,8 @@ function buildInvoiceData(orderData) {
     },
     items: items,
     metadata: metadata,
-    days_until_due: 30
+    days_until_due: 30,
+    environment: isTestMode() ? 'test' : 'live'
   };
 }
 
