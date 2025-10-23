@@ -468,7 +468,7 @@
       
       // 日時の表示も配送/受取で分岐
       const dateTimeDisplay = isDelivery 
-        ? `${metadata.delivery_date || '-'} ${metadata.delivery_time_slot || '-'}`
+        ? `${metadata.delivery_date || '-'} ${(metadata.delivery_time_slot === 'no_time_slot') ? '時間帯指定なし' : (metadata.delivery_time_slot || '-')}`
         : `${metadata.pickup_date || '-'} ${metadata.pickup_time || '-'}`;
       document.getElementById('pickup-datetime').textContent = dateTimeDisplay;
       
@@ -539,7 +539,12 @@
           payment_status: 'completed',
           payment_session_id: sessionId,
           payment_amount: parseInt(metadata.total_amount) || 0,
-          payment_date: new Date().toISOString()
+          payment_date: new Date().toISOString(),
+          // 法人事前決済判定用フィールドを反映
+          formType: metadata.form_type || '',
+          companyName: metadata.company_name || '',
+          departmentName: metadata.department_name || '',
+          contactPerson: metadata.contact_person || ''
         };
         
         console.log('送信データ:', reservationData);
