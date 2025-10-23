@@ -184,7 +184,12 @@ function buildCheckoutData(orderData) {
       order_summary: generateOrderSummary(orderData),
       order_items: JSON.stringify(orderData.items), // 商品情報もJSONで格納
       total_amount: totalAmount.toString(), // 円単位の文字列
-      environment: isTestMode() ? 'test' : 'live'
+      environment: isTestMode() ? 'test' : 'live',
+      // 法人事前決済対応: フォーム種別と会社情報をメタデータに含める
+      form_type: orderData.formType || '',
+      company_name: orderData.companyName || '',
+      department_name: orderData.departmentName || '',
+      contact_person: orderData.contactPerson || ''
     },
     
     // 請求先住所の収集
@@ -494,4 +499,5 @@ async function createInvoice(invoiceData) {
 window.startStripeInvoice = startStripeInvoice;
 
 } // 重複読み込み防止のelseブロック終了
+
 
