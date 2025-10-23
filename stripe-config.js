@@ -55,7 +55,7 @@ const PAYMENT_MODES = {
  */
 const STRIPE_KEYS = {
   TEST: 'pk_test_51RVBoUIjwFiP4bNCKXNfgzkwTnmAfRnX4cNFwDVZeO4PewRHOE7Fq7OgjvtbJpWJod7NlQOLROtRZfU0hLRElngH00k1okQ7wq',
-  LIVE: 'pk_live_XXXXXXXXXXXXXXXXXXXXXXXX' // TODO: 本番用公開鍵に置換
+  LIVE: 'pk_live_51RVBoUIjwFiP4bNCzvm0SAhCYvSOLl0uurgnbqsM6kq4PwiSqe6vE735t6pcExZgqPurHwitZTZRQ1kKEQwLvUZI00dS5OnOXW' // TODO: 本番用公開鍵に置換
 };
 
 /**
@@ -494,3 +494,4 @@ async function createInvoice(invoiceData) {
 window.startStripeInvoice = startStripeInvoice;
 
 } // 重複読み込み防止のelseブロック終了
+
