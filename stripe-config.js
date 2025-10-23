@@ -1,8 +1,9 @@
 /**
  * @file stripe-config.js
  * @brief Stripe決済設定ファイル
- * @details Stripe Checkout機能の設定と制御を行う
- * @version 2.1.0 - 金額100倍問題修正版 (2024/12/20)
+ * @details Stripe Checkout機能の設定と制御を行う。管理画面でのモード切替（TEST/LIVE）に連動して公開鍵と動作モードを自動適用する。
+ * @version 2.2.0 - モード切替（TEST/LIVE）対応 + 金額100倍問題修正版 (2025/10/23)
+ * @limitations ブラウザのlocalStorageを用いたモード管理のため、ブラウザ単位で設定が保持されます。サーバー側（GAS）の秘密鍵は別途プロパティで管理してください。
  */
 
 console.log('🔧 stripe-config.js v2.1.0 読み込み開始 (金額100倍問題修正版)');
@@ -48,8 +49,43 @@ const PAYMENT_MODES = {
   DISABLED: 'disabled'
 };
 
-// 現在のモード（本番運用時は LIVE に変更）
-const CURRENT_PAYMENT_MODE = PAYMENT_MODES.TEST;
+/**
+ * @const {Object} STRIPE_KEYS
+ * @desc フロント側で使用するStripe公開鍵（TEST/LIVE）
+ */
+const STRIPE_KEYS = {
+  TEST: 'pk_test_51RVBoUIjwFiP4bNCKXNfgzkwTnmAfRnX4cNFwDVZeO4PewRHOE7Fq7OgjvtbJpWJod7NlQOLROtRZfU0hLRElngH00k1okQ7wq',
+  LIVE: 'pk_live_XXXXXXXXXXXXXXXXXXXXXXXX' // TODO: 本番用公開鍵に置換
+};
+
+/**
+ * @function getStoredStripeMode
+ * @desc localStorageから現在のStripeモードを取得（未設定時はTEST）
+ * @return {string} 'TEST' | 'LIVE'
+ */
+function getStoredStripeMode() {
+  try {
+    const v = localStorage.getItem('stripe-mode');
+    return (v === 'LIVE' || v === 'TEST') ? v : 'TEST';
+  } catch (e) {
+    return 'TEST';
+  }
+}
+
+// 現在のモード（localStorageベース）
+var CURRENT_PAYMENT_MODE = getStoredStripeMode() === 'LIVE' ? PAYMENT_MODES.LIVE : PAYMENT_MODES.TEST;
+
+// モードに応じて公開鍵を上書き
+try {
+  var __modeForLog = getStoredStripeMode();
+  var __pubKey = __modeForLog === 'LIVE' ? STRIPE_KEYS.LIVE : STRIPE_KEYS.TEST;
+  if (__pubKey && typeof __pubKey === 'string') {
+    window.STRIPE_CONFIG.PUBLISHABLE_KEY = __pubKey;
+  }
+  console.log(`🔐 Stripe公開鍵を適用: mode=${__modeForLog}, keyHead=${(__pubKey || '').slice(0, 10)}...`);
+} catch (e) {
+  console.warn('Stripe公開鍵適用時の警告:', e);
+}
 
 /**
  * 決済機能の有効性をチェック
@@ -126,6 +162,8 @@ function buildCheckoutData(orderData) {
     success_url: successUrl,
     cancel_url: STRIPE_CONFIG.CANCEL_URL.replace('{ERROR_MESSAGE}', encodeURIComponent('決済がキャンセルされました')),
     customer_email: orderData.email,
+    // モード（サーバー側の秘密鍵選択に使用）
+    environment: isTestMode() ? 'test' : 'live',
     
     // 追加のメタデータ（予約データをすべてここに格納）
     metadata: {
@@ -145,7 +183,8 @@ function buildCheckoutData(orderData) {
       pickup_note: orderData.note || '',
       order_summary: generateOrderSummary(orderData),
       order_items: JSON.stringify(orderData.items), // 商品情報もJSONで格納
-      total_amount: totalAmount.toString() // 円単位の文字列
+      total_amount: totalAmount.toString(), // 円単位の文字列
+      environment: isTestMode() ? 'test' : 'live'
     },
     
     // 請求先住所の収集
