@@ -986,7 +986,8 @@
         }
         
         const script = document.createElement('script');
-        script.src = 'stripe-config.js?v=20241220';
+        // キャッシュバスターを付与して常に最新のstripe-config.jsを読み込む
+        script.src = 'stripe-config.js?v=' + Date.now();
         script.onload = () => {
           console.log('✅ Stripe設定読み込み完了');
           window.stripeConfigLoaded = true;
