@@ -3204,6 +3204,98 @@
       }
     }
   }
+
+  // =============================
+  // Stripeモード切替機能
+  // =============================
+  
+  /**
+   * Stripeモード切替ボタンの表示を更新
+   */
+  function updateModeButtons() {
+    try {
+      const currentMode = localStorage.getItem('stripe-mode') || 'TEST';
+      const testBtn = document.getElementById('stripe-test-btn');
+      const liveBtn = document.getElementById('stripe-live-btn');
+      const modeDisplay = document.getElementById('stripe-mode-display');
+      
+      if (testBtn && liveBtn && modeDisplay) {
+        // ボタンの状態を更新
+        testBtn.disabled = currentMode === 'TEST';
+        liveBtn.disabled = currentMode === 'LIVE';
+        
+        // 表示を更新
+        modeDisplay.textContent = `現在のモード: ${currentMode === 'TEST' ? '🧪 テスト環境' : '🚀 本番環境'}`;
+        modeDisplay.style.color = currentMode === 'TEST' ? '#28a745' : '#dc3545';
+        
+        console.log('StripeモードUI更新完了:', currentMode);
+      }
+    } catch (error) {
+      console.error('StripeモードUI更新エラー:', error);
+    }
+  }
+  
+  /**
+   * StripeモードをTESTに切り替え
+   */
+  function switchToTestMode() {
+    if (confirm('🧪 テスト環境に切り替えますか？\n\n• 実際の課金は発生しません\n• テスト用の決済データが作成されます\n• 本番環境のデータには影響しません')) {
+      localStorage.setItem('stripe-mode', 'TEST');
+      updateModeButtons();
+      showMessage('✅ テスト環境に切り替えました', 'success');
+      console.log('Stripeモード切り替え: TEST');
+    }
+  }
+  
+  /**
+   * StripeモードをLIVEに切り替え
+   */
+  function switchToLiveMode() {
+    if (confirm('🚀 本番環境に切り替えますか？\n\n⚠️ 注意事項:\n• 実際の課金が発生します\n• 本番用のStripeキーが必要です\n• 慎重に操作してください')) {
+      localStorage.setItem('stripe-mode', 'LIVE');
+      updateModeButtons();
+      showMessage('✅ 本番環境に切り替えました', 'success');
+      console.log('Stripeモード切り替え: LIVE');
+    }
+  }
+  
+  /**
+   * 現在のStripe設定を確認
+   */
+  function checkStripeMode() {
+    try {
+      const currentMode = localStorage.getItem('stripe-mode') || 'TEST';
+      const testKey = 'pk_test_51RVBoUIjwFiP4bNCKXNfgzkwTnmAfRnX4cNFwDVZeO4PewRHOE7Fq7OgjvtbJpWJod7NlQOLROtRZfU0hLRElngH00k1okQ7wq';
+      
+      let message = `🔍 現在のStripe設定:\n\n`;
+      message += `モード: ${currentMode === 'TEST' ? '🧪 テスト環境' : '🚀 本番環境'}\n`;
+      message += `公開鍵: ${currentMode === 'TEST' ? testKey.substring(0, 20) + '...' : '本番用キー（設定済み）'}\n\n`;
+      
+      if (currentMode === 'TEST') {
+        message += `✅ テスト環境のため安全です\n• 実際の課金は発生しません\n• テスト用データのみ作成されます`;
+      } else {
+        message += `⚠️ 本番環境のため注意が必要です\n• 実際の課金が発生します\n• 本番用のStripeキーが使用されます`;
+      }
+      
+      alert(message);
+      console.log('Stripe設定確認:', currentMode);
+    } catch (error) {
+      console.error('Stripe設定確認エラー:', error);
+      showMessage('設定確認でエラーが発生しました', 'error');
+    }
+  }
+  
+  /**
+   * Stripeモード設定をリセット（TESTに戻す）
+   */
+  function resetStripeMode() {
+    if (confirm('🔄 Stripeモードをテスト環境にリセットしますか？\n\n• 現在の設定がTESTに戻ります\n• 安全なテスト環境で動作します')) {
+      localStorage.setItem('stripe-mode', 'TEST');
+      updateModeButtons();
+      showMessage('✅ テスト環境にリセットしました', 'success');
+      console.log('Stripeモードリセット: TEST');
+    }
+  }
 </script>
 </body>
 </html> 
