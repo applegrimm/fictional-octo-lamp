@@ -9,7 +9,7 @@
 // グローバル変数・設定
 // ============================================
 
-const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbz3KjsOwCNdqB3BNNhlJ4xGni7OV1sjlpjVkCuDFWkylORHGwJWl5LU24ML2q6VpiJp/exec';
+const GAS_API_URL = 'https://script.google.com/macros/s/AKfycbwQi1nQI1jDspUlagORpKHtpj3NBbQ5RNNkkcXqhsE-WM_j_w10CvO0CAPkVZFT5Vxh/exec';
 
 let SHOP_SECRET = '';
 let allReservations = [];
