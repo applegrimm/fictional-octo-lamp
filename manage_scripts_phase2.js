@@ -386,8 +386,15 @@ window.addEventListener('DOMContentLoaded', function() {
   const urlParams = new URLSearchParams(window.location.search);
   SHOP_SECRET = urlParams.get('shop');
   
-  console.log('Shop Secret:', SHOP_SECRET);
-  console.log('GAS API URL:', GAS_API_URL);
+  try {
+    const debug = localStorage.getItem('DEBUG_MANAGE') === '1';
+    if (debug) {
+      console.log('Shop Secret(head):', (SHOP_SECRET || '').slice(0, 4) + '***');
+      console.log('GAS API URL:', GAS_API_URL);
+    }
+  } catch (e) {
+    // 何もしない（本番での安全側）
+  }
   
   if (!SHOP_SECRET) {
     console.log('Shop Secretが見つかりません');
@@ -758,6 +765,10 @@ function displayReservations(reservations) {
       cardClasses += ' past';
     }
 
+    // ID用に安全な値へ変換
+    const safeOrderId = String(customer.orderId || '').replace(/[^A-Za-z0-9_-]/g, '_');
+    const safePhoneHref = 'tel:' + String(customer.phone || '').replace(/[^0-9+]/g, '');
+
     return `
       <div class="${cardClasses}" data-filter="${isCompleted ? 'completed' : 'pending'}">
         <div class="card-header">
@@ -776,7 +787,7 @@ function displayReservations(reservations) {
           </div>
           <div class="row">
             <span class="icon">📞</span>
-            <a href="tel:${customer.phone}" class="phone-link">${customer.phone}</a>
+            <a href="${safePhoneHref}" class="phone-link">${escapeHtml(customer.phone)}</a>
           </div>
           <div class="row">
             <span class="icon">📧</span>
@@ -810,19 +821,19 @@ function displayReservations(reservations) {
         <div class="controls-row">
           <div class="toggle-container">
             <label class="toggle-switch">
-              <input type="checkbox" id="check-${group.orderId}" ${isCompleted ? 'checked' : ''} 
+              <input type="checkbox" id="check-${safeOrderId}" ${isCompleted ? 'checked' : ''} 
                      onchange="handleToggleChange('${group.items[0].rowId}', this)">
               <span class="toggle-slider"></span>
             </label>
-            <label for="check-${group.orderId}" class="toggle-label">受渡完了</label>
+            <label for="check-${safeOrderId}" class="toggle-label">受渡完了</label>
             ${customer.handoverStaff ? `<span style="color: #666; font-size: 0.9em; margin-left: 8px;">担当: ${escapeHtml(customer.handoverStaff)}</span>` : ''}
             <span class="auto-save-message" id="save-msg-${group.orderId}" style="display: none; color: #27ae60; font-size: 0.9em; margin-left: 8px;">自動保存中...</span>
           </div>
           
           <div class="memo-area">
-            <input type="text" class="memo-input" id="memo-${group.orderId}" 
+            <input type="text" class="memo-input" id="memo-${safeOrderId}" 
                    value="${escapeHtml(customer.memo || '')}" placeholder="スタッフメモを入力..." maxlength="200">
-            <button class="save-btn" onclick="showSavingModal(); updateReservationPhase2('${group.items[0].rowId}', null, document.getElementById('memo-${group.orderId}').value)">
+            <button class="save-btn" onclick="showSavingModal(); updateReservationPhase2('${group.items[0].rowId}', null, document.getElementById('memo-${safeOrderId}').value)">
               📝 <span class="save-btn-text">メモ保存</span>
             </button>
           </div>
