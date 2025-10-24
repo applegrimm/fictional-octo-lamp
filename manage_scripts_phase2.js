@@ -34,9 +34,10 @@ let sessionToken = null;
 let tokenExpiry = 0;
 const TOKEN_VALIDITY = 300000; // 5分間有効
 
-// 管理画面用セッション管理変数
+// 管理画面用セッション管理変数（フラグで有効化）
 let adminToken = null;
 let adminTokenExpiry = 0;
+let ADMIN_AUTH_ENABLED = true; // 既定ON（新方式を優先使用）
 
 /**
  * セキュアなワンタイムトークンを生成
@@ -158,6 +159,7 @@ async function getAdminToken() {
     };
     
     const jsonpUrl = `${GAS_API_URL}?action=initAdminSession&shop=${SHOP_SECRET}&callback=${callbackName}&_t=${Date.now()}`;
+    console.log('管理画面セッション取得URL(head):', jsonpUrl.slice(0, 160) + '...');
     
     const script = document.createElement('script');
     script.src = jsonpUrl;
@@ -193,8 +195,8 @@ async function getAdminToken() {
  */
 async function buildSecureUrl(action, callbackName, additionalParams = {}) {
   try {
-    // 管理画面トークンを優先取得
-    const currentAdminToken = await getAdminToken();
+    // 管理画面トークンを優先取得（フラグ有効時のみ）
+    const currentAdminToken = ADMIN_AUTH_ENABLED ? (await getAdminToken()) : null;
     
     if (currentAdminToken) {
       // 新方式（管理画面トークン）を使用
@@ -242,8 +244,9 @@ async function buildSecureUrl(action, callbackName, additionalParams = {}) {
         }
       });
       
-      console.log('🔐 旧方式（クライアント生成トークン）でURL構築');
-      return `${GAS_API_URL}?${params.toString()}`;
+      const built = `${GAS_API_URL}?${params.toString()}`;
+      console.log('🔐 旧方式（クライアント生成トークン）でURL構築(head):', built.slice(0, 180) + '...');
+      return built;
     }
     
   } catch (error) {
