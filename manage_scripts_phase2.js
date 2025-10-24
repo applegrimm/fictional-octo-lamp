@@ -34,6 +34,10 @@ let sessionToken = null;
 let tokenExpiry = 0;
 const TOKEN_VALIDITY = 300000; // 5分間有効
 
+// 管理画面用セッション管理変数
+let adminToken = null;
+let adminTokenExpiry = 0;
+
 /**
  * セキュアなワンタイムトークンを生成
  * @return {Object} トークンデータ
@@ -116,7 +120,72 @@ function generateClientId() {
 }
 
 /**
- * セキュアなGASリクエスト用URLを構築
+ * 管理画面用セッション取得
+ * @return {Promise<string>} 管理画面トークン
+ */
+async function getAdminToken() {
+  const now = Date.now();
+  
+  // トークンが存在し、まだ有効な場合
+  if (adminToken && now < adminTokenExpiry) {
+    return adminToken;
+  }
+  
+  // 新しいセッションを取得
+  try {
+    const callbackName = 'adminSessionCallback' + Date.now();
+    
+    window[callbackName] = function(result) {
+      console.log('管理画面セッション取得応答:', result);
+      
+      try {
+        if (result && result.success && result.adminToken) {
+          adminToken = result.adminToken;
+          adminTokenExpiry = Date.now() + result.expiresIn;
+          console.log('🔐 管理画面セッション取得成功');
+        } else {
+          console.error('管理画面セッション取得失敗:', result);
+          adminToken = null;
+          adminTokenExpiry = 0;
+        }
+      } catch (error) {
+        console.error('管理画面セッション処理エラー:', error);
+        adminToken = null;
+        adminTokenExpiry = 0;
+      } finally {
+        cleanupJSONP(callbackName);
+      }
+    };
+    
+    const jsonpUrl = `${GAS_API_URL}?action=initAdminSession&shop=${SHOP_SECRET}&callback=${callbackName}&_t=${Date.now()}`;
+    
+    const script = document.createElement('script');
+    script.src = jsonpUrl;
+    script.setAttribute('data-jsonp', 'true');
+    script.setAttribute('data-callback', callbackName);
+    
+    script.onerror = function() {
+      console.error('管理画面セッション取得エラー');
+      adminToken = null;
+      adminTokenExpiry = 0;
+      cleanupJSONP(callbackName);
+    };
+    
+    document.head.appendChild(script);
+    
+    // 同期処理のため、少し待機
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    return adminToken;
+    
+  } catch (error) {
+    console.error('管理画面セッション取得エラー:', error);
+    return null;
+  }
+}
+
+/**
+ * セキュアなGASリクエスト用URLを構築（新方式優先）
  * @param {string} action - アクション名
  * @param {string} callbackName - コールバック関数名
  * @param {Object} additionalParams - 追加パラメータ
@@ -124,34 +193,58 @@ function generateClientId() {
  */
 async function buildSecureUrl(action, callbackName, additionalParams = {}) {
   try {
-    // セキュアトークンを取得
-    const secureToken = await getValidToken();
-    const timestamp = Date.now();
+    // 管理画面トークンを優先取得
+    const currentAdminToken = await getAdminToken();
     
-    // 基本パラメータ
-    const baseParams = {
-      action: action,
-      shop: SHOP_SECRET,
-      callback: callbackName,
-      token: secureToken,
-      timestamp: timestamp,
-      clientId: generateClientId(),
-      checksum: await generateChecksum(SHOP_SECRET, timestamp),
-      _t: timestamp
-    };
-    
-    // 追加パラメータをマージ
-    const allParams = { ...baseParams, ...additionalParams };
-    
-    // URLを構築
-    const params = new URLSearchParams();
-    Object.entries(allParams).forEach(([key, value]) => {
-      if (value !== null && value !== undefined) {
-        params.append(key, value);
-      }
-    });
-    
-    return `${GAS_API_URL}?${params.toString()}`;
+    if (currentAdminToken) {
+      // 新方式（管理画面トークン）を使用
+      const baseParams = {
+        action: action,
+        shop: SHOP_SECRET,
+        callback: callbackName,
+        adminToken: currentAdminToken,
+        _t: Date.now()
+      };
+      
+      const allParams = { ...baseParams, ...additionalParams };
+      
+      const params = new URLSearchParams();
+      Object.entries(allParams).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          params.append(key, value);
+        }
+      });
+      
+      console.log('🔐 新方式（管理画面トークン）でURL構築');
+      return `${GAS_API_URL}?${params.toString()}`;
+    } else {
+      // フォールバック：旧方式（クライアント生成トークン）
+      const secureToken = await getValidToken();
+      const timestamp = Date.now();
+      
+      const baseParams = {
+        action: action,
+        shop: SHOP_SECRET,
+        callback: callbackName,
+        token: secureToken,
+        timestamp: timestamp,
+        clientId: generateClientId(),
+        checksum: await generateChecksum(SHOP_SECRET, timestamp),
+        _t: timestamp
+      };
+      
+      const allParams = { ...baseParams, ...additionalParams };
+      
+      const params = new URLSearchParams();
+      Object.entries(allParams).forEach(([key, value]) => {
+        if (value !== null && value !== undefined) {
+          params.append(key, value);
+        }
+      });
+      
+      console.log('🔐 旧方式（クライアント生成トークン）でURL構築');
+      return `${GAS_API_URL}?${params.toString()}`;
+    }
     
   } catch (error) {
     console.error('セキュアURL構築エラー:', error);
