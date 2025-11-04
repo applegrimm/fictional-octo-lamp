@@ -2,8 +2,8 @@
  * @file stripe-config.js
  * @brief Stripe決済設定ファイル
  * @details Stripe Checkout機能の設定と制御を行う。管理画面でのモード切替（TEST/LIVE）に連動して公開鍵と動作モードを自動適用する。
- * @version 2.2.0 - モード切替（TEST/LIVE）対応 + 金額100倍問題修正版 (2025/10/23)
- * @limitations ブラウザのlocalStorageを用いたモード管理のため、ブラウザ単位で設定が保持されます。サーバー側（GAS）の秘密鍵は別途プロパティで管理してください。
+ * @version 2.3.0 - 設定ファイルベースのモード管理対応版 (2025/10/23)
+ * @limitations stripe-mode.jsonファイルからモードを読み込むため、admin.htmlで切り替え後はGitHubにプッシュする必要があります。サーバー側（GAS）の秘密鍵は別途プロパティで管理してください。
  */
 
 console.log('🔧 stripe-config.js v2.1.0 読み込み開始 (金額100倍問題修正版)');
@@ -60,32 +60,67 @@ const STRIPE_KEYS = {
 
 /**
  * @function getStoredStripeMode
- * @desc localStorageから現在のStripeモードを取得（未設定時はTEST）
- * @return {string} 'TEST' | 'LIVE'
+ * @desc stripe-mode.jsonファイルから現在のStripeモードを取得（未設定時はTEST）
+ * @return {Promise<string>} 'TEST' | 'LIVE'
  */
-function getStoredStripeMode() {
+async function getStoredStripeMode() {
   try {
+    // 設定ファイルから読み込む
+    const response = await fetch('stripe-mode.json?' + Date.now());
+    if (response.ok) {
+      const config = await response.json();
+      if (config.mode === 'LIVE' || config.mode === 'TEST') {
+        return config.mode;
+      }
+    }
+    // フォールバック: localStorageから読み込む（後方互換性のため）
     const v = localStorage.getItem('stripe-mode');
-    return (v === 'LIVE' || v === 'TEST') ? v : 'TEST';
+    if (v === 'LIVE' || v === 'TEST') {
+      return v;
+    }
+    return 'TEST';
   } catch (e) {
+    console.warn('stripe-mode.jsonの読み込みに失敗、デフォルト値（TEST）を使用:', e);
+    // フォールバック: localStorageから読み込む
+    try {
+      const v = localStorage.getItem('stripe-mode');
+      if (v === 'LIVE' || v === 'TEST') {
+        return v;
+      }
+    } catch (e2) {
+      // エラー無視
+    }
     return 'TEST';
   }
 }
 
-// 現在のモード（localStorageベース）
-var CURRENT_PAYMENT_MODE = getStoredStripeMode() === 'LIVE' ? PAYMENT_MODES.LIVE : PAYMENT_MODES.TEST;
+// 現在のモード（初期値はTEST、後で設定ファイルから読み込む）
+var CURRENT_PAYMENT_MODE = PAYMENT_MODES.TEST;
 
-// モードに応じて公開鍵を上書き
-try {
-  var __modeForLog = getStoredStripeMode();
-  var __pubKey = __modeForLog === 'LIVE' ? STRIPE_KEYS.LIVE : STRIPE_KEYS.TEST;
-  if (__pubKey && typeof __pubKey === 'string') {
-    window.STRIPE_CONFIG.PUBLISHABLE_KEY = __pubKey;
+/**
+ * Stripeモードを初期化（設定ファイルから読み込む）
+ */
+async function initializeStripeMode() {
+  try {
+    const mode = await getStoredStripeMode();
+    CURRENT_PAYMENT_MODE = mode === 'LIVE' ? PAYMENT_MODES.LIVE : PAYMENT_MODES.TEST;
+    
+    // モードに応じて公開鍵を上書き
+    const __pubKey = mode === 'LIVE' ? STRIPE_KEYS.LIVE : STRIPE_KEYS.TEST;
+    if (__pubKey && typeof __pubKey === 'string') {
+      window.STRIPE_CONFIG.PUBLISHABLE_KEY = __pubKey;
+    }
+    console.log(`🔐 Stripe公開鍵を適用: mode=${mode}, keyHead=${(__pubKey || '').slice(0, 10)}...`);
+  } catch (e) {
+    console.warn('Stripeモード初期化時の警告:', e);
+    // デフォルト値を設定
+    CURRENT_PAYMENT_MODE = PAYMENT_MODES.TEST;
+    window.STRIPE_CONFIG.PUBLISHABLE_KEY = STRIPE_KEYS.TEST;
   }
-  console.log(`🔐 Stripe公開鍵を適用: mode=${__modeForLog}, keyHead=${(__pubKey || '').slice(0, 10)}...`);
-} catch (e) {
-  console.warn('Stripe公開鍵適用時の警告:', e);
 }
+
+// ページ読み込み時にモードを初期化
+initializeStripeMode();
 
 /**
  * 決済機能の有効性をチェック
@@ -184,12 +219,7 @@ function buildCheckoutData(orderData) {
       order_summary: generateOrderSummary(orderData),
       order_items: JSON.stringify(orderData.items), // 商品情報もJSONで格納
       total_amount: totalAmount.toString(), // 円単位の文字列
-      environment: isTestMode() ? 'test' : 'live',
-      // 法人事前決済対応: フォーム種別と会社情報をメタデータに含める
-      form_type: orderData.formType || '',
-      company_name: orderData.companyName || '',
-      department_name: orderData.departmentName || '',
-      contact_person: orderData.contactPerson || ''
+      environment: isTestMode() ? 'test' : 'live'
     },
     
     // 請求先住所の収集
@@ -427,8 +457,7 @@ function buildInvoiceData(orderData) {
     },
     items: items,
     metadata: metadata,
-    days_until_due: 30,
-    environment: isTestMode() ? 'test' : 'live'
+    days_until_due: 30
   };
 }
 
