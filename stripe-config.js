@@ -6,7 +6,7 @@
  * @limitations stripe-mode.jsonファイルからモードを読み込むため、admin.htmlで切り替え後はGitHubにプッシュする必要があります。サーバー側（GAS）の秘密鍵は別途プロパティで管理してください。
  */
 
-console.log('🔧 stripe-config.js v2.1.0 読み込み開始 (金額100倍問題修正版)');
+console.log('🔧 stripe-config.js v2.3.0 読み込み開始 (設定ファイルベースのモード管理対応版)');
 
 // 重複読み込み防止
 if (window.STRIPE_CONFIG) {
