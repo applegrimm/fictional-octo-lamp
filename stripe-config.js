@@ -104,6 +104,7 @@ async function initializeStripeMode() {
   try {
     const mode = await getStoredStripeMode();
     CURRENT_PAYMENT_MODE = mode === 'LIVE' ? PAYMENT_MODES.LIVE : PAYMENT_MODES.TEST;
+    window.CURRENT_PAYMENT_MODE = CURRENT_PAYMENT_MODE;
     
     // モードに応じて公開鍵を上書き
     const __pubKey = mode === 'LIVE' ? STRIPE_KEYS.LIVE : STRIPE_KEYS.TEST;
@@ -116,11 +117,12 @@ async function initializeStripeMode() {
     // デフォルト値を設定
     CURRENT_PAYMENT_MODE = PAYMENT_MODES.TEST;
     window.STRIPE_CONFIG.PUBLISHABLE_KEY = STRIPE_KEYS.TEST;
+    window.CURRENT_PAYMENT_MODE = CURRENT_PAYMENT_MODE;
   }
 }
 
-// ページ読み込み時にモードを初期化
-initializeStripeMode();
+// ページ読み込み時にモードを初期化（Promiseとして共有）
+const stripeModeReadyPromise = initializeStripeMode();
 
 /**
  * 決済機能の有効性をチェック
@@ -269,6 +271,9 @@ function formatAmount(amount) {
  */
 async function startStripeCheckout(orderData) {
   try {
+    await stripeModeReadyPromise.catch(error => {
+      console.warn('Stripeモード初期化エラー（Checkout）:', error);
+    });
     console.log('Stripe Checkout開始:', orderData);
     
     // 決済機能が無効の場合はエラー
@@ -405,6 +410,7 @@ async function createCheckoutSession(checkoutData) {
 
 // Stripe設定をグローバルに公開
 window.STRIPE_CONFIG = STRIPE_CONFIG;
+window.STRIPE_KEYS = STRIPE_KEYS;
 window.PAYMENT_MODES = PAYMENT_MODES;
 window.CURRENT_PAYMENT_MODE = CURRENT_PAYMENT_MODE;
 window.isPaymentEnabled = isPaymentEnabled;
@@ -445,7 +451,8 @@ function buildInvoiceData(orderData) {
     delivery_address: orderData.deliveryAddress ? JSON.stringify(orderData.deliveryAddress) : '',
     pickup_note: orderData.note || '',
     order_items: JSON.stringify(items),
-    total_amount: String(Math.round(totalAmount))
+    total_amount: String(Math.round(totalAmount)),
+    environment: isTestMode() ? 'test' : 'live'
   };
 
   return {
@@ -457,7 +464,8 @@ function buildInvoiceData(orderData) {
     },
     items: items,
     metadata: metadata,
-    days_until_due: 30
+    days_until_due: 30,
+    environment: isTestMode() ? 'test' : 'live'
   };
 }
 
@@ -467,6 +475,9 @@ function buildInvoiceData(orderData) {
  * @return {Promise<Object>} 結果
  */
 async function startStripeInvoice(orderData) {
+  await stripeModeReadyPromise.catch(error => {
+    console.warn('Stripeモード初期化エラー（Invoicing）:', error);
+  });
   console.log('Stripe Invoicing開始:', orderData);
   const invoiceData = buildInvoiceData(orderData);
   const response = await createInvoice(invoiceData);
