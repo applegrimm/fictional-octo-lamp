@@ -254,6 +254,9 @@
     // URLパラメータから決済情報を取得
     const urlParams = new URLSearchParams(window.location.search);
     const sessionId = urlParams.get('session_id');
+    const shortSessionIdForMessage = sessionId && sessionId.length > 20
+      ? sessionId.substring(sessionId.length - 16)
+      : sessionId;
     
     console.log('決済完了ページ読み込み:', { sessionId });
     
@@ -265,11 +268,23 @@
       }
       
       try {
-        // session_idを使ってGASから決済・予約情報を取得
-        const paymentInfo = await getPaymentInfoFromGas(sessionId);
+        let paymentInfo;
+        try {
+          // session_idを使ってGASから決済・予約情報を取得
+          paymentInfo = await getPaymentInfoFromGas(sessionId);
+        } catch (fetchError) {
+          console.warn('決済情報取得で通信エラーが発生しました:', fetchError);
+          showAlreadyProcessedNotice(shortSessionIdForMessage, '通信状況により決済情報を再取得できませんでした。');
+          return;
+        }
         
         if (!paymentInfo || !paymentInfo.success) {
-          throw new Error(paymentInfo ? paymentInfo.error : '決済情報の取得に失敗しました');
+          console.warn('決済情報取得応答が失敗しました:', paymentInfo);
+          showAlreadyProcessedNotice(
+            shortSessionIdForMessage,
+            paymentInfo && paymentInfo.error ? paymentInfo.error : '決済情報を再取得できませんでした。'
+          );
+          return;
         }
         
         console.log('決済情報取得:', paymentInfo);
@@ -285,7 +300,12 @@
         
       } catch (error) {
         console.error('予約処理エラー:', error);
-        showError('予約データの処理中にエラーが発生しました: ' + error.message);
+        const detail = (error && error.message) ? error.message : '';
+        if (detail.includes('通信') || detail.includes('処理済')) {
+          showAlreadyProcessedNotice(shortSessionIdForMessage, 'この決済は既に処理済みです。');
+        } else {
+          showError('予約データの処理中にエラーが発生しました: ' + detail);
+        }
       }
     });
     
@@ -575,6 +595,53 @@
      */
     async function sendToGasViaJsonp(data) {
       return await fetchFromGasViaJsonp('submitPaymentReservation', data);
+    }
+    
+    /**
+     * @function showAlreadyProcessedNotice
+     * @desc 既に処理済みの決済ページを再表示した際の案内を表示
+     * @param {string} sessionIdText - 表示用の決済ID
+     * @param {string} detailMessage - 追加メッセージ
+     */
+    function showAlreadyProcessedNotice(sessionIdText, detailMessage) {
+      const processing = document.getElementById('processing-status');
+      if (processing) processing.style.display = 'none';
+      const paymentDetails = document.getElementById('payment-details');
+      if (paymentDetails) paymentDetails.style.display = 'none';
+      const reservationDetails = document.getElementById('reservation-details');
+      if (reservationDetails) reservationDetails.style.display = 'none';
+      const errorDetails = document.getElementById('error-details');
+      if (errorDetails) errorDetails.style.display = 'none';
+      
+      const successBlock = document.getElementById('success-message');
+      if (successBlock) {
+        successBlock.innerHTML = '';
+        const baseMessage = document.createElement('p');
+        baseMessage.style.cssText = 'color:#27ae60; font-size:1.1em; margin:16px 0;';
+        baseMessage.textContent = 'この決済はすでに処理済みです。ブラウザを閉じて完了してください。';
+        successBlock.appendChild(baseMessage);
+        
+        if (sessionIdText) {
+          const idMessage = document.createElement('p');
+          idMessage.style.cssText = 'color:#555; font-size:0.95em;';
+          idMessage.textContent = `決済ID: ${sessionIdText}`;
+          successBlock.appendChild(idMessage);
+        }
+        
+        if (detailMessage) {
+          const detail = document.createElement('p');
+          detail.style.cssText = 'color:#555; font-size:0.9em;';
+          detail.textContent = detailMessage;
+          successBlock.appendChild(detail);
+        }
+        
+        successBlock.style.display = 'block';
+      }
+      
+      const closeInstruction = document.getElementById('close-instruction');
+      if (closeInstruction) {
+        closeInstruction.style.display = 'block';
+      }
     }
     
     /**
