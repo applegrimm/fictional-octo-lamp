@@ -712,6 +712,11 @@
           <label for="same_as_orderer" style="font-weight:normal; margin:0;">注文者住所と同じ</label>
         </div>
         <div>
+          <label for="delivery_recipient">お届け先お名前<span class="required">*</span></label>
+          <input type="text" id="delivery_recipient" name="delivery_recipient" placeholder="例：贈り先 太郎">
+          <span class="error-message" id="delivery_recipient-error"></span>
+        </div>
+        <div>
           <label for="delivery_postal">郵便番号<span class="required">*</span></label>
           <div style="display:flex; gap:8px;">
             <input type="text" id="delivery_postal" name="delivery_postal" placeholder="1000001" inputmode="numeric" maxlength="7" pattern="[0-9]{7}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
@@ -1361,6 +1366,14 @@
               dst.disabled = disabled;
             }
           });
+          const recipientField = document.getElementById('delivery_recipient');
+          const ordererNameField = document.getElementById('name');
+          if (recipientField) {
+            if (disabled && ordererNameField) {
+              recipientField.value = ordererNameField.value;
+            }
+            recipientField.disabled = disabled;
+          }
         });
       }
       
@@ -2098,6 +2111,7 @@
           prefecture: (document.getElementById('delivery_pref')?.value || ''),
           city: (document.getElementById('delivery_city')?.value || ''),
           address1: (document.getElementById('delivery_addr1')?.value || ''),
+          recipientName: (document.getElementById('delivery_recipient')?.value || ''),
           fullAddress: ''
         };
         data.deliveryAddress.fullAddress = `${data.deliveryAddress.prefecture}${data.deliveryAddress.city}${data.deliveryAddress.address1}`.trim();
@@ -3870,6 +3884,7 @@
           prefecture: (document.getElementById('delivery_pref')?.value || ''),
           city: (document.getElementById('delivery_city')?.value || ''),
           address1: (document.getElementById('delivery_addr1')?.value || ''),
+          recipientName: (document.getElementById('delivery_recipient')?.value || ''),
           fullAddress: ''
         };
         data.deliveryAddress.fullAddress = `${data.deliveryAddress.prefecture}${data.deliveryAddress.city}${data.deliveryAddress.address1}`.trim();
@@ -3889,6 +3904,9 @@
         if (!data.ordererAddress?.[k]) errors.push('注文者住所を正しく入力してください');
         if (!data.deliveryAddress?.[k]) errors.push('配送先住所を正しく入力してください');
       });
+      if (!data.deliveryAddress?.recipientName?.trim()) {
+        errors.push('配送先のお名前を入力してください');
+      }
       if (!data.deliveryDate) errors.push('配送希望日を選択してください');
       if (!data.deliveryTimeSlot) errors.push('配送時間帯を選択してください');
       if (!data.noshiOption) errors.push('「のし」を選択してください');
