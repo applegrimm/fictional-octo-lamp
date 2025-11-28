@@ -1372,8 +1372,13 @@
               dst.disabled = disabled;
             }
           });
+          const currentFormType = (typeof getFormTypeFromUrl === 'function') ? getFormTypeFromUrl() : 'pickup';
+          const isCorporateForm = currentFormType === 'corporate';
+          
           const recipientField = document.getElementById('delivery_recipient');
-          const ordererNameField = document.getElementById('name');
+          const ordererNameField = isCorporateForm
+            ? document.getElementById('company_name')
+            : document.getElementById('name');
           if (recipientField) {
             if (disabled && ordererNameField) {
               recipientField.value = ordererNameField.value;
@@ -1384,9 +1389,9 @@
           const deliveryPhoneField = document.getElementById('delivery_phone');
           if (deliveryPhoneField) {
             // 法人用フォームの場合はcorp_phone、通常フォームの場合はphoneを使用
-            const corpPhoneField = document.getElementById('corp_phone');
-            const normalPhoneField = document.getElementById('phone');
-            const ordererPhoneField = corpPhoneField || normalPhoneField;
+            const ordererPhoneField = isCorporateForm
+              ? document.getElementById('corp_phone')
+              : document.getElementById('phone');
             if (disabled && ordererPhoneField) {
               deliveryPhoneField.value = ordererPhoneField.value;
             }
