@@ -1657,11 +1657,16 @@
       
       container.appendChild(itemDiv);
       
-      // 商品選択肢を設定（visibleプロパティでフィルタリング）
+      // 商品選択肢を設定（visibleプロパティと販売期間でフィルタリング）
       const select = itemDiv.querySelector('select');
       allProducts.forEach(product => {
         // visibleプロパティがfalseの場合は表示しない
         if (product.visible === false) {
+          return;
+        }
+        
+        // 販売期間制御
+        if (!isProductAvailableForSale(product)) {
           return;
         }
         
