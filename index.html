@@ -1530,9 +1530,10 @@
         const timestamp = Date.now();
         console.log('🚀 データ並列読み込み開始...');
         
+        // GitHubから最新のデータを取得（Code.gsと統一）
         const [productsResponse, storesResponse] = await Promise.all([
-          fetch(`./products.json?v=${timestamp}`),
-          fetch(`./stores.json?v=${timestamp}`)
+          fetch(`https://applegrimm.github.io/fictional-octo-lamp/products.json?v=${timestamp}`),
+          fetch(`https://applegrimm.github.io/fictional-octo-lamp/stores.json?v=${timestamp}`)
         ]);
         
         // 🚀 JSON解析も並列処理
