@@ -1274,6 +1274,9 @@
 
       // 店舗選択のイベントリスナー
       document.getElementById('store').addEventListener('change', function() {
+        // 商品リストを更新（店舗フィルタリング）
+        updateProductSelects();
+        
         if (currentDeliveryMethod === 'delivery') {
           updateDeliveryDateControl();
         } else {
@@ -1281,6 +1284,19 @@
         }
         updatePickupTimeOptions(); // 時間選択を更新
       });
+      
+      // お申し込み店舗選択のイベントリスナー（配送方式の場合）
+      const applicationStoreSelect = document.getElementById('application_store');
+      if (applicationStoreSelect) {
+        applicationStoreSelect.addEventListener('change', function() {
+          // 商品リストを更新（店舗フィルタリング）
+          updateProductSelects();
+          
+          if (currentDeliveryMethod === 'delivery') {
+            updateDeliveryDateControl();
+          }
+        });
+      }
       
       // 受取日選択のイベントリスナー（validatePickupDateを使用）
       document.getElementById('pickup_date').addEventListener('change', validatePickupDate);
@@ -1561,7 +1577,21 @@
         // 選択肢をクリア
         select.innerHTML = '<option value="">商品を選択</option>';
         
-        // 商品を追加（visibleプロパティと販売期間でフィルタリング）
+        // 選択された店舗を取得（配送方式に応じて）
+        let selectedStore = null;
+        if (currentDeliveryMethod === 'delivery') {
+          // 配送方式の場合はお申し込み店舗を使用
+          const applicationStoreSelect = document.getElementById('application_store');
+          const selectedStoreName = applicationStoreSelect ? applicationStoreSelect.value : '';
+          selectedStore = allStores.find(store => store.name === selectedStoreName);
+        } else {
+          // 店頭受取の場合は受取店舗を使用
+          const storeSelect = document.getElementById('store');
+          const selectedStoreName = storeSelect ? storeSelect.value : '';
+          selectedStore = allStores.find(store => store.name === selectedStoreName);
+        }
+        
+        // 商品を追加（visibleプロパティ、販売期間、店舗でフィルタリング）
         allProducts.forEach(product => {
           // visibleプロパティがfalseの場合は表示しない
           if (product.visible === false) {
@@ -1573,14 +1603,35 @@
             return;
           }
           
+          // 店舗フィルタリング（店舗が選択されている場合のみ）
+          if (selectedStore && !isProductAvailableForStore(product, selectedStore)) {
+            return;
+          }
+          
           const option = document.createElement('option');
           option.value = product.name;
           option.textContent = `${product.name} (${product.price}円)`;
           select.appendChild(option);
         });
         
-        // 選択値を復元
-        select.value = currentValue;
+        // 選択値を復元（ただし、フィルタリング後に存在する場合のみ）
+        if (currentValue) {
+          const optionExists = Array.from(select.options).some(opt => opt.value === currentValue);
+          if (optionExists) {
+            select.value = currentValue;
+          } else {
+            // 選択された商品がフィルタリングで除外された場合はクリア
+            select.value = '';
+            // 商品説明もクリア
+            const descDiv = select.parentElement.querySelector('.product-desc');
+            if (descDiv) descDiv.textContent = '';
+            const imgEl = select.parentElement.querySelector('.product-image img');
+            if (imgEl) {
+              imgEl.removeAttribute('src');
+              imgEl.style.display = 'none';
+            }
+          }
+        }
       });
     }
 
@@ -1602,11 +1653,36 @@
       
       container.appendChild(itemDiv);
       
-      // 商品選択肢を設定（visibleプロパティでフィルタリング）
+      // 商品選択肢を設定（visibleプロパティ、販売期間、店舗でフィルタリング）
       const select = itemDiv.querySelector('select');
+      
+      // 選択された店舗を取得（配送方式に応じて）
+      let selectedStore = null;
+      if (currentDeliveryMethod === 'delivery') {
+        // 配送方式の場合はお申し込み店舗を使用
+        const applicationStoreSelect = document.getElementById('application_store');
+        const selectedStoreName = applicationStoreSelect ? applicationStoreSelect.value : '';
+        selectedStore = allStores.find(store => store.name === selectedStoreName);
+      } else {
+        // 店頭受取の場合は受取店舗を使用
+        const storeSelect = document.getElementById('store');
+        const selectedStoreName = storeSelect ? storeSelect.value : '';
+        selectedStore = allStores.find(store => store.name === selectedStoreName);
+      }
+      
       allProducts.forEach(product => {
         // visibleプロパティがfalseの場合は表示しない
         if (product.visible === false) {
+          return;
+        }
+        
+        // 販売期間制御
+        if (!isProductAvailableForSale(product)) {
+          return;
+        }
+        
+        // 店舗フィルタリング（店舗が選択されている場合のみ）
+        if (selectedStore && !isProductAvailableForStore(product, selectedStore)) {
           return;
         }
         
@@ -1656,6 +1732,8 @@
       radios.forEach(r => r.addEventListener('change', () => {
         currentDeliveryMethod = document.querySelector('input[name="delivery_method"]:checked').value;
         toggleDeliveryFields();
+        // 商品リストを更新（配送方式切り替え時も店舗フィルタリングを適用）
+        updateProductSelects();
         if (currentDeliveryMethod === 'delivery') {
           updateDeliveryDateControl();
         } else {
@@ -2883,6 +2961,35 @@
       }
       
       return true;
+    }
+    
+    /**
+     * 商品が選択された店舗で扱えるかどうかを判定
+     * @param {Object} product - 商品データ
+     * @param {Object} store - 店舗データ
+     * @returns {boolean} 扱える場合はtrue
+     */
+    function isProductAvailableForStore(product, store) {
+      // 店舗IDと店舗グループの両方が未指定の場合は全店舗扱い
+      const hasStoreIds = product.storeIds && product.storeIds.length > 0;
+      const hasStoreGroups = product.storeGroups && product.storeGroups.length > 0;
+      
+      if (!hasStoreIds && !hasStoreGroups) {
+        return true; // 全店舗扱い
+      }
+      
+      // 店舗IDでチェック
+      if (hasStoreIds && product.storeIds.includes(store.id)) {
+        return true;
+      }
+      
+      // 店舗グループでチェック
+      if (hasStoreGroups && product.storeGroups.includes(store.group)) {
+        return true;
+      }
+      
+      // どちらにも一致しない場合は扱えない
+      return false;
     }
     
     /**
