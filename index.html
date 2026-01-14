@@ -521,6 +521,7 @@
     <h1>テイクアウト予約フォーム</h1>
     
     <form id="reserveForm">
+      <!-- 商品・数量 -->
       <div>
         <label>商品・数量<span class="required">*</span></label>
         <div id="product-list-area">
@@ -531,52 +532,21 @@
         <div id="product-date-note" style="font-size: 0.9em; color: #666; margin-top: 8px;">商品を選択してください。</div>
       </div>
       
-      <div id="pickup-date-section">
-        <label for="pickup_date">受取希望日<span class="required">*</span></label>
-        <input type="date" id="pickup_date" name="pickup_date" required disabled>
-        <span class="error-message" id="pickup_date-error"></span>
-      </div>
-      
-      <div id="pickup-time-section">
-        <label for="pickup_time">受取希望時間<span class="required">*</span></label>
-        <select id="pickup_time" name="pickup_time" required disabled>
-          <option value="">選択してください</option>
-          <option value="10:00">10:00</option>
-          <option value="10:30">10:30</option>
-          <option value="11:00">11:00</option>
-          <option value="11:30">11:30</option>
-          <option value="12:00">12:00</option>
-          <option value="12:30">12:30</option>
-          <option value="13:00">13:00</option>
-          <option value="13:30">13:30</option>
-          <option value="14:00">14:00</option>
-          <option value="14:30">14:30</option>
-          <option value="15:00">15:00</option>
-          <option value="15:30">15:30</option>
-          <option value="16:00">16:00</option>
-          <option value="16:30">16:30</option>
-          <option value="17:00">17:00</option>
-          <option value="17:30">17:30</option>
-          <option value="18:00">18:00</option>
-          <option value="18:30">18:30</option>
-          <option value="19:00">19:00</option>
-          <option value="19:30">19:30</option>
-          <option value="20:00">20:00</option>
-        </select>
-        <span class="error-message" id="pickup_time-error"></span>
-      </div>
+      <!-- お名前 -->
       <div>
         <label for="name">お名前<span class="required">*</span></label>
         <input type="text" id="name" name="name" required>
         <span class="error-message" id="name-error"></span>
       </div>
       
+      <!-- 電話番号 -->
       <div>
         <label for="phone">電話番号<span class="required">*</span></label>
         <input type="tel" id="phone" name="phone" required>
         <span class="error-message" id="phone-error"></span>
       </div>
       
+      <!-- メールアドレス -->
       <div>
         <label for="email">メールアドレス<span class="required">*</span></label>
         <input type="email" id="email" name="email" required>
@@ -616,20 +586,47 @@
         </select>
         <span class="error-message" id="store-error"></span>
       </div>
-
-      <!-- 商品情報を知った店舗についての説明（配送選択時のみ表示） -->
-      <div id="application-store-explanation" style="display:none; margin: 16px 0 12px; padding: 12px; background-color: #f8f9fa; border-left: 4px solid #007bff; border-radius: 4px;">
-        <p style="margin: 0; font-size: 14px; line-height: 1.5; color: #333;">
-          <strong>商品情報を知った店舗について</strong><br>
-          商品情報をお知りになった店舗の選択をお願いしております。<br>
-          この情報は各店舗の売上管理とサービス向上のため使用させていただきます。<br>
-          お客様にはご面倒をおかけいたしますが、ご協力をお願いいたします。
-        </p>
+      
+      <!-- 受取希望日 -->
+      <div id="pickup-date-section">
+        <label for="pickup_date">受取希望日<span class="required">*</span></label>
+        <input type="date" id="pickup_date" name="pickup_date" required disabled>
+        <span class="error-message" id="pickup_date-error"></span>
+      </div>
+      
+      <!-- 受取希望時間 -->
+      <div id="pickup-time-section">
+        <label for="pickup_time">受取希望時間<span class="required">*</span></label>
+        <select id="pickup_time" name="pickup_time" required disabled>
+          <option value="">選択してください</option>
+          <option value="10:00">10:00</option>
+          <option value="10:30">10:30</option>
+          <option value="11:00">11:00</option>
+          <option value="11:30">11:30</option>
+          <option value="12:00">12:00</option>
+          <option value="12:30">12:30</option>
+          <option value="13:00">13:00</option>
+          <option value="13:30">13:30</option>
+          <option value="14:00">14:00</option>
+          <option value="14:30">14:30</option>
+          <option value="15:00">15:00</option>
+          <option value="15:30">15:30</option>
+          <option value="16:00">16:00</option>
+          <option value="16:30">16:30</option>
+          <option value="17:00">17:00</option>
+          <option value="17:30">17:30</option>
+          <option value="18:00">18:00</option>
+          <option value="18:30">18:30</option>
+          <option value="19:00">19:00</option>
+          <option value="19:30">19:30</option>
+          <option value="20:00">20:00</option>
+        </select>
+        <span class="error-message" id="pickup_time-error"></span>
       </div>
 
       <!-- お申し込み店舗グループ選択（配送選択時のみ表示） -->
       <div id="application-store-group-section" style="display:none; margin: 8px 0 12px;">
-        <label for="application_store_group">店舗グループ<span class="required">*</span></label>
+        <label for="application_store_group">お申し込み店舗グループ<span class="required">*</span></label>
         <select id="application_store_group" name="application_store_group" required disabled>
           <option value="">グループを選択してください</option>
           <option value="burns">焼肉バーンズ</option>
@@ -644,7 +641,7 @@
 
       <!-- お申し込み店舗選択（配送選択時のみ表示） -->
       <div id="application-store-section" style="display:none; margin: 8px 0 12px;">
-        <label for="application_store">商品情報を知った店舗<span class="required">*</span></label>
+        <label for="application_store">お申し込み店舗<span class="required">*</span></label>
         <select id="application_store" name="application_store" required disabled>
           <option value="">先にグループを選択してください</option>
         </select>
@@ -680,10 +677,9 @@
         <div>
           <label for="orderer_postal">郵便番号<span class="required">*</span></label>
           <div style="display:flex; gap:8px;">
-            <input type="text" id="orderer_postal" name="orderer_postal" placeholder="1234567" inputmode="numeric" maxlength="7" pattern="[0-9]{7}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            <input type="text" id="orderer_postal" name="orderer_postal" placeholder="123-4567" inputmode="numeric" maxlength="8">
             <button type="button" id="orderer_zip_search" class="add-product-btn" style="margin-top:0;">住所検索</button>
           </div>
-          <small style="color: #666; font-size: 0.9em; display: block; margin-top: 4px;">※ ハイフンなしで7桁の数字を入力してください（例：1234567）</small>
           <span class="error-message" id="orderer_postal-error"></span>
         </div>
         <div>
@@ -712,23 +708,11 @@
           <label for="same_as_orderer" style="font-weight:normal; margin:0;">注文者住所と同じ</label>
         </div>
         <div>
-          <label for="delivery_recipient">お届け先お名前<span class="required">*</span></label>
-          <input type="text" id="delivery_recipient" name="delivery_recipient" placeholder="例：贈り先 太郎">
-          <span class="error-message" id="delivery_recipient-error"></span>
-        </div>
-        <div>
-          <label for="delivery_phone">お届け先電話番号<span class="required">*</span></label>
-          <input type="tel" id="delivery_phone" name="delivery_phone" placeholder="例：09012345678" inputmode="numeric" maxlength="11" pattern="[0-9]{10,11}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
-          <small style="color: #666; font-size: 0.9em; display: block; margin-top: 4px;">※ ハイフンなしで10桁または11桁の数字を入力してください（例：09012345678）</small>
-          <span class="error-message" id="delivery_phone-error"></span>
-        </div>
-        <div>
           <label for="delivery_postal">郵便番号<span class="required">*</span></label>
           <div style="display:flex; gap:8px;">
-            <input type="text" id="delivery_postal" name="delivery_postal" placeholder="1000001" inputmode="numeric" maxlength="7" pattern="[0-9]{7}" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+            <input type="text" id="delivery_postal" name="delivery_postal" placeholder="100-0001" inputmode="numeric" maxlength="8">
             <button type="button" id="delivery_zip_search" class="add-product-btn" style="margin-top:0;">住所検索</button>
           </div>
-          <small style="color: #666; font-size: 0.9em; display: block; margin-top: 4px;">※ ハイフンなしで7桁の数字を入力してください（例：1000001）</small>
           <span class="error-message" id="delivery_postal-error"></span>
         </div>
         <div>
@@ -779,11 +763,11 @@
           <option value="お祝い">お祝い</option>
           <option value="その他">その他</option>
         </select>
-        <div id="noshi-default-note" style="font-size: 0.85em; color:#666; margin-top:4px;">※冷凍品のため略式の短冊のしのみ対応いたします</div>
+        <div style="font-size: 0.85em; color:#666; margin-top:4px;">※冷凍品のため略式の短冊のしのみ対応いたします</div>
         <span class="error-message" id="noshi_option-error"></span>
       </div>
       
-      
+      <!-- 備考 -->
       <div>
         <label for="note">備考</label>
         <textarea id="note" name="note" rows="3" placeholder="アレルギーやご要望などがあればご記入ください"></textarea>
@@ -997,8 +981,7 @@
         }
         
         const script = document.createElement('script');
-        // キャッシュバスターを付与して常に最新のstripe-config.jsを読み込む
-        script.src = 'stripe-config.js?v=' + Date.now();
+        script.src = 'stripe-config.js?v=20241220';
         script.onload = () => {
           console.log('✅ Stripe設定読み込み完了');
           window.stripeConfigLoaded = true;
@@ -1164,12 +1147,6 @@
     function attachProductSelectListener() {
       document.querySelectorAll('.product-item select').forEach(select => {
         select.addEventListener('change', () => {
-          // 商品が選択された場合、数量が空なら自動的に「1」を入力
-          const quantityInput = select.parentElement.querySelector('input[type="number"]');
-          if (select.value && quantityInput && !quantityInput.value) {
-            quantityInput.value = '1';
-          }
-          
           if (currentDeliveryMethod === 'delivery') {
             updateDeliveryDateControl();
           } else {
@@ -1372,31 +1349,6 @@
               dst.disabled = disabled;
             }
           });
-          const currentFormType = (typeof getFormTypeFromUrl === 'function') ? getFormTypeFromUrl() : 'pickup';
-          const isCorporateForm = currentFormType === 'corporate';
-          
-          const recipientField = document.getElementById('delivery_recipient');
-          const ordererNameField = isCorporateForm
-            ? document.getElementById('company_name')
-            : document.getElementById('name');
-          if (recipientField) {
-            if (disabled && ordererNameField) {
-              recipientField.value = ordererNameField.value;
-            }
-            recipientField.disabled = disabled;
-          }
-          // 配送先電話番号も自動入力
-          const deliveryPhoneField = document.getElementById('delivery_phone');
-          if (deliveryPhoneField) {
-            // 法人用フォームの場合はcorp_phone、通常フォームの場合はphoneを使用
-            const ordererPhoneField = isCorporateForm
-              ? document.getElementById('corp_phone')
-              : document.getElementById('phone');
-            if (disabled && ordererPhoneField) {
-              deliveryPhoneField.value = ordererPhoneField.value;
-            }
-            deliveryPhoneField.disabled = disabled;
-          }
         });
       }
       
@@ -1475,14 +1427,7 @@
       const observer = new MutationObserver(function(mutations) {
         mutations.forEach(function(mutation) {
           if (mutation.type === 'childList' && mutation.removedNodes.length > 0) {
-            // 配送方式に応じて適切な日付制御を更新
-            setTimeout(() => {
-              if (currentDeliveryMethod === 'delivery') {
-                updateDeliveryDateControl();
-              } else {
-                updatePickupDateControl();
-              }
-            }, 100);
+            setTimeout(updatePickupDateControl, 100);
           }
         });
       });
@@ -1530,10 +1475,9 @@
         const timestamp = Date.now();
         console.log('🚀 データ並列読み込み開始...');
         
-        // GitHubから最新のデータを取得（Code.gsと統一）
         const [productsResponse, storesResponse] = await Promise.all([
-          fetch(`https://applegrimm.github.io/fictional-octo-lamp/products.json?v=${timestamp}`),
-          fetch(`https://applegrimm.github.io/fictional-octo-lamp/stores.json?v=${timestamp}`)
+          fetch(`./products.json?v=${timestamp}`),
+          fetch(`./stores.json?v=${timestamp}`)
         ]);
         
         // 🚀 JSON解析も並列処理
@@ -1647,10 +1591,10 @@
       itemDiv.className = 'product-item';
       
       itemDiv.innerHTML = `
-        <select onchange="updateProductDescription(this); if(currentDeliveryMethod === 'delivery') updateDeliveryDateControl(); else updatePickupDateControl();">
+        <select onchange="updateProductDescription(this); updatePickupDateControl();">
           <option value="">商品を選択</option>
         </select>
-        <input type="number" min="1" placeholder="数量" onchange="if(currentDeliveryMethod === 'delivery') updateDeliveryDateControl(); else updatePickupDateControl();">
+        <input type="number" min="1" placeholder="数量" onchange="updatePickupDateControl();">
         <button type="button" class="remove-product-btn" onclick="removeProductItem(this)">削除</button>
         <div class="product-desc"></div>
         <div class="product-image"><img alt="商品画像" loading="lazy" style="display:none;"></div>
@@ -1658,16 +1602,11 @@
       
       container.appendChild(itemDiv);
       
-      // 商品選択肢を設定（visibleプロパティと販売期間でフィルタリング）
+      // 商品選択肢を設定（visibleプロパティでフィルタリング）
       const select = itemDiv.querySelector('select');
       allProducts.forEach(product => {
         // visibleプロパティがfalseの場合は表示しない
         if (product.visible === false) {
-          return;
-        }
-        
-        // 販売期間制御
-        if (!isProductAvailableForSale(product)) {
           return;
         }
         
@@ -1683,12 +1622,7 @@
       const container = document.getElementById('product-list-area');
       if (container.children.length > 1) {
         button.parentElement.remove();
-        // 配送方式に応じて適切な日付制御を更新
-        if (currentDeliveryMethod === 'delivery') {
-          updateDeliveryDateControl();
-        } else {
-          updatePickupDateControl();
-        }
+        updatePickupDateControl();
       }
     }
 
@@ -1696,13 +1630,7 @@
     function updateProductDescription(select) {
       const descDiv = select.parentElement.querySelector('.product-desc');
       const imgEl = select.parentElement.querySelector('.product-image img');
-      const quantityInput = select.parentElement.querySelector('input[type="number"]');
       const selectedProduct = allProducts.find(p => p.name === select.value);
-      
-      // 商品が選択された場合、数量が空なら自動的に「1」を入力
-      if (selectedProduct && quantityInput && !quantityInput.value) {
-        quantityInput.value = '1';
-      }
       
       if (selectedProduct && selectedProduct.description) {
         descDiv.textContent = selectedProduct.description;
@@ -1745,7 +1673,6 @@
       document.getElementById('pickup-date-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('pickup-time-section').style.display = isDelivery ? 'none' : 'block';
       document.getElementById('orderer-address-section').style.display = isDelivery ? 'block' : 'none';
-      document.getElementById('application-store-explanation').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('application-store-group-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('application-store-section').style.display = isDelivery ? 'block' : 'none';
       document.getElementById('delivery-address-section').style.display = isDelivery ? 'block' : 'none';
@@ -1796,12 +1723,6 @@
         updateDeliveryDateControl();
       } else {
         updatePickupDateControl();
-      }
-      
-      // 配送方法変更時のし種類選択肢を更新
-      if (isDelivery) {
-        updateNoshiOptions();
-        updateDeliveryTimeSlotOptions();
       }
     }
 
@@ -2140,8 +2061,6 @@
           prefecture: (document.getElementById('delivery_pref')?.value || ''),
           city: (document.getElementById('delivery_city')?.value || ''),
           address1: (document.getElementById('delivery_addr1')?.value || ''),
-          recipientName: (document.getElementById('delivery_recipient')?.value || ''),
-          recipientPhone: (document.getElementById('delivery_phone')?.value || ''),
           fullAddress: ''
         };
         data.deliveryAddress.fullAddress = `${data.deliveryAddress.prefecture}${data.deliveryAddress.city}${data.deliveryAddress.address1}`.trim();
@@ -2857,7 +2776,7 @@
           { value: '16:00-18:00', text: '16時-18時' },
           { value: '18:00-20:00', text: '18時-20時' },
           { value: '19:00-21:00', text: '19時-21時' },
-          { value: '時間指定なし', text: '時間帯指定なし' }
+          { value: 'no_time_slot', text: '時間帯指定なし' }
         ],
         'morning': [
           { value: '08:00-12:00', text: '8時-12時' }
@@ -2871,7 +2790,7 @@
           { value: '19:00-21:00', text: '19時-21時' }
         ],
         'none': [
-          { value: '時間帯指定なし', text: '時間帯指定なし' }
+          { value: 'no_time_slot', text: '時間指定なし' }
         ]
       };
       
@@ -2897,10 +2816,10 @@
           timeSelect.appendChild(optionElement);
         });
       } else {
-        // 共通の時間帯がない場合は「時間帯指定なし」のみ
+        // 共通の時間帯がない場合は「時間指定なし」のみ
         const optionElement = document.createElement('option');
-        optionElement.value = '時間帯指定なし';
-        optionElement.textContent = '時間帯指定なし';
+        optionElement.value = 'no_time_slot';
+        optionElement.textContent = '時間指定なし';
         timeSelect.appendChild(optionElement);
       }
     }
@@ -2984,7 +2903,7 @@
             const allowedTimeSlots = product.deliveryTimeSlots.timeSlots;
             
             // 時間帯制限のチェック
-            if (allowedTimeSlots === 'none' && selectedTimeSlot !== '時間帯指定なし') {
+            if (allowedTimeSlots === 'none' && selectedTimeSlot !== 'no_time_slot') {
               errors.push(`「${product.name}」は時間指定不可の商品です`);
             } else if (allowedTimeSlots !== 'all' && allowedTimeSlots !== 'none') {
               // 特定の時間帯のみ許可の場合
@@ -3520,224 +3439,6 @@
     // ========================================
     
     /**
-     * 配送時間帯選択肢を商品の制限に応じて更新
-     */
-    function updateDeliveryTimeSlotOptions() {
-      const timeSlotSelect = document.getElementById('delivery_time_slot');
-      if (!timeSlotSelect) return;
-      
-      const productItems = document.querySelectorAll('.product-item');
-      let hasTimeSlotRestrictedProduct = false;
-      
-      // 選択された商品の中に時間帯制限のある商品があるかチェック
-      const restrictedProducts = [];
-      const allowedProducts = [];
-      
-      productItems.forEach(itemDiv => {
-        const select = itemDiv.querySelector('select');
-        const qtyInput = itemDiv.querySelector('input[type="number"]');
-        
-        if (select.value && qtyInput.value && qtyInput.value > 0) {
-          const product = allProducts.find(p => p.name === select.value);
-          if (product && product.deliveryTimeSlots && product.deliveryTimeSlots.enabled) {
-            if (product.deliveryTimeSlots.timeSlots === 'none') {
-              hasTimeSlotRestrictedProduct = true;
-              restrictedProducts.push(product.name);
-            } else {
-              allowedProducts.push(product.name);
-            }
-          }
-        }
-      });
-      
-      // 時間帯制限のある商品が含まれている場合、選択肢を「時間帯指定なし」のみに制限
-      if (hasTimeSlotRestrictedProduct) {
-        // 現在の選択値を保存
-        const currentValue = timeSlotSelect.value;
-        
-        // 選択肢を「時間帯指定なし」のみに変更
-        timeSlotSelect.innerHTML = '<option value="時間帯指定なし">時間帯指定なし</option>';
-        
-        // 現在の選択が「時間帯指定なし」でない場合は「時間帯指定なし」に変更
-        if (currentValue !== '時間帯指定なし') {
-          timeSlotSelect.value = '時間帯指定なし';
-        }
-        
-        // 説明文を更新
-        const existingNote = document.querySelector('.timeslot-note');
-        if (existingNote) {
-          existingNote.remove();
-        }
-        
-        const note = document.createElement('div');
-        note.className = 'timeslot-note';
-        note.style.cssText = 'font-size: 0.85em; color:#e74c3c; margin-top:4px; font-weight:bold;';
-        let noteText = '※申し訳ございませんが、選択された商品の中に時間帯指定ができない商品が含まれているため、「時間帯指定なし」のみご選択いただけます';
-        if (allowedProducts.length > 0) {
-          noteText += `\n\n【商品の分類】`;
-          noteText += `\n・時間帯指定不可の商品: ${restrictedProducts.join(', ')}`;
-          noteText += `\n・時間帯指定可能な商品: ${allowedProducts.join(', ')}`;
-          noteText += '\n\n【ご案内】';
-          noteText += '\n時間帯指定の制限が異なる商品を同時にご注文いただくことができません。';
-          noteText += '\n大変お手数をおかけいたしますが、以下の方法でご注文をお願いいたします：';
-          noteText += '\n・時間帯指定不可の商品のみでご注文いただく';
-          noteText += '\n・時間帯指定可能な商品のみでご注文いただく';
-          noteText += '\n（異なる制限の商品をご希望の場合は、別々の注文として分けてご注文ください）';
-        }
-        note.textContent = noteText;
-        timeSlotSelect.parentNode.appendChild(note);
-        
-      } else {
-        // 時間帯制限のある商品がない場合、通常の選択肢を復元
-        const currentValue = timeSlotSelect.value;
-        
-        // 通常の選択肢を復元（配送時間帯選択肢を再構築）
-        restoreDeliveryTimeSlotOptions();
-        
-        // 元の選択値を復元（存在する場合）
-        if (currentValue && timeSlotSelect.querySelector(`option[value="${currentValue}"]`)) {
-          timeSlotSelect.value = currentValue;
-        } else {
-          timeSlotSelect.value = '時間帯指定なし';
-        }
-        
-        // 説明文を削除
-        const existingNote = document.querySelector('.timeslot-note');
-        if (existingNote) {
-          existingNote.remove();
-        }
-      }
-    }
-
-    /**
-     * 配送時間帯選択肢を通常の状態に復元
-     */
-    function restoreDeliveryTimeSlotOptions() {
-      const timeSlotSelect = document.getElementById('delivery_time_slot');
-      if (!timeSlotSelect) return;
-      
-      // 通常の選択肢を復元
-      timeSlotSelect.innerHTML = `
-        <option value="時間帯指定なし">時間帯指定なし</option>
-        <option value="08:00-12:00">8時-12時</option>
-        <option value="14:00-16:00">14時-16時</option>
-        <option value="16:00-18:00">16時-18時</option>
-        <option value="18:00-20:00">18時-20時</option>
-        <option value="19:00-21:00">19時-21時</option>
-      `;
-    }
-
-    /**
-     * のし種類選択肢を商品の対応可否に応じて更新
-     */
-    function updateNoshiOptions() {
-      const noshiSelect = document.getElementById('noshi_option_select');
-      if (!noshiSelect) return;
-      
-      const productItems = document.querySelectorAll('.product-item');
-      let hasNoshiUnavailableProduct = false;
-      
-      // 選択された商品の中にのし対応不可の商品があるかチェック
-      const noshiRestrictedProducts = [];
-      const noshiAllowedProducts = [];
-      
-      productItems.forEach(itemDiv => {
-        const select = itemDiv.querySelector('select');
-        const qtyInput = itemDiv.querySelector('input[type="number"]');
-        
-        if (select.value && qtyInput.value && qtyInput.value > 0) {
-          const product = allProducts.find(p => p.name === select.value);
-          if (product) {
-            if (product.noshiAvailable === false) {
-              hasNoshiUnavailableProduct = true;
-              noshiRestrictedProducts.push(product.name);
-            } else {
-              noshiAllowedProducts.push(product.name);
-            }
-          }
-        }
-      });
-      
-      // のし対応不可の商品が含まれている場合、選択肢を「なし」のみに制限
-      if (hasNoshiUnavailableProduct) {
-        // 現在の選択値を保存
-        const currentValue = noshiSelect.value;
-        
-        // 選択肢を「なし」のみに変更
-        noshiSelect.innerHTML = '<option value="なし">なし</option>';
-        
-        // 現在の選択が「なし」でない場合は「なし」に変更
-        if (currentValue !== 'なし') {
-          noshiSelect.value = 'なし';
-        }
-        
-        // 説明文を更新
-        const defaultNote = document.getElementById('noshi-default-note');
-        const existingNote = document.querySelector('.noshi-note');
-        
-        // 既存のカスタムノートを削除
-        if (existingNote) {
-          existingNote.remove();
-        }
-        
-        // デフォルトノートを非表示
-        if (defaultNote) {
-          defaultNote.style.display = 'none';
-        }
-        
-        const note = document.createElement('div');
-        note.className = 'noshi-note';
-        note.style.cssText = 'font-size: 0.85em; color:#e74c3c; margin-top:4px; font-weight:bold;';
-        let noteText = '※申し訳ございませんが、選択された商品の中にのし対応ができない商品が含まれているため、「なし」のみご選択いただけます';
-        if (noshiAllowedProducts.length > 0) {
-          noteText += `\n\n【商品の分類】`;
-          noteText += `\n・のし対応不可の商品: ${noshiRestrictedProducts.join(', ')}`;
-          noteText += `\n・のし対応可能な商品: ${noshiAllowedProducts.join(', ')}`;
-          noteText += '\n\n【ご案内】';
-          noteText += '\nのし対応の制限が異なる商品を同時にご注文いただくことができません。';
-          noteText += '\n大変お手数をおかけいたしますが、以下の方法でご注文をお願いいたします：';
-          noteText += '\n・のし対応不可の商品のみでご注文いただく';
-          noteText += '\n・のし対応可能な商品のみでご注文いただく';
-          noteText += '\n（異なる制限の商品をご希望の場合は、別々の注文として分けてご注文ください）';
-        }
-        note.textContent = noteText;
-        noshiSelect.parentNode.appendChild(note);
-        
-      } else {
-        // のし対応不可の商品がない場合、通常の選択肢を復元
-        const currentValue = noshiSelect.value;
-        
-        noshiSelect.innerHTML = `
-          <option value="なし">なし</option>
-          <option value="御歳暮">御歳暮</option>
-          <option value="御中元">御中元</option>
-          <option value="内祝い">内祝い</option>
-          <option value="お祝い">お祝い</option>
-          <option value="その他">その他</option>
-        `;
-        
-        // 元の選択値を復元（存在する場合）
-        if (currentValue && noshiSelect.querySelector(`option[value="${currentValue}"]`)) {
-          noshiSelect.value = currentValue;
-        } else {
-          noshiSelect.value = 'なし';
-        }
-        
-        // 説明文を元に戻す
-        const existingNote = document.querySelector('.noshi-note');
-        if (existingNote) {
-          existingNote.remove();
-        }
-        
-        // デフォルトノートを表示
-        const defaultNote = document.getElementById('noshi-default-note');
-        if (defaultNote) {
-          defaultNote.style.display = 'block';
-        }
-      }
-    }
-
-    /**
      * 合計金額を計算して表示
      */
     function updateTotalAmount() {
@@ -3797,12 +3498,6 @@
         // 商品未選択でも決済ボタンを表示
         paymentBtn.style.display = 'block';
       }
-      
-      // のし種類選択肢を商品の対応可否に応じて更新
-      updateNoshiOptions();
-      
-      // 配送時間帯選択肢を商品の制限に応じて更新
-      updateDeliveryTimeSlotOptions();
     }
     
     /**
@@ -3822,8 +3517,6 @@
       const isCorporateType = formType === 'corporate';
       
       const data = {
-        // 掛け売りフォーム識別のための種別
-        formType: formType,
         name: formData.get('name'),
         phone: formData.get('phone'),
         email: formData.get('email'),
@@ -3914,8 +3607,6 @@
           prefecture: (document.getElementById('delivery_pref')?.value || ''),
           city: (document.getElementById('delivery_city')?.value || ''),
           address1: (document.getElementById('delivery_addr1')?.value || ''),
-          recipientName: (document.getElementById('delivery_recipient')?.value || ''),
-          recipientPhone: (document.getElementById('delivery_phone')?.value || ''),
           fullAddress: ''
         };
         data.deliveryAddress.fullAddress = `${data.deliveryAddress.prefecture}${data.deliveryAddress.city}${data.deliveryAddress.address1}`.trim();
@@ -3935,13 +3626,6 @@
         if (!data.ordererAddress?.[k]) errors.push('注文者住所を正しく入力してください');
         if (!data.deliveryAddress?.[k]) errors.push('配送先住所を正しく入力してください');
       });
-      if (!data.deliveryAddress?.recipientName?.trim()) {
-        errors.push('配送先のお名前を入力してください');
-      }
-      const deliveryPhone = (data.deliveryAddress?.recipientPhone || '').replace(/[^0-9]/g, '');
-      if (!/^[0-9]{10,11}$/.test(deliveryPhone)) {
-        errors.push('配送先の電話番号は10桁または11桁の数字で入力してください');
-      }
       if (!data.deliveryDate) errors.push('配送希望日を選択してください');
       if (!data.deliveryTimeSlot) errors.push('配送時間帯を選択してください');
       if (!data.noshiOption) errors.push('「のし」を選択してください');
@@ -4066,7 +3750,7 @@
       // お申し込み店舗チェック
       const applicationStore = document.getElementById('application_store');
       if (!applicationStore || !applicationStore.value) {
-        errors.push('• 商品情報を知った店舗を選択してください');
+        errors.push('• お申し込み店舗を選択してください');
       }
       
       // 会社名チェック
@@ -4121,7 +3805,6 @@
         const deliveryPref = document.getElementById('delivery_pref');
         const deliveryCity = document.getElementById('delivery_city');
         const deliveryAddr1 = document.getElementById('delivery_addr1');
-        const deliveryPhone = document.getElementById('delivery_phone');
         
         if (!deliveryPostal || !deliveryPostal.value.trim()) {
           errors.push('• 配送先の郵便番号を入力してください');
@@ -4134,14 +3817,6 @@
         }
         if (!deliveryAddr1 || !deliveryAddr1.value.trim()) {
           errors.push('• 配送先の番地・建物名を入力してください');
-        }
-        if (!deliveryPhone || !deliveryPhone.value.trim()) {
-          errors.push('• 配送先の電話番号を入力してください');
-        } else {
-          const phoneDigits = deliveryPhone.value.replace(/[^0-9]/g, '');
-          if (!/^[0-9]{10,11}$/.test(phoneDigits)) {
-            errors.push('• 配送先の電話番号は10桁または11桁の数字で入力してください');
-          }
         }
       }
       
@@ -4177,7 +3852,7 @@
       const deliveryTimeSlot = document.getElementById('delivery_time_slot');
       if (!deliveryTimeSlot || !deliveryTimeSlot.value) {
         errors.push('• 配送時間帯を選択してください');
-      } else if (deliveryTimeSlot.value !== '時間帯指定なし') {
+      } else if (deliveryTimeSlot.value !== 'no_time_slot') {
         // 時間指定ありの場合、商品の時間帯制限をチェック
         const timeSlotErrors = validateDeliveryTimeSlotFrontend(deliveryTimeSlot.value);
         errors.push(...timeSlotErrors);
@@ -4232,7 +3907,7 @@
             return;
           }
           if (!reservationData.applicationStore) {
-            alert('「商品情報を知った店舗」を選択してください。');
+            alert('「お申し込み店舗」を選択してください。');
             return;
           }
         }
@@ -4253,20 +3928,11 @@
           if (result && result.success) {
             const url = result.invoice_url || '';
             const guidance = '請求書URLは受注確認メールをご確認ください。';
-            const message = '請求書の作成・送付を受け付けました。' +
-              (url ? '<br>請求書URL: <a href="' + url + '" target="_blank" rel="noopener">こちら</a>' : '') +
-              '<br>' + guidance +
-              '<br><strong>申込み画面を閉じてください。</strong>';
-            const modalMsgEl = document.getElementById('modal-message');
-            if (modalMsgEl) {
-              modalMsgEl.innerHTML = message;
-            }
-            const modalEl = document.getElementById('custom-modal');
-            if (modalEl) {
-              modalEl.classList.add('show');
-            }
             if (url) {
+              alert('請求書の作成・送付を受け付けました。\n' + '請求書URL: ' + url + '\n' + guidance);
               window.open(url, '_blank');
+            } else {
+              alert('請求書の作成・送付を受け付けました。\n' + guidance);
             }
           } else {
             throw new Error(result && result.error ? result.error : '請求書の作成に失敗しました');
