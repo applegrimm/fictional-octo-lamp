@@ -836,44 +836,6 @@
     "unavailable_dates": []
   },
   {
-    "id": "bk9",
-    "name": "カルビ牧場 燕三条店",
-    "group": "kirabi",
-    "groupName": "カルビ牧場",
-    "managementSecret": "bk9-mg-efphrgsp",
-    "hours": {
-      "mon": [
-        "11:00",
-        "15:00"
-      ],
-      "tue": [
-        "11:00",
-        "15:00"
-      ],
-      "wed": [
-        "11:00",
-        "15:00"
-      ],
-      "thu": [
-        "11:00",
-        "15:00"
-      ],
-      "fri": [
-        "11:00",
-        "15:00"
-      ],
-      "sat": [
-        "11:00",
-        "15:00"
-      ],
-      "sun": [
-        "11:00",
-        "15:00"
-      ]
-    },
-    "unavailable_dates": []
-  },
-  {
     "id": "kb1",
     "name": "きらび 本店",
     "group": "kirabi_single",
