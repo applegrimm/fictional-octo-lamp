@@ -877,6 +877,8 @@
                 <th style="width: 140px;">配送エリア</th>
                 <th style="width: 120px;">熨斗対応</th>
                 <th style="width: 300px;">熨斗オプション</th>
+                <th style="width: 200px;">店舗ID</th>
+                <th style="width: 200px;">店舗グループ</th>
                 <th style="width: 100px;">表示</th>
                 <th style="width: 120px;">操作</th>
               </tr>
@@ -1933,6 +1935,23 @@
         </select>
       </td>
       <td>
+        <select onchange="updateProductStoreIds(${index}, Array.from(this.selectedOptions).map(option => option.value))" multiple style="width: 100%; min-height: 80px;">
+          ${storesData.map(store => 
+            `<option value="${store.id}" ${(product.storeIds || []).includes(store.id) ? 'selected' : ''}>${store.name} (${store.id})</option>`
+          ).join('')}
+        </select>
+        <div style="font-size: 11px; color: #666; margin-top: 4px;">未選択=全店舗</div>
+      </td>
+      <td>
+        <select onchange="updateProductStoreGroups(${index}, Array.from(this.selectedOptions).map(option => option.value))" multiple style="width: 100%; min-height: 80px;">
+          ${Array.from(new Set(storesData.map(s => s.group).filter(g => g))).map(group => {
+            const groupName = storesData.find(s => s.group === group)?.groupName || group;
+            return `<option value="${group}" ${(product.storeGroups || []).includes(group) ? 'selected' : ''}>${groupName} (${group})</option>`;
+          }).join('')}
+        </select>
+        <div style="font-size: 11px; color: #666; margin-top: 4px;">未選択=全グループ</div>
+      </td>
+      <td>
         <select onchange="updateProductData(${index}, 'visible', this.value === 'true')">
           <option value="true" ${product.visible !== false ? 'selected' : ''}>表示</option>
           <option value="false" ${product.visible === false ? 'selected' : ''}>非表示</option>
@@ -1983,6 +2002,30 @@
         }
       }
     }
+  }
+  
+  /**
+   * 商品の店舗IDを更新
+   */
+  function updateProductStoreIds(index, storeIds) {
+    if (!productsData[index]) {
+      productsData[index] = {};
+    }
+    // 空配列の場合は未定義にする（全店舗扱い）
+    productsData[index].storeIds = storeIds.length > 0 ? storeIds : undefined;
+    console.log(`商品[${index}]の店舗IDを更新:`, productsData[index].storeIds);
+  }
+  
+  /**
+   * 商品の店舗グループを更新
+   */
+  function updateProductStoreGroups(index, storeGroups) {
+    if (!productsData[index]) {
+      productsData[index] = {};
+    }
+    // 空配列の場合は未定義にする（全グループ扱い）
+    productsData[index].storeGroups = storeGroups.length > 0 ? storeGroups : undefined;
+    console.log(`商品[${index}]の店舗グループを更新:`, productsData[index].storeGroups);
   }
   
   /**
@@ -2090,7 +2133,9 @@
       deliveryArea: 'nationwide',
       noshiAvailable: false,
       noshiOptions: ['なし'],
-      visible: true
+      visible: true,
+      storeIds: undefined, // 未指定=全店舗
+      storeGroups: undefined // 未指定=全グループ
     };
     
     productsData.push(newProduct);
@@ -2140,11 +2185,22 @@
         product.id && product.name && typeof product.price === 'number'
       ).map(p => {
         // 空文字のimageUrlは除去
-        const { imageUrl, ...rest } = p;
+        const { imageUrl, storeIds, storeGroups, ...rest } = p;
+        const cleaned = { ...rest };
+        
         if (imageUrl && imageUrl.trim() !== '') {
-          return { ...rest, imageUrl: imageUrl.trim() };
+          cleaned.imageUrl = imageUrl.trim();
         }
-        return rest;
+        
+        // storeIdsとstoreGroupsが未定義または空配列の場合は除外（全店舗扱い）
+        if (storeIds && storeIds.length > 0) {
+          cleaned.storeIds = storeIds;
+        }
+        if (storeGroups && storeGroups.length > 0) {
+          cleaned.storeGroups = storeGroups;
+        }
+        
+        return cleaned;
       });
       
       if (validProducts.length === 0) {
@@ -3212,6 +3268,29 @@
   // =============================
   
   /**
+   * Stripeモードをフロント側のグローバル状態へ反映
+   * @param {string} mode - 'TEST' または 'LIVE'
+   */
+  function applyStripeModeLocally(mode) {
+    try {
+      const normalized = mode === 'LIVE' ? 'LIVE' : 'TEST';
+      if (window.PAYMENT_MODES) {
+        window.CURRENT_PAYMENT_MODE = normalized === 'LIVE'
+          ? window.PAYMENT_MODES.LIVE
+          : window.PAYMENT_MODES.TEST;
+      }
+      if (window.STRIPE_CONFIG && window.STRIPE_KEYS) {
+        const pubKey = normalized === 'LIVE' ? window.STRIPE_KEYS.LIVE : window.STRIPE_KEYS.TEST;
+        if (pubKey) {
+          window.STRIPE_CONFIG.PUBLISHABLE_KEY = pubKey;
+        }
+      }
+    } catch (error) {
+      console.warn('Stripeモードローカル反映時の警告:', error);
+    }
+  }
+
+  /**
    * Stripeモード切替ボタンの表示を更新
    */
   async function updateModeButtons() {
@@ -3234,6 +3313,8 @@
         }
       }
       
+      applyStripeModeLocally(currentMode);
+
       const testBtn = document.getElementById('stripe-test-btn');
       const liveBtn = document.getElementById('stripe-live-btn');
       const modeDisplay = document.getElementById('stripe-mode-display');
@@ -3262,6 +3343,7 @@
       try {
         // localStorageにも保存（後方互換性のため）
         localStorage.setItem('stripe-mode', 'TEST');
+        applyStripeModeLocally('TEST');
         
         // 設定ファイルをGitHubにプッシュ
         await pushStripeModeToGitHub('TEST');
@@ -3286,6 +3368,7 @@
       try {
         // localStorageにも保存（後方互換性のため）
         localStorage.setItem('stripe-mode', 'LIVE');
+        applyStripeModeLocally('LIVE');
         
         // 設定ファイルをGitHubにプッシュ
         await pushStripeModeToGitHub('LIVE');
@@ -3361,6 +3444,7 @@
       try {
         // localStorageにも保存（後方互換性のため）
         localStorage.setItem('stripe-mode', 'TEST');
+        applyStripeModeLocally('TEST');
         
         // 設定ファイルをGitHubにプッシュ
         await pushStripeModeToGitHub('TEST');
