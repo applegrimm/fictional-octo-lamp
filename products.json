@@ -320,5 +320,50 @@
       "なし"
     ],
     "visible": true
+  },
+  {
+    "id": "E1",
+    "name": "恵方巻き（サンプル）",
+    "price": 1000,
+    "minDays": 1,
+    "cutoff": null,
+    "minType": "calendar",
+    "pickupDateRange": {
+      "enabled": false,
+      "startDate": "",
+      "endDate": "",
+      "cutoff": ""
+    },
+    "deliveryDateRange": {
+      "enabled": false,
+      "startDate": "",
+      "endDate": "",
+      "cutoff": ""
+    },
+    "salesPeriod": {
+      "enabled": false,
+      "startDate": "",
+      "endDate": "",
+      "startTime": "",
+      "endTime": ""
+    },
+    "description": "",
+    "imageUrl": "",
+    "deliveryAvailable": false,
+    "deliveryMinDays": 7,
+    "deliveryCutoff": null,
+    "deliveryTimeSlots": {
+      "enabled": false,
+      "timeSlots": "all"
+    },
+    "deliveryWeight": 0,
+    "deliverySize": "M",
+    "deliveryFrozen": false,
+    "deliveryArea": "nationwide",
+    "noshiAvailable": false,
+    "noshiOptions": [
+      "なし"
+    ],
+    "visible": true
   }
 ]
