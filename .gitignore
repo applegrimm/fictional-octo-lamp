@@ -8,3 +8,7 @@ node_modules/
 # 作業用
 .DS_Store
 *.log
+
+# 自動生成（npm run db:seed:build で再生成）
+v2/db/seed.sql
+v2/.wrangler/

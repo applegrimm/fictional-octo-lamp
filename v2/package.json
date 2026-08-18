@@ -1,0 +1,29 @@
+{
+  "name": "takeout-reservation-v2",
+  "version": "0.1.0",
+  "private": true,
+  "description": "テイクアウト予約フォーム（Cloudflare Workers + D1）",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:create": "wrangler d1 create takeout-reservation",
+    "db:schema:local": "wrangler d1 execute takeout-reservation --local --file=db/schema.sql",
+    "db:schema:remote": "wrangler d1 execute takeout-reservation --remote --file=db/schema.sql",
+    "db:seed:build": "node scripts/build-seed.mjs",
+    "db:seed:local": "wrangler d1 execute takeout-reservation --local --file=db/seed.sql",
+    "db:seed:remote": "wrangler d1 execute takeout-reservation --remote --file=db/seed.sql",
+    "setup:local": "npm run db:schema:local && npm run db:seed:build && npm run db:seed:local",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250109.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0",
+    "wrangler": "^3.99.0"
+  },
+  "dependencies": {
+    "hono": "^4.6.0"
+  }
+}

@@ -1,0 +1,28 @@
+name = "takeout-reservation"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+
+# 静的ファイル（フォーム本体）を同じ Worker から配信する
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+# D1 データベース
+# `npm run db:create` を実行して出力された database_id をここに貼る
+[[d1_databases]]
+binding = "DB"
+database_name = "takeout-reservation"
+database_id = "PUT_DATABASE_ID_HERE"
+
+[vars]
+# 公開してよい設定のみ。秘密情報は wrangler secret put で登録する
+SITE_NAME = "テイクアウト予約フォーム"
+ADMIN_EMAIL = "appleivyck@gmail.com"
+TIMEZONE = "Asia/Tokyo"
+
+# --- 秘密情報（wrangler secret put で登録。ここには書かない）---
+# STRIPE_SECRET_KEY       Stripe 秘密鍵
+# STRIPE_WEBHOOK_SECRET   Webhook 署名シークレット
+# RESEND_API_KEY          メール送信
+# TURNSTILE_SECRET_KEY    ボット対策
+# ADMIN_PASSWORD_HASH     マスタ管理画面
