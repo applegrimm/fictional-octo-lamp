@@ -2353,20 +2353,27 @@ function sendMail(recipientEmail, data, isCustomerMail, itemsWithPrice, total, o
 
 /**
  * @function createCorsResponse
- * @desc CORSヘッダー付きJSONレスポンスを作成（GitHub Pages対応）
+ * @desc JSONレスポンスを作成する
+ *
+ *       名前に "Cors" とあるが、実際には CORS ヘッダーは付けられない。
+ *       Apps Script の ContentService.TextOutput には setHeaders() が存在せず、
+ *       レスポンスヘッダーを操作する手段が一切ない（これは Apps Script の仕様）。
+ *
+ *       以前はここで setHeaders() を呼んでいたため、
+ *         TypeError: ...setMimeType(...).setHeaders is not a function
+ *       となり doGet/doPost が常に落ちていた。
+ *       このため、このバージョンの Code.gs は一度もデプロイに成功していなかった。
+ *
+ *       ブラウザからのクロスオリジン通信は JSONP（callback パラメータ）で
+ *       回避している。呼び出し側は全て JSONP を使うこと。
+ *
  * @param {string} jsonData - JSON文字列
  * @return {ContentService.TextOutput} JSONレスポンス
  */
 function createCorsResponse(jsonData) {
   return ContentService
     .createTextOutput(jsonData)
-    .setMimeType(ContentService.MimeType.JSON)
-    .setHeaders({
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-      'Access-Control-Max-Age': '86400'
-    });
+    .setMimeType(ContentService.MimeType.JSON);
 }
 
 // ========================================
