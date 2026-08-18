@@ -163,14 +163,11 @@ function buildCheckoutData(orderData) {
   const stripeAmountForJPY = Math.round(totalAmount);
   console.log('Stripe金額（JPY）:', stripeAmountForJPY);
   
-  // デバッグ：送信前の最終チェック
-  console.log('=== 重要：最終金額チェック ===');
-  console.log('元の合計金額（円）:', totalAmount);
-  console.log('Stripeに送信する金額:', stripeAmountForJPY);
-  console.log('100倍チェック:', stripeAmountForJPY === totalAmount * 100 ? '❌ 100倍になっています！' : '✅ 正常です');
-  console.log('==============================');
   
-  // line_itemsを構築
+  // line_itemsを構築（表示用）。
+  // 実際に Stripe へ渡す金額はサーバー(Code.gs)が products.json から再計算するため、
+  // ここで組み立てた unit_amount は採用されない。metadata.order_items が
+  // サーバー側の計算根拠になる。
   const lineItems = [
     {
       price_data: {
@@ -199,7 +196,8 @@ function buildCheckoutData(orderData) {
     success_url: successUrl,
     cancel_url: STRIPE_CONFIG.CANCEL_URL.replace('{ERROR_MESSAGE}', encodeURIComponent('決済がキャンセルされました')),
     customer_email: orderData.email,
-    // モード（サーバー側の秘密鍵選択に使用）
+    // 参考情報（サーバーの秘密鍵選択には使用されない。鍵は GAS の
+    // スクリプトプロパティ STRIPE_SECRET_KEY で一元管理している）
     environment: isTestMode() ? 'test' : 'live',
     
     // 追加のメタデータ（予約データをすべてここに格納）

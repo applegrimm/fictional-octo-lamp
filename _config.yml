@@ -1,32 +1,32 @@
 # GitHub Pages 設定
-# HTTPS通信の強制
-plugins:
-  - jekyll-redirect-from
-
-# セキュリティ設定
-strict_front_matter: true
-markdown: kramdown
 
 # サイト情報
 title: "テイクアウト予約フォーム"
 description: "安全なテイクアウト注文システム"
 
-# HTTPS強制（GitHub Pages設定）
-enforce_ssl: true
-
 # Jekyll設定
+markdown: kramdown
 highlighter: rouge
+strict_front_matter: true
+
 kramdown:
   input: GFM
   hard_wrap: false
 
-# プラグイン（GitHub Pages標準サポート）
+# プラグイン（GitHub Pages 標準サポート）
+# 注意: plugins キーは1つだけにすること。以前は2箇所に定義されており、
+# YAML の後勝ちルールで jekyll-redirect-from が読み込まれていなかった。
 plugins:
   - jekyll-feed
   - jekyll-sitemap
+  - jekyll-redirect-from
 
-# 除外ファイル
+# 公開しないファイル
+# admin.html: クライアント側だけで認証を行う管理ツール。公開ホスティング上では
+#             認証が成立しないため、Pages では配信しない（ローカルで開いて使う）。
+# *.gs      : GAS のサーバーコード。バージョン管理のみが目的で配信対象ではない。
 exclude:
   - README.md
+  - admin.html
   - "*.gs"
-  - "*.txt" 
+  - "*.txt"

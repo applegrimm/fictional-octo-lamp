@@ -7,7 +7,7 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, shrink-to-fit=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
   <meta name="format-detection" content="telephone=no">
   <meta name="mobile-web-app-capable" content="yes">
   <!-- セキュリティ強化メタタグ -->
@@ -18,6 +18,30 @@
     if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
       location.replace('https:' + window.location.href.substring(window.location.protocol.length));
     }
+
+    // 本番では詳細ログを出さない。
+    // 従来は顧客の氏名・電話番号・メールアドレス・住所・決済データが
+    // ブラウザのコンソールにそのまま出力されていた。
+    // 調査時は localStorage.setItem('DEBUG_FORM','1') を設定して再読み込みする。
+    (function () {
+      var debugEnabled = false;
+      try {
+        debugEnabled = localStorage.getItem('DEBUG_FORM') === '1'
+          || location.hostname === 'localhost';
+      } catch (e) {
+        debugEnabled = false;
+      }
+      if (!debugEnabled) {
+        var noop = function () {};
+        console.log = noop;
+        console.debug = noop;
+        console.info = noop;
+        console.group = noop;
+        console.groupEnd = noop;
+        console.table = noop;
+        // console.warn / console.error は障害調査のため残す
+      }
+    })();
   </script>
   <title id="page-title">テイクアウト予約フォーム</title>
   
@@ -929,13 +953,10 @@
   <div id="final-message"></div>
 
   <script>
-    // GASのWebアプリURL（デプロイ後に実際のURLに変更してください）
-    // ⚠️ 重要: 新しいデプロイを作成した場合は、以下のURLを更新してください
-    // 手順: GAS → デプロイ → 新しいデプロイ → 生成されたURLをここに貼り付け
-    // 
-    // 🔥 緊急修正必要: 現在のURLは古い可能性があります
-    // Code.gsを修正したため、新しいデプロイが必要です
-    // 現在のURL（新しいデプロイ後に更新してください）:
+    // GASのWebアプリURL
+    // 更新時は GAS → デプロイ → 「デプロイを管理」→ 既存デプロイを編集 → 新バージョン
+    // の手順を使うこと。「新しいデプロイ」を作るとURLが変わり、全ファイルの
+    // 差し替えが必要になる。
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwQi1nQI1jDspUlagORpKHtpj3NBbQ5RNNkkcXqhsE-WM_j_w10CvO0CAPkVZFT5Vxh/exec';
     
     // 商品・店舗データを格納する変数
@@ -945,7 +966,7 @@
 
     // 🚀 高速化機能: reCAPTCHA v3を遅延読み込み（初期表示完了後）
     function loadRecaptchaDeferred() {
-      // ページ読み込み完了後2秒で実行
+      // reCAPTCHA は送信時に必須のため、初期表示を妨げない範囲で早めに読み込む
       setTimeout(() => {
         const script = document.createElement('script');
         script.src = 'https://www.google.com/recaptcha/api.js?render=6Le2lk4rAAAAAJu2ojJxoexvlUILZn4oNyJvuHzd';
@@ -960,7 +981,7 @@
           window.recaptchaReady = false;
         };
         document.head.appendChild(script);
-      }, 2000);
+      }, 300);
     }
     
     // 🚀 高速化機能: Stripe設定を遅延読み込み（決済機能が必要な場合のみ）
@@ -1642,10 +1663,10 @@
       itemDiv.className = 'product-item';
       
       itemDiv.innerHTML = `
-        <select onchange="updateProductDescription(this); updatePickupDateControl();">
+        <select aria-label="商品" onchange="updateProductDescription(this); updatePickupDateControl();">
           <option value="">商品を選択</option>
         </select>
-        <input type="number" min="1" placeholder="数量" onchange="updatePickupDateControl();">
+        <input type="number" min="1" max="100" step="1" inputmode="numeric" placeholder="数量" aria-label="数量" onchange="updatePickupDateControl();">
         <button type="button" class="remove-product-btn" onclick="removeProductItem(this)">削除</button>
         <div class="product-desc"></div>
         <div class="product-image"><img alt="商品画像" loading="lazy" style="display:none;"></div>
@@ -2088,10 +2109,16 @@
         return;
       }
       
+      // 法人フォームでは担当者名・法人用連絡先を優先する
+      const isCorporateForm = getFormTypeFromUrl() === 'corporate';
+      const corpPhoneValue = document.getElementById('corp_phone')?.value || '';
+      const corpEmailValue = document.getElementById('corp_email')?.value || '';
+      const contactPersonValue = document.getElementById('contact_person')?.value || '';
+
       const data = {
-        name: formData.get('name'),
-        phone: formData.get('phone'),
-        email: formData.get('email'),
+        name: (isCorporateForm && contactPersonValue) ? contactPersonValue : formData.get('name'),
+        phone: (isCorporateForm && corpPhoneValue) ? corpPhoneValue : formData.get('phone'),
+        email: (isCorporateForm && corpEmailValue) ? corpEmailValue : formData.get('email'),
         store: formData.get('store'),
         applicationStore: formData.get('application_store') || '',
         companyName: formData.get('company_name') || '',
@@ -3292,26 +3319,19 @@
      */
     function sanitizeInput(input) {
       if (typeof input !== 'string') return '';
-      
-      // HTMLタグを除去
+
+      // HTMLタグを除去（サーバー側でも同様の処理を行う多層防御）
       input = input.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
       input = input.replace(/<[^>]*>/g, '');
-      
-      // SQLインジェクション対策（基本的な危険文字列を除去）
-      const dangerousPatterns = [
-        /('|\\')|(;)|(\\)|(--|\/\*|\*\/)/gi,
-        /(select|insert|update|delete|drop|union|script)/gi
-      ];
-      
-      dangerousPatterns.forEach(pattern => {
-        input = input.replace(pattern, '');
-      });
-      
-      // 改行・特殊文字の正規化
-      input = input.replace(/[\r\n\t]/g, ' ');
-      input = input.trim();
-      
-      return input;
+
+      // 制御文字のみ除去する。
+      // 以前はここで SQL 予約語（select/union/update…）やアポストロフィ・
+      // セミコロンを削っていたが、このシステムは SQL を一切使っておらず
+      // 効果がない一方で、O'Brien のような正当な氏名や商品名を破壊していた。
+      // 商品名が変化するとサーバー側の商品マスタ照合に失敗するため実害があった。
+      input = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+      return input.trim();
     }
     
     /**
@@ -3398,12 +3418,15 @@
         errors.push({ field: 'rate-limit', message: '短時間内の連続送信です' });
       }
       
-      // reCAPTCHA検証（常に実施）
-      if (typeof grecaptcha !== 'undefined') {
-        const token = await getRecaptchaToken();
-        if (!await validateRecaptchaV3(token)) {
-          errors.push({ field: 'recaptcha', message: 'reCAPTCHA認証が必要です' });
-        }
+      // reCAPTCHA検証（常に実施・fail-closed）
+      // 以前は grecaptcha が未読み込みだと検証ブロックごとスキップされていた。
+      // reCAPTCHA は2秒遅延で読み込むため、素早く送信すると素通りしていた。
+      const recaptchaToken = await getRecaptchaToken();
+      if (!recaptchaToken) {
+        errors.push({
+          field: 'recaptcha',
+          message: 'セキュリティ確認を完了できませんでした。数秒お待ちいただき、再度お試しください。'
+        });
       }
       
       // 入力値の長さチェック（DoS攻撃対策）
@@ -3465,10 +3488,8 @@
         }));
       }
       
-      // reCAPTCHA レスポンスを追加（常に試行）
-      if (typeof grecaptcha !== 'undefined') {
-        processedData.recaptchaResponse = await getRecaptchaToken();
-      }
+      // reCAPTCHA レスポンスを追加（常に付与）
+      processedData.recaptchaResponse = await getRecaptchaToken();
       
       return processedData;
     }
@@ -4159,16 +4180,24 @@
             else corpEmailEl.removeAttribute('required');
           }
         }
+        // 法人時は個人用の電話・メールを「非表示」にするだけでなく disabled にする。
+        // FormData.get() は最初に一致した要素の値を返すため、非表示のまま有効だと
+        // 空の個人用フィールドが採用され、法人用の入力値が送信されなかった。
         if (phoneEl && phoneEl.parentElement) {
           phoneEl.parentElement.style.display = isCorporate ? 'none' : '';
+          phoneEl.disabled = isCorporate;
           if (isCorporate) phoneEl.removeAttribute('required');
           else phoneEl.setAttribute('required', 'required');
         }
         if (emailEl && emailEl.parentElement) {
           emailEl.parentElement.style.display = isCorporate ? 'none' : '';
+          emailEl.disabled = isCorporate;
           if (isCorporate) emailEl.removeAttribute('required');
           else emailEl.setAttribute('required', 'required');
         }
+        // 逆に、法人以外では法人用フィールドを無効化しておく
+        if (corpPhoneEl) corpPhoneEl.disabled = !isCorporate;
+        if (corpEmailEl) corpEmailEl.disabled = !isCorporate;
 
         // 法人では「お名前」を非表示・非必須・無効化（担当者名をnameにエイリアス）
         if (nameInput && nameInput.parentElement) {

@@ -804,7 +804,7 @@
                 <th style="width: 200px;">店舗名</th>
                 <th style="width: 120px;">グループ</th>
                 <th style="width: 120px;">カテゴリ</th>
-                <th style="width: 150px;">管理シークレット</th>
+                <th style="width: 150px;">管理シークレット<br><span style="font-weight:normal;font-size:0.8em;">(GAS側で管理)</span></th>
                 <th style="width: 500px;">営業時間</th>
                 <th style="width: 200px;">休業日</th>
                 <th style="width: 100px;">操作</th>
@@ -1008,7 +1008,7 @@
             <div style="background: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px; padding: 15px; margin-bottom: 20px;">
               <h4 style="margin-top: 0; color: #856404;">🔒 セキュリティ情報</h4>
               <ul style="margin-bottom: 0; color: #856404;">
-                <li>Personal Access Tokenは暗号化してブラウザに保存されます</li>
+                <li>Personal Access Tokenはタブを閉じると消えます（暗号化保存ではありません）</li>
                 <li>トークンは他のユーザーと共有しないでください</li>
                 <li>不要になったトークンはGitHub設定から削除してください</li>
                 <li>このページをHTTPSで使用することを強く推奨します</li>
@@ -1267,10 +1267,12 @@
                onchange="updateStoreData(${index}, 'category', this.value)"
                placeholder="例: 焼肉">
       </td>
-      <td>
-        <input type="text" value="${store.managementSecret || ''}" 
-               onchange="updateStoreData(${index}, 'managementSecret', this.value)"
-               placeholder="管理用シークレット">
+      <td style="font-size: 0.85em; color: #6c757d;">
+        <!-- 管理シークレットは stores.json では管理しない。
+             このファイルは GitHub Pages 上で誰でも取得できるため、
+             認証情報を置くと全店舗の予約データが公開されてしまう。
+             現在は GAS のスクリプトプロパティ STORE_SECRETS で管理している。 -->
+        GAS側で管理
       </td>
       <td>
         ${createHoursInput(store.hours || {}, index)}
@@ -1461,7 +1463,6 @@
       group: '',
       groupName: '',
       category: '',
-      managementSecret: '',
       hours: {
         mon: ['09:00', '18:00'],
         tue: ['09:00', '18:00'],
@@ -2308,9 +2309,12 @@
         return;
       }
       
-      // 簡易暗号化（実用レベルではないが、平文保存は避ける）
-      const encodedConfig = btoa(JSON.stringify(config));
-      localStorage.setItem('github-config', encodedConfig);
+      // Base64 は暗号化ではなく単なるエンコードで、誰でも復元できる。
+      // Personal Access Token はタブを閉じたら消える sessionStorage に置き、
+      // 永続化しない。トークン以外の設定のみ localStorage に残す。
+      const { token, ...configWithoutToken } = config;
+      sessionStorage.setItem('github-token', token);
+      localStorage.setItem('github-config', btoa(JSON.stringify(configWithoutToken)));
       
       showMessage('GitHub設定を保存しました', 'success');
       addGitHubLog('✅ GitHub設定を保存しました');
@@ -2333,7 +2337,8 @@
       }
       
       const config = JSON.parse(atob(encodedConfig));
-      
+      config.token = sessionStorage.getItem('github-token') || '';
+
       document.getElementById('github-token').value = config.token || '';
       document.getElementById('github-owner').value = config.owner || '';
       document.getElementById('github-repo').value = config.repo || '';
@@ -2355,6 +2360,7 @@
   function clearGitHubConfig() {
     if (confirm('GitHub設定を削除しますか？')) {
       localStorage.removeItem('github-config');
+      sessionStorage.removeItem('github-token');
       
       document.getElementById('github-token').value = '';
       document.getElementById('github-owner').value = '';
@@ -2380,8 +2386,6 @@
       // デバッグ情報を追加
       addGitHubLog(`   - Owner: ${config.owner}`);
       addGitHubLog(`   - Repo: ${config.repo}`);
-      addGitHubLog(`   - Token形式: ${config.token.substring(0, 10)}...`);
-      addGitHubLog(`   - Token長: ${config.token.length}文字`);
       
       // トークン形式チェック
       if (!config.token.startsWith('ghp_') && !config.token.startsWith('gho_') && !config.token.startsWith('ghu_') && !config.token.startsWith('ghs_') && !config.token.startsWith('ghr_')) {
@@ -2676,9 +2680,13 @@
   // =============================
   
   // 設定（実際の運用では環境変数や設定ファイルで管理）
+  // ⚠️ この認証はブラウザ内で完結しており、防御としては成立しない。
+  //    （DevTools から showMainContent() を呼べば素通りできる）
+  //    このファイルは GitHub Pages では配信していない（_config.yml の exclude 参照）。
+  //    ローカルで開いて使うツールという前提の、操作ミス防止用の仕切りに過ぎない。
+  //    パスワードは generatePasswordHash('新しいパスワード') で生成した値に必ず変更すること。
   const AUTH_CONFIG = {
     // パスワードのハッシュ値（SHA-256）
-    // デフォルトパスワード: "admin"
     passwordHash: "8c6976e5b5410415bde908bd4dee15dfb167a9c873fc4bb8a81f6f2ab448a918",
     maxAttempts: 3,
     lockoutDuration: 5 * 60 * 1000, // 5分
@@ -2791,15 +2799,9 @@
     
     const password = document.getElementById('auth-password').value;
     
-    // デバッグ情報を出力
-    console.log('🔍 デバッグ情報:');
-    console.log('  入力パスワード:', password);
-    console.log('  期待ハッシュ:', AUTH_CONFIG.passwordHash);
-    
     // パスワードをハッシュ化
+    // （入力値やハッシュはコンソールに出力しない）
     const hash = await hashPassword(password);
-    console.log('  計算ハッシュ:', hash);
-    console.log('  一致判定:', hash === AUTH_CONFIG.passwordHash);
     
     // パスワード検証
     if (hash === AUTH_CONFIG.passwordHash) {

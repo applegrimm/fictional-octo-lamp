@@ -248,6 +248,27 @@
   </div>
 
   <script>
+    // 本番では詳細ログを出さない（決済情報・予約内容の漏えい防止）
+    (function () {
+      var debugEnabled = false;
+      try {
+        debugEnabled = localStorage.getItem('DEBUG_FORM') === '1'
+          || location.hostname === 'localhost';
+      } catch (e) {
+        debugEnabled = false;
+      }
+      if (!debugEnabled) {
+        var noop = function () {};
+        console.log = noop;
+        console.debug = noop;
+        console.info = noop;
+        console.group = noop;
+        console.groupEnd = noop;
+      }
+    })();
+  </script>
+
+  <script>
     // GASのWebアプリURL（index.htmlと同じURL）
     const GAS_WEB_APP_URL = 'https://script.google.com/macros/s/AKfycbwQi1nQI1jDspUlagORpKHtpj3NBbQ5RNNkkcXqhsE-WM_j_w10CvO0CAPkVZFT5Vxh/exec';
     
