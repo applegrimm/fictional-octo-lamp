@@ -5,17 +5,34 @@
  *       index.html / success.html / stripe-config.js(2箇所) /
  *       manage_scripts_phase2.js の差し替えが必要になる。
  *       そのため必ず --deploymentId で既存デプロイを上書きする。
+ *
+ * 更新対象は gas.config.json の deploymentId で管理する
+ * （環境変数 GAS_DEPLOYMENT_ID で一時的に上書き可能）。
  */
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { runClasp, repoRoot, info, ok, fail, assertAccount } from './lib.mjs';
-
-// デプロイID = Web アプリ URL /macros/s/<ここ>/exec の部分
-const DEFAULT_DEPLOYMENT_ID =
-  'AKfycbwQi1nQI1jDspUlagORpKHtpj3NBbQ5RNNkkcXqhsE-WM_j_w10CvO0CAPkVZFT5Vxh';
 
 assertAccount();
 
-const deploymentId = process.env.GAS_DEPLOYMENT_ID || DEFAULT_DEPLOYMENT_ID;
+function readConfig() {
+  try {
+    return JSON.parse(readFileSync(path.join(repoRoot, 'gas.config.json'), 'utf8'));
+  } catch (error) {
+    return {};
+  }
+}
+
+const config = readConfig();
+const deploymentId = process.env.GAS_DEPLOYMENT_ID || config.deploymentId;
+
+if (!deploymentId) {
+  fail('デプロイIDが設定されていません。\n' +
+       '  gas.config.json の deploymentId を設定するか、\n' +
+       '  $env:GAS_DEPLOYMENT_ID="AKfycb..." で指定してください。\n' +
+       '  一覧は npm run gas:status で確認できます。');
+}
 
 function gitShortSha() {
   const r = spawnSync('git', ['rev-parse', '--short', 'HEAD'], {
@@ -34,10 +51,10 @@ const status = runClasp(['deploy', '--deploymentId', deploymentId, '--descriptio
 
 if (status !== 0) {
   fail('デプロイに失敗しました。\n' +
-       'npm run gas:status でデプロイ一覧を確認してください。\n' +
-       '別のデプロイIDを使う場合: GAS_DEPLOYMENT_ID=AKfycb... npm run gas:deploy');
+       '  npm run gas:status でデプロイ一覧を確認し、\n' +
+       '  gas.config.json の deploymentId が一覧に含まれているか確かめてください。');
 }
 
 ok('デプロイ更新完了（Web アプリ URL は変わりません）');
 info('\n初回のみ、GASエディタで rotateAllStoreSecrets() を1回実行してください。');
-info('店舗管理シークレットが登録され、24店舗分の新URLがログに出力されます。');
+info('店舗管理シークレットが登録され、店舗ごとの管理画面URLがログに出力されます。');

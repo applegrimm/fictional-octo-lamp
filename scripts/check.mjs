@@ -69,6 +69,27 @@ report(
   `${foundIds.size} 種類のデプロイIDが混在しています: ${[...foundIds].map(s => s.slice(0, 12) + '...').join(', ')}`
 );
 
+// --- gas.config.json のデプロイIDが設定されているか ---
+try {
+  const gasConfig = JSON.parse(readFileSync(path.join(repoRoot, 'gas.config.json'), 'utf8'));
+  report('gas.config.json に deploymentId あり', Boolean(gasConfig.deploymentId));
+  report('gas.config.json に expectedAccount あり', Boolean(gasConfig.expectedAccount));
+
+  // スクリプト内にデプロイIDがハードコードされていないか
+  // （設定と実際に使う値がズレる事故を防ぐ）
+  const scriptSources = ['scripts/deploy-gas.mjs', 'scripts/setup-clasp.mjs']
+    .map(f => readFileSync(path.join(repoRoot, f), 'utf8'))
+    .join('\n');
+  const hardcoded = [...scriptSources.matchAll(/'AKfycb[A-Za-z0-9_-]{20,}'/g)];
+  report(
+    'スクリプトにデプロイIDのハードコードなし',
+    hardcoded.length === 0,
+    hardcoded.map(m => m[0]).join(', ')
+  );
+} catch (e) {
+  report('gas.config.json', false, e.message);
+}
+
 console.log('');
 if (failed > 0) {
   console.log(`${failed} 件の問題があります`);
