@@ -1,0 +1,17 @@
+# 既定は Git に判定させる
+* text=auto
+
+# スクリプト・設定ファイルは常に LF。
+# Windows の Git は既定で改行を CRLF に変換するため、これが無いと
+# シェルや一部ツールがファイルを読めなくなる。
+*.sh    text eol=lf
+*.mjs   text eol=lf
+*.js    text eol=lf
+*.json  text eol=lf
+*.yml   text eol=lf
+*.gs    text eol=lf
+
+# 画像はバイナリ扱い
+*.png binary
+*.jpg binary
+*.jpeg binary
