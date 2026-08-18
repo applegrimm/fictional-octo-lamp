@@ -26,7 +26,8 @@
     (function () {
       var debugEnabled = false;
       try {
-        debugEnabled = localStorage.getItem('DEBUG_FORM') === '1'
+        debugEnabled = new URLSearchParams(location.search).get('debug') === '1'
+          || localStorage.getItem('DEBUG_FORM') === '1'
           || location.hostname === 'localhost';
       } catch (e) {
         debugEnabled = false;
