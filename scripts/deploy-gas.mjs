@@ -34,6 +34,36 @@ if (!deploymentId) {
        '  一覧は npm run gas:status で確認できます。');
 }
 
+/**
+ * ローカルがリモートより古くないか確認する。
+ * git pull を忘れたまま古いコードをデプロイする事故を防ぐ。
+ */
+function warnIfBehindRemote() {
+  const opts = { cwd: repoRoot, encoding: 'utf8', shell: process.platform === 'win32' };
+
+  const branch = (spawnSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], opts).stdout || '').trim();
+  if (!branch || branch === 'HEAD') return;
+
+  // リモートの最新を取得（ネットワーク不通なら黙って諦める）
+  spawnSync('git', ['fetch', '--quiet', 'origin', branch], opts);
+
+  const behind = (spawnSync(
+    'git', ['rev-list', '--count', `HEAD..origin/${branch}`], opts
+  ).stdout || '').trim();
+
+  if (behind && Number(behind) > 0) {
+    fail(`ローカルがリモートより ${behind} コミット古いままです。中止しました。\n\n` +
+         '  git pull\n' +
+         '  npm run gas:release\n\n' +
+         'の順で実行してください。\n' +
+         '（意図的に古い状態をデプロイする場合は SKIP_GIT_CHECK=1 を指定）');
+  }
+}
+
+if (!process.env.SKIP_GIT_CHECK) {
+  warnIfBehindRemote();
+}
+
 function gitShortSha() {
   const r = spawnSync('git', ['rev-parse', '--short', 'HEAD'], {
     cwd: repoRoot, encoding: 'utf8', shell: process.platform === 'win32'
