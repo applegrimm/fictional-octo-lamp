@@ -37,14 +37,9 @@ if (scriptId === 'PUT_YOUR_SCRIPT_ID_HERE' || scriptId.startsWith('AKfycb')) {
        'GASエディタ → プロジェクトの設定 → スクリプト ID を使ってください。');
 }
 
-// 1) .clasp.json を書き換え
-const claspConfig = { scriptId, rootDir: '.' };
-writeFileSync(
-  path.join(repoRoot, '.clasp.json'),
-  JSON.stringify(claspConfig, null, 2) + '\n',
-  'utf8'
-);
-ok(`.clasp.json を更新しました (scriptId: ${scriptId})`);
+// 検証に通るまで .clasp.json は書き換えない。
+// 先に書いてしまうと、検証で中止しても不正な設定が残り、
+// 次の gas:release がそのまま誤ったプロジェクトへ push してしまう。
 
 // 2) appsscript.json（マニフェスト）を GAS から取得する。
 //    ローカルで作るとタイムゾーンや Web アプリの公開設定を壊すため必ず本物を取る。
@@ -52,6 +47,7 @@ ok(`.clasp.json を更新しました (scriptId: ${scriptId})`);
 info('\nGAS からマニフェストを取得しています...');
 
 const tmpDir = mkdtempSync(path.join(os.tmpdir(), 'clasp-pull-'));
+let manifest = null;
 
 try {
   writeFileSync(
@@ -72,11 +68,12 @@ try {
          '  3. スクリプトIDが正しいか（所有者アカウントでログインしているか）');
   }
 
-  copyFileSync(pulled, path.join(repoRoot, 'appsscript.json'));
-  ok('appsscript.json を取得しました');
+  manifest = pulled;
+  ok('マニフェストを取得しました');
 
-} finally {
+} catch (error) {
   rmSync(tmpDir, { recursive: true, force: true });
+  throw error;
 }
 
 // 3) このプロジェクトが、リポジトリの Web アプリ URL に対応するデプロイを
@@ -89,11 +86,24 @@ const EXPECTED_DEPLOYMENT_ID =
   'AKfycbwQi1nQI1jDspUlagORpKHtpj3NBbQ5RNNkkcXqhsE-WM_j_w10CvO0CAPkVZFT5Vxh';
 
 info('\nデプロイを確認しています...');
-const deployments = runClaspCapture(['deployments']);
+const deployments = runClaspCapture(['deployments'], tmpDir);
 const output = deployments.stdout + deployments.stderr;
+
+function commit() {
+  writeFileSync(
+    path.join(repoRoot, '.clasp.json'),
+    JSON.stringify({ scriptId, rootDir: '.' }, null, 2) + '\n',
+    'utf8'
+  );
+  copyFileSync(manifest, path.join(repoRoot, 'appsscript.json'));
+  rmSync(tmpDir, { recursive: true, force: true });
+  ok(`.clasp.json を更新しました (scriptId: ${scriptId})`);
+  ok('appsscript.json を配置しました');
+}
 
 if (output.includes(EXPECTED_DEPLOYMENT_ID)) {
   ok('本番のデプロイを確認しました');
+  commit();
   info('\nセットアップ完了。以降はこれだけで反映できます:');
   info('  npm run gas:release\n');
 } else {
@@ -114,6 +124,18 @@ if (output.includes(EXPECTED_DEPLOYMENT_ID)) {
   info('  npm run gas:list');
   info('  → 目的のプロジェクトのIDで npm run gas:setup -- <ID> をやり直す');
   info('');
-  info('このまま進めると、本番ではないプロジェクトに push されます。');
-  process.exit(1);
+  info('このプロジェクトで確定してよければ、次のコマンドで設定を書き込みます:');
+  info(`  npm run gas:setup -- ${scriptId} --force`);
+  info('');
+
+  if (process.argv.includes('--force')) {
+    info('--force が指定されたため、確認を無視して設定を書き込みます。');
+    commit();
+    info('\nデプロイ時は実際のデプロイIDを指定してください:');
+    info('  $env:GAS_DEPLOYMENT_ID="AKfycb..."; npm run gas:deploy');
+  } else {
+    info('設定は変更していません（.clasp.json は元のままです）。');
+    rmSync(tmpDir, { recursive: true, force: true });
+    process.exit(1);
+  }
 }
