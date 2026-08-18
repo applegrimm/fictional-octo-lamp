@@ -84,6 +84,25 @@ npm run gas:setup
 
 `✅ appsscript.json を取得しました` が出れば完了。
 
+#### ⚠️ スクリプトIDの取得で間違えやすい点
+
+**スプレッドシートの「拡張機能 → Apps Script」は使わないこと。**
+
+そのスプレッドシートにバインド型スクリプトが存在しない場合、Google は
+**「無題のプロジェクト」を新規作成して開く**。そのIDを設定すると、本番とは
+別の空プロジェクトに push することになる。
+
+本番が独立（スタンドアロン）プロジェクトの場合は、必ずこちらで探す:
+
+```
+npm run gas:list
+```
+
+認証済みアカウントが持つ全プロジェクトが名前とIDで一覧表示される。
+
+`npm run gas:setup` は、指定したプロジェクトが本番のデプロイを持っているかを
+確認し、無ければ中止する。
+
 > スクリプトIDは `.clasp.json` に設定済み。別のプロジェクトに向ける場合のみ
 > `npm run gas:setup -- <スクリプトID>` のように引数で渡す。
 > スクリプトIDは GASエディタ → プロジェクトの設定 → スクリプト ID で確認できる。
@@ -114,6 +133,8 @@ npm run gas:release
 
 | コマンド | 動作 |
 |---|---|
+| `npm run gas:whoami` | clasp の認証アカウントとスクリプトIDを表示 |
+| `npm run gas:list` | 認証アカウントが持つ全プロジェクトを一覧 |
 | `npm run gas:release` | push + デプロイ更新（通常はこれ） |
 | `npm run gas:push` | コード反映のみ |
 | `npm run gas:deploy` | デプロイ更新のみ |
@@ -194,6 +215,9 @@ GASエディタ → **プロジェクトの設定 → スクリプト プロパ�
 | `spawnSync clasp ENOENT` | `npm install` を実行していない |
 | `このシステムではスクリプトの実行が無効になっている` | PowerShell で `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` → `Y` |
 | `set: pipefail: invalid option name` | 古い `.sh` 版の残骸。`git pull` で最新にする |
+| `Requested entity was not found`（deploy時） | 指定プロジェクトにそのデプロイが無い。`npm run gas:list` で正しいプロジェクトを探す |
+| `認証アカウントが想定と違います` | `npm run gas:logout` → `npm run gas:login` でアカウントを選び直す |
+| `gas:open` が別アカウントで開く | **ブラウザ**のログインアカウントの問題。clasp の認証とは無関係。ブラウザ側で目的のアカウントに切り替える |
 
 ---
 

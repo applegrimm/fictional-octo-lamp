@@ -4,17 +4,18 @@
   "private": true,
   "description": "テイクアウト予約フォーム（GitHub Pages + Google Apps Script）",
   "scripts": {
-    "gas:setup": "node scripts/setup-clasp.mjs",
+    "gas:whoami": "node scripts/whoami.mjs",
+    "gas:list": "node scripts/guard.mjs && clasp list",
     "gas:login": "clasp login",
+    "gas:logout": "clasp logout",
+    "gas:setup": "node scripts/setup-clasp.mjs",
     "gas:status": "clasp status && clasp deployments",
     "gas:push": "node scripts/guard.mjs && clasp push --force",
     "gas:deploy": "node scripts/deploy-gas.mjs",
     "gas:release": "npm run gas:push && npm run gas:deploy",
     "gas:open": "clasp open",
     "gas:logs": "clasp logs --watch",
-    "check": "node scripts/check.mjs",
-    "gas:whoami": "node scripts/whoami.mjs",
-    "gas:logout": "clasp logout"
+    "check": "node scripts/check.mjs"
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2"

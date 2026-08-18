@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { repoRoot, runClasp, fail, ok, info, assertAccount } from './lib.mjs';
+import { repoRoot, runClasp, runClaspCapture, fail, ok, info, assertAccount } from './lib.mjs';
 
 // 引数が無ければ .clasp.json に既に入っている値を使う
 function existingScriptId() {
@@ -79,5 +79,41 @@ try {
   rmSync(tmpDir, { recursive: true, force: true });
 }
 
-info('\nセットアップ完了。以降はこれだけで反映できます:');
-info('  npm run gas:release\n');
+// 3) このプロジェクトが、リポジトリの Web アプリ URL に対応するデプロイを
+//    持っているかを確認する。
+//    スプレッドシートで「拡張機能 → Apps Script」を押したとき、
+//    バインド型スクリプトが存在しないと Google は「無題のプロジェクト」を
+//    新規作成する。そのIDを設定してしまうと、本番とは別の空プロジェクトに
+//    push することになる。ここで検出する。
+const EXPECTED_DEPLOYMENT_ID =
+  'AKfycbwQi1nQI1jDspUlagORpKHtpj3NBbQ5RNNkkcXqhsE-WM_j_w10CvO0CAPkVZFT5Vxh';
+
+info('\nデプロイを確認しています...');
+const deployments = runClaspCapture(['deployments']);
+const output = deployments.stdout + deployments.stderr;
+
+if (output.includes(EXPECTED_DEPLOYMENT_ID)) {
+  ok('本番のデプロイを確認しました');
+  info('\nセットアップ完了。以降はこれだけで反映できます:');
+  info('  npm run gas:release\n');
+} else {
+  const listed = [...output.matchAll(/AKfycb[A-Za-z0-9_-]+/g)].map(m => m[0]);
+
+  info('');
+  info('⚠️ このプロジェクトに、リポジトリが参照している本番デプロイがありません。');
+  info('');
+  info(`  探したデプロイID: ${EXPECTED_DEPLOYMENT_ID.slice(0, 24)}...`);
+  info(`  見つかったデプロイ: ${listed.length ? listed.map(s => s.slice(0, 24) + '...').join(', ') : 'なし'}`);
+  info('');
+  info('別のプロジェクトを指している可能性があります。よくある原因:');
+  info('  スプレッドシートで「拡張機能 → Apps Script」を押したとき、');
+  info('  バインド型スクリプトが無いと Google が「無題のプロジェクト」を新規作成する。');
+  info('  本番が独立（スタンドアロン）プロジェクトの場合、これに当たる。');
+  info('');
+  info('正しいプロジェクトを探す:');
+  info('  npm run gas:list');
+  info('  → 目的のプロジェクトのIDで npm run gas:setup -- <ID> をやり直す');
+  info('');
+  info('このまま進めると、本番ではないプロジェクトに push されます。');
+  process.exit(1);
+}
