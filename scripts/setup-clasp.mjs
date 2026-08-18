@@ -82,8 +82,15 @@ try {
 //    バインド型スクリプトが存在しないと Google は「無題のプロジェクト」を
 //    新規作成する。そのIDを設定してしまうと、本番とは別の空プロジェクトに
 //    push することになる。ここで検出する。
-const EXPECTED_DEPLOYMENT_ID =
-  'AKfycbwQi1nQI1jDspUlagORpKHtpj3NBbQ5RNNkkcXqhsE-WM_j_w10CvO0CAPkVZFT5Vxh';
+const EXPECTED_DEPLOYMENT_ID = (() => {
+  try {
+    return JSON.parse(
+      readFileSync(path.join(repoRoot, 'gas.config.json'), 'utf8')
+    ).deploymentId || '';
+  } catch (error) {
+    return '';
+  }
+})();
 
 info('\nデプロイを確認しています...');
 const deployments = runClaspCapture(['deployments'], tmpDir);

@@ -65,6 +65,14 @@ const MIN_BUSINESS_DAYS = 5;
 const MAX_BUSINESS_DAYS = 30;
 
 /**
+ * @const {string} CODE_VERSION
+ * @desc デプロイ識別用のバージョン文字列。
+ *       どのデプロイがどのコードを配信しているかを外から判別するために使う。
+ *       Code.gs を更新したらこの値も更新すること。
+ */
+const CODE_VERSION = '2026-08-18-security-fixes';
+
+/**
  * @const {string} SITE_BASE_URL
  * @desc フロントエンド（GitHub Pages）のベースURL。リダイレクト先の組み立てに使用する。
  */
@@ -1440,6 +1448,7 @@ function doGet(e) {
         success: true,
         message: 'GAS WebアプリURL接続成功',
         status: 'API正常稼働中',
+        version: CODE_VERSION,
         timestamp: new Date().toISOString(),
         features: ['reservation', 'management', 'stripe_payment']
       };
@@ -2006,7 +2015,9 @@ function doGet(e) {
     // デフォルトレスポンス
     const response = {
       message: "テイクアウト予約フォーム API",
-      status: "ready"
+      status: "ready",
+      version: CODE_VERSION,
+      scriptTime: new Date().toISOString()
     };
     return createCorsResponse(JSON.stringify(response));
   } catch (error) {

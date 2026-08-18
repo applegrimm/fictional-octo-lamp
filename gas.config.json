@@ -1,4 +1,6 @@
 {
   "expectedAccount": "appleivyck@gmail.com",
-  "_comment": "clasp が認証しているアカウントの想定値。push/deploy 前に照合し、違っていれば中止する。個人アカウントで会社のプロジェクトを操作してしまう事故を防ぐため。"
+  "scriptId": "1LUBXRY-nlkMJS4NuNMyHMO2SE7CVYaElzApCYwZp26ACluHoon48J_US",
+  "deploymentId": "AKfycbwgeG189yH0YGt6gpqpYHoclCnZe4cbo8jARRaHCqjgxpiD_XW47taPqNFlQYDhfaYaCg",
+  "_comment": "expectedAccount: clasp の認証アカウント。違えば push/deploy を中止する。deploymentId: 更新対象の既存デプロイ（新規作成するとURLが変わるため必ず既存を上書きする）。"
 }
