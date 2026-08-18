@@ -2,5 +2,6 @@
   "expectedAccount": "appleivyck@gmail.com",
   "scriptId": "1LUBXRY-nlkMJS4NuNMyHMO2SE7CVYaElzApCYwZp26ACluHoon48J_US",
   "deploymentId": "AKfycbwgeG189yH0YGt6gpqpYHoclCnZe4cbo8jARRaHCqjgxpiD_XW47taPqNFlQYDhfaYaCg",
+  "webAppUrl": "https://script.google.com/macros/s/AKfycbwgeG189yH0YGt6gpqpYHoclCnZe4cbo8jARRaHCqjgxpiD_XW47taPqNFlQYDhfaYaCg/exec",
   "_comment": "expectedAccount: clasp の認証アカウント。違えば push/deploy を中止する。deploymentId: 更新対象の既存デプロイ（新規作成するとURLが変わるため必ず既存を上書きする）。"
 }

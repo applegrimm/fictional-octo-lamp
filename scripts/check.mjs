@@ -69,6 +69,20 @@ report(
   `${foundIds.size} 種類のデプロイIDが混在しています: ${[...foundIds].map(s => s.slice(0, 12) + '...').join(', ')}`
 );
 
+// フロントエンドが参照している URL が、実際に更新しているデプロイと一致するか。
+// ここがズレると「デプロイしたのに反映されない」状態になる。
+try {
+  const gasConfig = JSON.parse(readFileSync(path.join(repoRoot, 'gas.config.json'), 'utf8'));
+  const front = [...foundIds][0];
+  report(
+    'フロントの GAS URL とデプロイ先が一致',
+    Boolean(front) && front === gasConfig.deploymentId,
+    `フロント=${(front || 'なし').slice(0, 16)}... / デプロイ先=${(gasConfig.deploymentId || 'なし').slice(0, 16)}...`
+  );
+} catch (e) {
+  report('gas.config.json との URL 照合', false, e.message);
+}
+
 // --- gas.config.json のデプロイIDが設定されているか ---
 try {
   const gasConfig = JSON.parse(readFileSync(path.join(repoRoot, 'gas.config.json'), 'utf8'));
