@@ -1,0 +1,7 @@
+# clasp が GAS へ push する対象を Code.gs と appsscript.json だけに限定する。
+# 先に全部を無視してから、必要なものだけ除外を解除する（.claspignore は
+# .gitignore と同じ「無視リスト」形式なので、この順序が必要）。
+**/**
+
+!Code.gs
+!appsscript.json

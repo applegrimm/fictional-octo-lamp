@@ -1,0 +1,10 @@
+# clasp の認証情報。Google のリフレッシュトークンを含むため絶対にコミットしない。
+.clasprc.json
+*.clasprc.json
+
+# 依存関係
+node_modules/
+
+# 作業用
+.DS_Store
+*.log

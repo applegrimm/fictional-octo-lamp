@@ -30,3 +30,12 @@ exclude:
   - admin.html
   - "*.gs"
   - "*.txt"
+  # 開発用ファイル（サイトとして配信する必要がないもの）
+  - package.json
+  - package-lock.json
+  - node_modules
+  - scripts
+  - docs
+  - appsscript.json
+  - .clasp.json
+  - .claspignore
