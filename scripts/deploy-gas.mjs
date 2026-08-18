@@ -7,11 +7,13 @@
  *       そのため必ず --deploymentId で既存デプロイを上書きする。
  */
 import { spawnSync } from 'node:child_process';
-import { runClasp, repoRoot, info, ok, fail } from './lib.mjs';
+import { runClasp, repoRoot, info, ok, fail, assertAccount } from './lib.mjs';
 
 // デプロイID = Web アプリ URL /macros/s/<ここ>/exec の部分
 const DEFAULT_DEPLOYMENT_ID =
   'AKfycbwQi1nQI1jDspUlagORpKHtpj3NBbQ5RNNkkcXqhsE-WM_j_w10CvO0CAPkVZFT5Vxh';
+
+assertAccount();
 
 const deploymentId = process.env.GAS_DEPLOYMENT_ID || DEFAULT_DEPLOYMENT_ID;
 

@@ -8,7 +8,7 @@
 import { readFileSync, writeFileSync, copyFileSync, existsSync, mkdtempSync, rmSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { repoRoot, runClasp, fail, ok, info } from './lib.mjs';
+import { repoRoot, runClasp, fail, ok, info, assertAccount } from './lib.mjs';
 
 // 引数が無ければ .clasp.json に既に入っている値を使う
 function existingScriptId() {
@@ -20,6 +20,8 @@ function existingScriptId() {
     return null;
   }
 }
+
+assertAccount();
 
 const scriptId = process.argv[2] || existingScriptId();
 

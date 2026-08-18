@@ -7,12 +7,14 @@
     "gas:setup": "node scripts/setup-clasp.mjs",
     "gas:login": "clasp login",
     "gas:status": "clasp status && clasp deployments",
-    "gas:push": "clasp push --force",
+    "gas:push": "node scripts/guard.mjs && clasp push --force",
     "gas:deploy": "node scripts/deploy-gas.mjs",
     "gas:release": "npm run gas:push && npm run gas:deploy",
     "gas:open": "clasp open",
     "gas:logs": "clasp logs --watch",
-    "check": "node scripts/check.mjs"
+    "check": "node scripts/check.mjs",
+    "gas:whoami": "node scripts/whoami.mjs",
+    "gas:logout": "clasp logout"
   },
   "devDependencies": {
     "@google/clasp": "^2.4.2"

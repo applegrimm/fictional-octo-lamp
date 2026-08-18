@@ -1,0 +1,4 @@
+{
+  "expectedAccount": "appleivyck@gmail.com",
+  "_comment": "clasp が認証しているアカウントの想定値。push/deploy 前に照合し、違っていれば中止する。個人アカウントで会社のプロジェクトを操作してしまう事故を防ぐため。"
+}
