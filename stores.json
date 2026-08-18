@@ -4,7 +4,6 @@
     "name": "あっぷるぐりむ 長野運動公園店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
-    "managementSecret": "ag1-mg-09yxnnz6",
     "hours": {
       "mon": [
         "10:00",
@@ -42,7 +41,6 @@
     "name": "あっぷるぐりむ 長野栗田店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
-    "managementSecret": "ag2-mg-64e370hw",
     "hours": {
       "mon": [
         "10:00",
@@ -80,7 +78,6 @@
     "name": "あっぷるぐりむ 長野小島田店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
-    "managementSecret": "ag3-mg-yr2goj9u",
     "hours": {
       "mon": [
         "10:00",
@@ -118,7 +115,6 @@
     "name": "あっぷるぐりむ 上越北店",
     "group": "applegrimm",
     "groupName": "あっぷるぐりむ",
-    "managementSecret": "ag5-mg-4k0elppy",
     "hours": {
       "mon": [
         "10:00",
@@ -156,7 +152,6 @@
     "name": "ピッツェリア 長野篠ノ井バイパス店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "managementSecret": "pz1-mg-xs88creu",
     "hours": {
       "mon": [
         "10:00",
@@ -194,7 +189,6 @@
     "name": "ピッツェリア 長野東和田店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "managementSecret": "pz2-mg-939sxktx",
     "hours": {
       "mon": [
         "10:00",
@@ -232,7 +226,6 @@
     "name": "ピッツェリア 上田店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "managementSecret": "pz3-mg-bbb9hv33",
     "hours": {
       "mon": [
         "10:00",
@@ -270,7 +263,6 @@
     "name": "ピッツェリア 上田しおだ野店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "managementSecret": "pz4-mg-2ai1aywy",
     "hours": {
       "mon": [
         "10:00",
@@ -308,7 +300,6 @@
     "name": "ピッツェリア 松本つかま店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "managementSecret": "pz5-mg-3vtffbow",
     "hours": {
       "mon": [
         "10:00",
@@ -346,7 +337,6 @@
     "name": "ピッツェリア 松本村井店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "managementSecret": "pz6-mg-sjmysodz",
     "hours": {
       "mon": [
         "10:00",
@@ -384,7 +374,6 @@
     "name": "ピッツェリア 新潟中央インター店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "managementSecret": "pz7-mg-5299c630",
     "hours": {
       "mon": [
         "10:00",
@@ -422,7 +411,6 @@
     "name": "ピッツェリア 燕三条店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "managementSecret": "pz8-mg-xzkurwyz",
     "hours": {
       "mon": [
         "10:00",
@@ -460,7 +448,6 @@
     "name": "ピッツェリア 長岡インター店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "managementSecret": "pz9-mg-ar89iert",
     "hours": {
       "mon": [
         "10:00",
@@ -498,7 +485,6 @@
     "name": "ピッツェリア 上越店",
     "group": "pizzeria",
     "groupName": "ピッツェリア",
-    "managementSecret": "pz10-mg-3qwvgjmp",
     "hours": {
       "mon": [
         "10:00",
@@ -536,7 +522,6 @@
     "name": "焼肉バーンズ 長野平林店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "managementSecret": "bk1-mg-wyqndhh1",
     "hours": {
       "mon": [
         "11:00",
@@ -574,7 +559,6 @@
     "name": "焼肉バーンズ 須坂インター店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "managementSecret": "bk2-mg-fzvsvix6",
     "hours": {
       "mon": [
         "11:00",
@@ -612,7 +596,6 @@
     "name": "焼肉バーンズ 上越店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "managementSecret": "bk3-mg-4993e4yb",
     "hours": {
       "mon": [
         "16:30",
@@ -650,7 +633,6 @@
     "name": "焼肉バーンズ 黒部店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "managementSecret": "bk4-mg-a7mshgpn",
     "hours": {
       "mon": [
         "11:00",
@@ -688,7 +670,6 @@
     "name": "焼肉バーンズ 富山飯野店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "managementSecret": "bk5-mg-x4bpalic",
     "hours": {
       "mon": [
         "11:00",
@@ -726,7 +707,6 @@
     "name": "焼肉バーンズ 富山黒瀬店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "managementSecret": "bk6-mg-0k76b73j",
     "hours": {
       "mon": [
         "11:00",
@@ -764,7 +744,6 @@
     "name": "焼肉バーンズ 高岡四屋店",
     "group": "burns",
     "groupName": "焼肉バーンズ",
-    "managementSecret": "bk7-mg-wtc2egz6",
     "hours": {
       "mon": [
         "11:00",
@@ -802,7 +781,6 @@
     "name": "カルビ牧場 長岡インター店",
     "group": "kirabi",
     "groupName": "カルビ牧場",
-    "managementSecret": "bk8-mg-n8w4vib5",
     "hours": {
       "mon": [
         "11:00",
@@ -840,7 +818,6 @@
     "name": "きらび 本店",
     "group": "kirabi_single",
     "groupName": "きらび",
-    "managementSecret": "kb1-mg-ibzwsj6p",
     "hours": {
       "mon": [
         "17:00",
@@ -878,7 +855,6 @@
     "name": "まるとみ 上越高田店",
     "group": "marutomi",
     "groupName": "まるとみ",
-    "managementSecret": "mt1-mg-lv5ni2aa",
     "hours": {
       "mon": [
         "16:00",

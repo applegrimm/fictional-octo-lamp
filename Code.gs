@@ -64,13 +64,51 @@ const MAX_DAYS = 30;
 const MIN_BUSINESS_DAYS = 5;
 const MAX_BUSINESS_DAYS = 30;
 
+/**
+ * @const {string} SITE_BASE_URL
+ * @desc フロントエンド（GitHub Pages）のベースURL。リダイレクト先の組み立てに使用する。
+ */
+const SITE_BASE_URL = 'https://applegrimm.github.io/fictional-octo-lamp/';
+
+/**
+ * @const {string} CHECKOUT_SUCCESS_URL
+ * @desc Stripe Checkout 成功時のリダイレクト先（サーバー側で固定・クライアント指定は受け付けない）
+ */
+const CHECKOUT_SUCCESS_URL = SITE_BASE_URL + 'success.html?session_id={CHECKOUT_SESSION_ID}';
+
+/**
+ * @const {string} CHECKOUT_CANCEL_URL
+ * @desc Stripe Checkout キャンセル時のリダイレクト先（サーバー側で固定）
+ */
+const CHECKOUT_CANCEL_URL = SITE_BASE_URL + 'cancel.html';
+
+/**
+ * @const {number} MAX_QTY_PER_ITEM
+ * @desc 1商品あたりの最大注文数量（いたずら注文・桁誤りの防止）
+ */
+const MAX_QTY_PER_ITEM = 100;
+
+/**
+ * @const {number} MAX_ITEMS_PER_ORDER
+ * @desc 1注文あたりの最大明細数
+ */
+const MAX_ITEMS_PER_ORDER = 50;
+
+/**
+ * @const {number} MASTER_CACHE_SECONDS
+ * @desc products.json / stores.json のキャッシュ保持秒数
+ */
+const MASTER_CACHE_SECONDS = 300;
+
 // ============================================
 // 🛡️ セキュリティ強化：ワンタイムトークン検証システム
 // ============================================
 
-// トークン管理用のメモリキャッシュ（簡易実装）
-const tokenCache = {};
-const TOKEN_CLEANUP_INTERVAL = 600000; // 10分
+// 使用済みトークンの記録先。
+// Apps Script は実行ごとにグローバル変数が初期化されるため、
+// メモリ上のオブジェクトでは再利用検出が一切機能しない。CacheService を使う。
+const TOKEN_TTL_SECONDS = 600; // 10分
+const USED_TOKEN_PREFIX = 'used_token_';
 
 /**
  * ワンタイムトークンの検証
@@ -107,8 +145,13 @@ function verifySecureToken(token, shopSecret, timestamp) {
       return false;
     }
     
-    // 同じトークンの再利用チェック
-    if (tokenCache[token]) {
+    // 同じトークンの再利用チェック（CacheService に記録するため実行をまたいで有効）
+    const cache = CacheService.getScriptCache();
+    const tokenKey = USED_TOKEN_PREFIX + Utilities.base64EncodeWebSafe(
+      Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, token)
+    );
+
+    if (cache.get(tokenKey)) {
       console.log('🚫 トークン再利用検出');
       return false;
     }
@@ -119,45 +162,20 @@ function verifySecureToken(token, shopSecret, timestamp) {
     const expectedHex = expectedSignature.map(byte => 
       (byte & 0xFF).toString(16).padStart(2, '0')).join('');
     
-    if (signature !== expectedHex) {
+    if (!constantTimeEquals(signature, expectedHex)) {
       console.log('🚫 署名検証失敗');
       return false;
     }
-    
-    // トークンを使用済みとして記録
-    tokenCache[token] = currentTime;
-    
-    // 古いトークンの定期クリーンアップ
-    cleanupOldTokens();
-    
+
+    // トークンを使用済みとして記録（TTL経過後は自動的に消える）
+    cache.put(tokenKey, '1', TOKEN_TTL_SECONDS);
+
     console.log('✅ セキュリティトークン検証成功');
     return true;
     
   } catch (error) {
     console.error('セキュリティトークン検証エラー:', error);
     return false;
-  }
-}
-
-/**
- * 古いトークンのクリーンアップ
- */
-function cleanupOldTokens() {
-  const now = Date.now();
-  const tokensToDelete = [];
-  
-  for (const [token, timestamp] of Object.entries(tokenCache)) {
-    if (now - timestamp > TOKEN_CLEANUP_INTERVAL) {
-      tokensToDelete.push(token);
-    }
-  }
-  
-  tokensToDelete.forEach(token => {
-    delete tokenCache[token];
-  });
-  
-  if (tokensToDelete.length > 0) {
-    console.log('🧹 古いトークン削除:', tokensToDelete.length + '個');
   }
 }
 
@@ -175,7 +193,7 @@ function verifyChecksum(checksum, shopSecret, timestamp) {
     const expected = hash.map(byte => 
       (byte & 0xFF).toString(16).padStart(2, '0')).join('').substring(0, 16);
     
-    return checksum === expected;
+    return constantTimeEquals(checksum, expected);
   } catch (error) {
     console.error('チェックサム検証エラー:', error);
     return false;
@@ -291,38 +309,27 @@ const CANCEL_POLICY_URL = 'cancel-policy.html?from=email';
  */
 function sanitizeInput(input) {
   if (typeof input !== 'string') return '';
-  
-  // 基本的な危険文字列を除去
+
   let sanitized = input;
-  
-  // HTMLタグを除去
+
+  // HTMLタグを除去（表示側でのエスケープと併用する多層防御）
   sanitized = sanitized.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
   sanitized = sanitized.replace(/<[^>]*>/g, '');
-  
-  // SQLインジェクション対策
-  const dangerousPatterns = [
-    /('|(\\')|(;)|(\\)|(--|\/\*|\*\/)|(\bUNION\b)|(\bSELECT\b)|(\bINSERT\b)|(\bUPDATE\b)|(\bDELETE\b)|(\bDROP\b))/gi
-  ];
-  
-  dangerousPatterns.forEach(pattern => {
-    sanitized = sanitized.replace(pattern, '');
-  });
-  
-  // 制御文字を除去
-  sanitized = sanitized.replace(/[\x00-\x1F\x7F]/g, '');
-  
+
+  // 制御文字を除去（改行・タブは後段で扱う）
+  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  // スプレッドシートの数式インジェクション対策。
+  // このシステムはSQLを一切使っておらず、以前あった SELECT/UNION/クォート除去は
+  // 効果がないうえに「O'Brien」「Union Bank」等の正当な入力を破壊していた。
+  // 実際の保存先は Google スプレッドシートなので、先頭の数式起動文字を無害化する。
+  if (/^[=+\-@\t\r]/.test(sanitized)) {
+    sanitized = "'" + sanitized;
+  }
+
   // 長すぎる文字列を切り詰め
-  const maxLengths = {
-    name: 100,
-    phone: 20,
-    email: 254,
-    store: 100,
-    note: 1000
-  };
-  
-  // 一般的な最大長
   sanitized = sanitized.substring(0, 1000);
-  
+
   return sanitized.trim();
 }
 
@@ -359,9 +366,17 @@ function validateInputLength(data) {
  * @return {Object} 検証結果オブジェクト {success: boolean, score: number, action: string}
  */
 function verifyRecaptcha(recaptchaResponse, expectedAction = 'form_submit') {
-  if (!recaptchaResponse || !RECAPTCHA_SECRET_KEY || RECAPTCHA_SECRET_KEY === 'YOUR_RECAPTCHA_SECRET_KEY_HERE') {
-    console.log('reCAPTCHA設定が不完全です');
-    return { success: true, score: 1.0, action: expectedAction }; // 開発環境では検証をスキップ
+  // シークレット鍵が未設定の場合のみ検証をスキップする（開発環境向け）。
+  // 本番では必ずスクリプトプロパティに RECAPTCHA_SECRET_KEY を設定すること。
+  if (!RECAPTCHA_SECRET_KEY || RECAPTCHA_SECRET_KEY === 'YOUR_RECAPTCHA_SECRET_KEY_HERE') {
+    console.warn('⚠️ RECAPTCHA_SECRET_KEY が未設定のため検証をスキップします（本番では設定必須）');
+    return { success: true, score: null, action: expectedAction };
+  }
+
+  // 鍵が設定されている以上、トークン未送信は「検証失敗」として扱う（fail-closed）
+  if (!recaptchaResponse) {
+    console.warn('🚫 reCAPTCHAトークンが送信されていません');
+    return { success: false, score: 0.0, action: '' };
   }
   
   try {
@@ -408,6 +423,26 @@ function verifyRecaptcha(recaptchaResponse, expectedAction = 'form_submit') {
 }
 
 /**
+ * @function buildRateLimitKey
+ * @desc 予約データからレート制限用の安定した識別子を作る
+ * @param {Object} data - 予約データ
+ * @return {string} 識別子
+ */
+function buildRateLimitKey(data) {
+  const email = String((data && data.email) || '').trim().toLowerCase();
+  const phone = String((data && data.phone) || '').replace(/[^0-9]/g, '');
+  const basis = email || phone;
+
+  if (!basis) {
+    return 'anonymous';
+  }
+
+  // 生の連絡先をシートに残さないようハッシュ化する
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, basis);
+  return Utilities.base64EncodeWebSafe(digest).replace(/=+$/, '').substring(0, 22);
+}
+
+/**
  * @function checkRateLimit
  * @desc レート制限をチェック
  * @param {string} clientId - クライアント識別子（IPアドレス等）
@@ -422,12 +457,11 @@ function checkRateLimit(clientId) {
     console.log('レート制限チェック用ロック取得成功');
     
     const spreadsheet = SpreadsheetApp.openById(SPREADSHEET_ID);
-    let rateLimitSheet;
-    
-    try {
-      rateLimitSheet = spreadsheet.getSheetByName(RATE_LIMIT_SHEET_NAME);
-    } catch (e) {
-      // レート制限シートが存在しない場合は作成
+
+    // getSheetByName は見つからない場合 null を返す（例外は投げない）。
+    // 以前は try/catch で捕まえようとしていたため、シート自動作成が一度も動いていなかった。
+    let rateLimitSheet = spreadsheet.getSheetByName(RATE_LIMIT_SHEET_NAME);
+    if (!rateLimitSheet) {
       rateLimitSheet = spreadsheet.insertSheet(RATE_LIMIT_SHEET_NAME);
       rateLimitSheet.getRange(1, 1, 1, 3).setValues([['クライアントID', '最終送信時刻', 'タイムスタンプ']]);
     }
@@ -539,7 +573,7 @@ function executeSpreadsheetWrite(itemsWithPrice, sanitizedData, orderId, total) 
       sanitizedData.name,             // C列：お名前
       "'" + sanitizedData.phone,      // D列：お客様電話番号
       sanitizedData.email,            // E列：お客様メールアドレス
-      sanitizedData.store,            // F列：受取店舗
+      resolveStoreName(sanitizedData), // F列：受取店舗（配送時は申込店舗）
       item.name,                      // G列：商品名
       String(item.qty),               // H列：数量
       String(item.price),             // I列：単価
@@ -558,6 +592,20 @@ function executeSpreadsheetWrite(itemsWithPrice, sanitizedData, orderId, total) 
   });
   
   console.log(`スプレッドシート書き込み完了: ${itemsWithPrice.length}行追加`);
+}
+
+/**
+ * @function resolveStoreName
+ * @desc 予約データから記録すべき店舗名を決める
+ *       （店頭受取なら受取店舗、配送なら申し込み店舗）
+ * @param {Object} data - 予約データ
+ * @return {string} 店舗名
+ */
+function resolveStoreName(data) {
+  if (data && data.deliveryMethod === 'delivery') {
+    return data.applicationStore || data.store || '';
+  }
+  return (data && data.store) || '';
 }
 
 /**
@@ -614,13 +662,8 @@ function scheduleDelayedWrite(itemsWithPrice, sanitizedData, orderId, total) {
     
     console.log('遅延書き込みスケジュール完了:', queueKey);
     
-    // 1分後に実行するトリガーを設定
-    ScriptApp.newTrigger('processDelayedWrites')
-      .timeBased()
-      .after(60 * 1000) // 1分後
-      .create();
-      
-    console.log('遅延書き込みトリガー設定完了');
+    // 1分後に実行するトリガーを設定（既に待機中のものがあれば作らない）
+    ensureDelayedWriteTrigger();
     
   } catch (scheduleError) {
     console.error('遅延書き込みスケジュール失敗:', scheduleError);
@@ -708,7 +751,7 @@ function executePaymentReservationWrite(validatedItems, reservationData, calcula
       sanitizeInput(reservationData.name),        // C列: お名前
       "'" + sanitizeInput(reservationData.phone), // D列: 電話番号（文字列として保存）
       sanitizeInput(reservationData.email),       // E列: メールアドレス
-      sanitizeInput(reservationData.store),       // F列: 受取店舗
+      sanitizeInput(resolveStoreName(reservationData)), // F列: 受取店舗（配送時は申込店舗）
       sanitizeInput(item.name),                   // G列: 商品名
       item.qty,                                   // H列: 数量
       item.price,                                 // I列: 単価
@@ -760,16 +803,52 @@ function scheduleDelayedPaymentWrite(validatedItems, reservationData, calculated
     
     console.log('決済完了予約遅延書き込みスケジュール完了:', queueKey);
     
-    // 1分後に実行するトリガーを設定
-    ScriptApp.newTrigger('processDelayedWrites')
-      .timeBased()
-      .after(60 * 1000) // 1分後
-      .create();
-      
-    console.log('決済完了予約遅延書き込みトリガー設定完了');
+    // 1分後に実行するトリガーを設定（既に待機中のものがあれば作らない）
+    ensureDelayedWriteTrigger();
     
   } catch (scheduleError) {
     console.error('決済完了予約遅延書き込みスケジュール失敗:', scheduleError);
+  }
+}
+
+/**
+ * @function ensureDelayedWriteTrigger
+ * @desc 遅延書き込み処理用のトリガーを（無ければ）1つだけ作成する。
+ *       以前は呼ばれるたびに新規作成しており、Apps Script のトリガー上限
+ *       （スクリプトあたり20個）に達すると以後の遅延書き込みが失われていた。
+ */
+function ensureDelayedWriteTrigger() {
+  try {
+    const existing = ScriptApp.getProjectTriggers()
+      .filter(t => t.getHandlerFunction() === 'processDelayedWrites');
+
+    if (existing.length > 0) {
+      console.log('遅延書き込みトリガーは既に待機中です');
+      return;
+    }
+
+    ScriptApp.newTrigger('processDelayedWrites')
+      .timeBased()
+      .after(60 * 1000)
+      .create();
+
+    console.log('遅延書き込みトリガー設定完了');
+  } catch (error) {
+    console.error('遅延書き込みトリガー設定エラー:', error);
+  }
+}
+
+/**
+ * @function cleanupDelayedWriteTriggers
+ * @desc 実行済みの遅延書き込みトリガーを削除する（トリガー枠の枯渇防止）
+ */
+function cleanupDelayedWriteTriggers() {
+  try {
+    ScriptApp.getProjectTriggers()
+      .filter(t => t.getHandlerFunction() === 'processDelayedWrites')
+      .forEach(t => ScriptApp.deleteTrigger(t));
+  } catch (error) {
+    console.error('遅延書き込みトリガー削除エラー:', error);
   }
 }
 
@@ -785,8 +864,10 @@ function processDelayedWrites() {
     const allProperties = properties.getProperties();
     
     // 遅延書き込みキューを検索
-    const delayedWriteKeys = Object.keys(allProperties).filter(key => 
-      key.startsWith('delayed_write_')
+    // 決済分は 'delayed_payment_write_' で保存されるが、以前は 'delayed_write_' しか
+    // 見ておらず、決済済み注文の遅延書き込みが永久に処理されず消えていた。
+    const delayedWriteKeys = Object.keys(allProperties).filter(key =>
+      key.startsWith('delayed_write_') || key.startsWith('delayed_payment_write_')
     );
     
     console.log(`遅延書き込みキュー件数: ${delayedWriteKeys.length}`);
@@ -853,6 +934,17 @@ function processDelayedWrites() {
       }
     }
     
+    // 使い終わったトリガーを削除する（放置すると上限に達する）
+    cleanupDelayedWriteTriggers();
+
+    // まだ残っているキューがあれば、もう一度だけ実行を予約する
+    const remaining = Object.keys(PropertiesService.getScriptProperties().getProperties())
+      .filter(key => key.startsWith('delayed_write_') || key.startsWith('delayed_payment_write_'));
+    if (remaining.length > 0) {
+      console.log(`未処理キューが${remaining.length}件残っているため再スケジュールします`);
+      ensureDelayedWriteTrigger();
+    }
+
     console.log('=== 遅延書き込み処理完了 ===');
     
   } catch (error) {
@@ -871,28 +963,24 @@ function processDelayedWrites() {
  */
 function processReservation(data) {
   try {
-    // 🧪 テストデータの場合はreCAPTCHA検証をスキップ
-    if (data.isTestData) {
-      console.log('テストデータのためreCAPTCHA検証をスキップ');
-    } else if (data.recaptchaResponse) {
-      // reCAPTCHA v3検証
-      const recaptchaResult = verifyRecaptcha(data.recaptchaResponse, 'form_submit');
-      
-      if (!recaptchaResult.success) {
-        const errorMessage = recaptchaResult.score !== undefined 
-          ? `reCAPTCHA認証に失敗しました（スコア: ${recaptchaResult.score}）。ページを再読み込みして再度お試しください。`
-          : 'reCAPTCHA認証に失敗しました。ページを再読み込みして再度お試しください。';
-          
-        return { 
-          success: false, 
-          error: errorMessage,
-          recaptchaScore: recaptchaResult.score
-        };
-      }
-      
-      // 成功時はスコアをログに記録
-      console.log(`reCAPTCHA v3認証成功 - スコア: ${recaptchaResult.score}`);
+    // reCAPTCHA v3 検証（fail-closed）
+    // 以前は data.isTestData で検証を丸ごと迂回でき、トークン未送信でも素通りしていた。
+    // どちらも外部から自由に指定できるため、防御として成立していなかった。
+    const recaptchaResult = verifyRecaptcha(data.recaptchaResponse, 'form_submit');
+
+    if (!recaptchaResult.success) {
+      const errorMessage = (recaptchaResult.score !== undefined && recaptchaResult.score !== null)
+        ? `reCAPTCHA認証に失敗しました（スコア: ${recaptchaResult.score}）。ページを再読み込みして再度お試しください。`
+        : 'reCAPTCHA認証に失敗しました。ページを再読み込みして再度お試しください。';
+
+      return {
+        success: false,
+        error: errorMessage,
+        recaptchaScore: recaptchaResult.score
+      };
     }
+
+    console.log(`reCAPTCHA v3認証成功 - スコア: ${recaptchaResult.score}`);
     
     // 入力データをサニタイズ
     const sanitizedData = {
@@ -900,6 +988,7 @@ function processReservation(data) {
       phone: sanitizeInput(data.phone || ''),
       email: sanitizeInput(data.email || ''),
       store: sanitizeInput(data.store || ''),
+      applicationStore: sanitizeInput(data.applicationStore || ''),
       pickup_date: sanitizeInput(data.pickup_date || ''),
       pickup_time: sanitizeInput(data.pickup_time || ''),
       note: sanitizeInput(data.note || ''),
@@ -1049,10 +1138,11 @@ function doPost(e) {
       return createCorsResponse(JSON.stringify(updateResult));
     }
     
-    // 既存の予約フォーム処理（以下は既存コードそのまま）
-    // クライアント識別子を取得（簡易的にタイムスタンプとランダム値を使用）
-    const clientId = e.parameter.clientId || 'anonymous_' + new Date().getTime();
-    
+    // 既存の予約フォーム処理
+    // クライアント申告の clientId は自由に変更できるため識別子として使わない。
+    // 予約者の連絡先から安定した識別子を導出する。
+    const clientId = buildRateLimitKey(data);
+
     // レート制限チェック
     if (!checkRateLimit(clientId)) {
       const errorResponse = { success: false, error: 'レート制限に達しました。しばらく時間を置いてから再度お試しください。' };
@@ -1131,6 +1221,22 @@ function doGet(e) {
           throw new Error('JSONデータが不正です');
         }
         
+        // レート制限チェック
+        // 実際のフォーム送信は JSONP(GET) を通るため、doPost 側だけでは素通りしていた。
+        if (!checkRateLimit(buildRateLimitKey(data))) {
+          const limited = {
+            success: false,
+            error: 'レート制限に達しました。しばらく時間を置いてから再度お試しください。'
+          };
+          const cb = e.parameter.callback;
+          if (cb) {
+            return ContentService
+              .createTextOutput(`${cb}(${JSON.stringify(limited)})`)
+              .setMimeType(ContentService.MimeType.JAVASCRIPT);
+          }
+          return createCorsResponse(JSON.stringify(limited));
+        }
+
         // 予約処理を実行（既存のdoPost処理を流用）
         const result = processReservation(data);
         
@@ -1553,32 +1659,44 @@ function doGet(e) {
           throw new Error('入力データエラー: ' + validationErrors.join(', '));
         }
         
-        // 商品データの基本検証（決済完了後なので簡素化）
-        if (!reservationData.items || reservationData.items.length === 0) {
-          throw new Error('商品データが不正です');
+        // 決済実績を Stripe に直接照会して検証する。
+        // 以前はクライアントの申告（payment_status など）をそのまま信じており、
+        // 未決済でも「決済完了」の予約行を作れる状態だった。
+        const sessionId = reservationData.payment_session_id;
+        if (!sessionId) {
+          throw new Error('決済セッションIDがありません');
         }
-        
-        // 各商品の基本チェック
-        const validatedItems = [];
-        for (const item of reservationData.items) {
-          if (!item.name || !item.price || !item.qty || item.qty <= 0) {
-            throw new Error(`商品データが不正です: ${JSON.stringify(item)}`);
+
+        const verifiedSession = fetchVerifiedStripeSession(sessionId);
+
+        // 二重登録の防止（リロード・再送信でも行が増えないようにする）
+        if (isSessionAlreadyRecorded(sessionId)) {
+          console.log('既に記録済みの決済セッションです:', sessionId);
+          const dup = {
+            success: true,
+            alreadyRecorded: true,
+            message: 'この決済のご予約は既に登録済みです',
+            orderId: findOrderIdBySession(sessionId),
+            total: verifiedSession.amount_total
+          };
+          const cbDup = e.parameter.callback;
+          if (cbDup) {
+            return ContentService
+              .createTextOutput(`${cbDup}(${JSON.stringify(dup)})`)
+              .setMimeType(ContentService.MimeType.JAVASCRIPT);
           }
-          validatedItems.push({
-            name: String(item.name),
-            price: Number(item.price),
-            qty: Number(item.qty)
-          });
+          return createCorsResponse(JSON.stringify(dup));
         }
-        
-        // 合計金額を再計算・検証
-        const calculatedTotal = validatedItems.reduce((sum, item) => {
-          return sum + (item.price * item.qty);
-        }, 0);
-        
-        if (Math.abs(calculatedTotal - reservationData.payment_amount) > 1) {
-          console.warn(`金額の差異検出: 計算値=${calculatedTotal}, 決済額=${reservationData.payment_amount}`);
-          // 決済が完了しているため、警告のみでエラーにはしない
+
+        // 商品明細は Stripe の metadata（サーバーが作成時に確定させたもの）を正とする
+        const validatedItems = buildItemsFromStripeMetadata(verifiedSession);
+
+        // 合計金額は Stripe の実決済額を採用する
+        const calculatedTotal = Number(verifiedSession.amount_total);
+
+        const itemsTotal = validatedItems.reduce((sum, item) => sum + (item.price * item.qty), 0);
+        if (Math.abs(itemsTotal - calculatedTotal) > 1) {
+          console.error(`明細合計と決済額が一致しません: 明細=${itemsTotal}, 決済=${calculatedTotal}`);
         }
         
         // 注文IDを生成（通常予約と同じ形式）
@@ -1615,7 +1733,7 @@ function doGet(e) {
             sanitizeInput(reservationData.name),        // C列: お名前
             "'" + sanitizeInput(reservationData.phone), // D列: 電話番号（文字列として保存）
             sanitizeInput(reservationData.email),       // E列: メールアドレス
-            sanitizeInput(reservationData.store),       // F列: 受取店舗
+            sanitizeInput(resolveStoreName(reservationData)), // F列: 受取店舗（配送時は申込店舗）
             sanitizeInput(item.name),                   // G列: 商品名
             item.qty,                                   // H列: 数量
             item.price,                                 // I列: 単価
@@ -1838,23 +1956,22 @@ function doGet(e) {
           // フォールバック: セッションIDのみで基本的な応答を作成
           console.log('フォールバック処理開始: 簡易応答を作成');
           
+          // Stripe に照会できない状態で「決済完了」を名乗ってはいけない。
+          // 以前は payment_status:'completed' を返していたため、
+          // 未決済でも success.html 側で予約が確定し得た。
           const fallbackInfo = {
-            success: true,
-            message: 'セッションIDベース（Stripe API未接続）',
+            success: false,
+            error: '決済状態を確認できませんでした。二重決済を避けるため、店舗までお問い合わせください。',
             data: {
               session_id: sessionId,
               session_id_short: sessionId.substring(sessionId.length - 8),
-              total_amount: 'unknown', // 金額は決済完了処理で再計算される
-              payment_status: 'completed', // 決済完了画面にアクセスできているので完了とみなす
-              metadata: {
-                note: 'Stripe API接続エラーのため詳細情報を取得できませんでした'
-              }
+              payment_status: 'unknown'
             },
             timestamp: new Date().getTime(),
             fallback: true
           };
-          
-          console.log('フォールバック情報:', fallbackInfo);
+
+          console.warn('決済状態の確認に失敗:', fallbackInfo);
           
           const callback = e.parameter.callback;
           if (callback) {
@@ -2007,20 +2124,7 @@ function generateTimeSlotsForRange(startTime, endTime) {
  * @return {Array<Object>} 商品リスト
  */
 function getProducts() {
-  try {
-    // GitHub Pagesからproducts.jsonを取得
-    const response = UrlFetchApp.fetch('https://applegrimm.github.io/fictional-octo-lamp/products.json');
-    const content = response.getContentText();
-    return JSON.parse(content);
-  } catch (error) {
-    console.error('products.json取得エラー:', error);
-    // products.jsonが見つからない場合のデフォルト商品
-    return [
-      { name: "商品A", price: 500 },
-      { name: "商品B", price: 800 },
-      { name: "商品C", price: 1200 }
-    ];
-  }
+  return fetchMasterJson('products.json', 'products_master');
 }
 
 /**
@@ -2029,18 +2133,51 @@ function getProducts() {
  * @return {Array<Object>} 店舗リスト
  */
 function getStores() {
+  return fetchMasterJson('stores.json', 'stores_master');
+}
+
+/**
+ * @function fetchMasterJson
+ * @desc マスタJSON（products/stores）を取得する。取得できた内容はキャッシュし、
+ *       失敗時はキャッシュを使い、それも無ければ例外を投げる。
+ *       以前はダミーデータを返していたため、一時的な通信失敗で
+ *       「単価0円の予約が成立する」「全店舗が消える」状態になり得た。
+ * @param {string} fileName - 取得するファイル名
+ * @param {string} cacheKey - キャッシュキー
+ * @return {Array<Object>} パース済みデータ
+ * @throws {Error} 取得もキャッシュ復元もできない場合
+ */
+function fetchMasterJson(fileName, cacheKey) {
+  const cache = CacheService.getScriptCache();
+
   try {
-    // GitHub Pagesからstores.jsonを取得
-    const response = UrlFetchApp.fetch('https://applegrimm.github.io/fictional-octo-lamp/stores.json');
+    const response = UrlFetchApp.fetch(SITE_BASE_URL + fileName, { muteHttpExceptions: true });
+
+    if (response.getResponseCode() !== 200) {
+      throw new Error(`${fileName} の取得に失敗しました (HTTP ${response.getResponseCode()})`);
+    }
+
     const content = response.getContentText();
-    return JSON.parse(content);
+    const parsed = JSON.parse(content);
+
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      throw new Error(`${fileName} の内容が不正です`);
+    }
+
+    cache.put(cacheKey, content, MASTER_CACHE_SECONDS);
+    return parsed;
+
   } catch (error) {
-    console.error('stores.json取得エラー:', error);
-    // stores.jsonが見つからない場合のデフォルト店舗
-    return [
-      { name: "店舗A", hours: "10:00-20:00" },
-      { name: "店舗B", hours: "11:00-21:00" }
-    ];
+    console.error(`${fileName} 取得エラー:`, error);
+
+    const cached = cache.get(cacheKey);
+    if (cached) {
+      console.warn(`${fileName}: キャッシュから復元します`);
+      return JSON.parse(cached);
+    }
+
+    // ダミー値で処理を続行させない（誤った金額・店舗での予約成立を防ぐ）
+    throw new Error(`${fileName} を取得できませんでした。時間をおいて再度お試しください。`);
   }
 }
 
@@ -2056,15 +2193,27 @@ function validate(data) {
   if (!data.name) errors.push('お名前は必須です');
   if (!data.phone || !/^[0-9\-\+]{10,15}$/.test(data.phone)) errors.push('電話番号を正しく入力してください');
   if (!data.email || !/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(data.email)) errors.push('メールアドレスを正しく入力してください');
-  if (!data.store) errors.push('受取店舗を選択してください');
+  // 店舗の必須チェックは受取方法によって対象が変わる。
+  // 以前は配送でも data.store を必須にしていたため、配送・法人の予約が
+  // サーバー側で必ず弾かれていた（フォームは配送時に受取店舗を送らないため）。
+  if (data.deliveryMethod === 'delivery') {
+    if (!data.applicationStore) errors.push('お申し込み店舗を選択してください');
+  } else {
+    if (!data.store) errors.push('受取店舗を選択してください');
+  }
 
   // 商品リストと数量のバリデーション
   if (!data.items || !Array.isArray(data.items) || data.items.length === 0) {
     errors.push('商品を1つ以上選択してください');
+  } else if (data.items.length > MAX_ITEMS_PER_ORDER) {
+    errors.push(`1回のご注文で指定できる商品は${MAX_ITEMS_PER_ORDER}件までです`);
   } else {
     data.items.forEach((item, index) => {
-      if (!item.name || !item.qty || isNaN(item.qty) || parseInt(item.qty) < 1 || !Number.isInteger(Number(item.qty))) {
+      const qty = Number(item.qty);
+      if (!item.name || !Number.isInteger(qty) || qty < 1) {
         errors.push(`商品 #${index + 1} の選択または数量に誤りがあります`);
+      } else if (qty > MAX_QTY_PER_ITEM) {
+        errors.push(`商品 #${index + 1} の数量が上限（${MAX_QTY_PER_ITEM}）を超えています`);
       }
     });
   }
@@ -2090,6 +2239,60 @@ function validate(data) {
     // 店頭受取（従来どおり）
     if (!data.pickup_date) errors.push('受取希望日を選択してください');
     if (!data.pickup_time) errors.push('受取希望時間を選択してください');
+  }
+
+  // 受取日／配送日の妥当性をサーバー側でも確認する。
+  // 定数 MIN_DAYS / MAX_DAYS / HOLIDAYS は定義されていたが一度も使われておらず、
+  // 日付の妥当性はクライアント側の制御だけに依存していた。
+  const targetDate = data.deliveryMethod === 'delivery' ? data.deliveryDate : data.pickup_date;
+  if (targetDate) {
+    errors.push.apply(errors, validateReservationDate(targetDate));
+  }
+
+  return errors;
+}
+
+/**
+ * @function validateReservationDate
+ * @desc 受取／配送希望日が受付可能な範囲かを検証する
+ * @param {string} dateString - YYYY-MM-DD 形式の日付
+ * @return {Array<string>} エラーメッセージ配列
+ */
+function validateReservationDate(dateString) {
+  const errors = [];
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(dateString))) {
+    errors.push('日付の形式が正しくありません');
+    return errors;
+  }
+
+  const parts = String(dateString).split('-').map(Number);
+  const target = new Date(parts[0], parts[1] - 1, parts[2]);
+
+  if (isNaN(target.getTime()) ||
+      target.getFullYear() !== parts[0] ||
+      target.getMonth() !== parts[1] - 1 ||
+      target.getDate() !== parts[2]) {
+    errors.push('存在しない日付です');
+    return errors;
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  target.setHours(0, 0, 0, 0);
+
+  const diffDays = Math.round((target.getTime() - today.getTime()) / (24 * 60 * 60 * 1000));
+
+  if (diffDays < MIN_DAYS) {
+    errors.push(`ご希望日は本日から${MIN_DAYS}日以降をご指定ください`);
+  }
+  if (diffDays > MAX_DAYS) {
+    errors.push(`ご希望日は本日から${MAX_DAYS}日以内をご指定ください`);
+  }
+
+  const monthDay = Utilities.formatDate(target, 'Asia/Tokyo', 'MM-dd');
+  if (HOLIDAYS.indexOf(monthDay) !== -1) {
+    errors.push('ご指定の日は休業日のため承れません');
   }
 
   return errors;
@@ -2167,22 +2370,143 @@ function createCorsResponse(jsonData) {
  */
 function validateStoreSecret(secret) {
   try {
-    const stores = getStores();
-    const store = stores.find(s => s.managementSecret === secret);
-    
-    if (store) {
-      return {
-        isValid: true,
-        storeId: store.id,
-        storeName: store.name
-      };
-    } else {
+    if (!secret || typeof secret !== 'string') {
       return { isValid: false };
     }
+
+    // 管理シークレットはスクリプトプロパティで管理する。
+    // 以前は stores.json に平文で持っていたが、同ファイルは GitHub Pages 上で
+    // 誰でも取得できるため、認証情報の置き場所として使ってはならない。
+    const secretMap = getStoreSecretMap();
+    const storeIds = Object.keys(secretMap);
+
+    let matchedStoreId = null;
+    for (let i = 0; i < storeIds.length; i++) {
+      const storeId = storeIds[i];
+      if (constantTimeEquals(secretMap[storeId], secret)) {
+        matchedStoreId = storeId;
+        // break しない：一致位置による処理時間の差を作らない
+      }
+    }
+
+    if (!matchedStoreId) {
+      return { isValid: false };
+    }
+
+    const store = getStores().find(s => s.id === matchedStoreId);
+    if (!store) {
+      console.error('シークレットに対応する店舗が stores.json に存在しません:', matchedStoreId);
+      return { isValid: false };
+    }
+
+    return {
+      isValid: true,
+      storeId: store.id,
+      storeName: store.name
+    };
   } catch (error) {
     console.error('店舗認証エラー:', error);
     return { isValid: false };
   }
+}
+
+/**
+ * @function getStoreSecretMap
+ * @desc スクリプトプロパティから「店舗ID → 管理シークレット」のマップを取得
+ * @return {Object} シークレットマップ（未設定時は空オブジェクト）
+ */
+function getStoreSecretMap() {
+  const raw = PropertiesService.getScriptProperties().getProperty('STORE_SECRETS');
+
+  if (!raw) {
+    console.error(
+      '店舗管理シークレットが未設定です。' +
+      'rotateAllStoreSecrets() を一度実行してシークレットを発行してください。'
+    );
+    return {};
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return (parsed && typeof parsed === 'object') ? parsed : {};
+  } catch (error) {
+    console.error('STORE_SECRETS の形式が不正です:', error);
+    return {};
+  }
+}
+
+/**
+ * @function constantTimeEquals
+ * @desc 文字列を定数時間で比較する（タイミング攻撃対策）
+ * @param {string} a - 比較対象A
+ * @param {string} b - 比較対象B
+ * @return {boolean} 一致するか
+ */
+function constantTimeEquals(a, b) {
+  const sa = String(a == null ? '' : a);
+  const sb = String(b == null ? '' : b);
+
+  // 長さの違いだけで早期 return しないよう、長い方に合わせて全文字走査する
+  const length = Math.max(sa.length, sb.length);
+  let diff = sa.length ^ sb.length;
+
+  for (let i = 0; i < length; i++) {
+    diff |= (sa.charCodeAt(i) || 0) ^ (sb.charCodeAt(i) || 0);
+  }
+
+  return diff === 0;
+}
+
+/**
+ * @function rotateAllStoreSecrets
+ * @desc 全店舗の管理シークレットを新規発行してスクリプトプロパティに保存する。
+ *       旧シークレット（stores.json に平文で公開されていたもの）は即座に無効になる。
+ *       GASエディタから手動で1回実行し、ログに出力される新URLを各店舗へ配布すること。
+ * @return {Object} 発行結果
+ */
+function rotateAllStoreSecrets() {
+  const stores = getStores();
+
+  if (!Array.isArray(stores) || stores.length === 0) {
+    throw new Error('stores.json を取得できませんでした');
+  }
+
+  const secretMap = {};
+  const lines = [];
+  const webAppUrl = ScriptApp.getService().getUrl();
+
+  stores.forEach(store => {
+    if (!store || !store.id) return;
+    const secret = generateStoreSecret();
+    secretMap[store.id] = secret;
+    lines.push(`${store.id}\t${store.name}\t${webAppUrl}?action=manage&shop=${secret}`);
+  });
+
+  PropertiesService.getScriptProperties()
+    .setProperty('STORE_SECRETS', JSON.stringify(secretMap));
+
+  console.log('=== 新しい店舗管理URL（各店舗へ配布してください）===');
+  lines.forEach(line => console.log(line));
+  console.log('=== 旧シークレットは無効になりました ===');
+
+  return { success: true, rotated: Object.keys(secretMap).length };
+}
+
+/**
+ * @function generateStoreSecret
+ * @desc 推測不可能な管理シークレットを生成する
+ * @return {string} シークレット文字列（43文字前後のURLセーフな乱数）
+ */
+function generateStoreSecret() {
+  const bytes = [];
+  for (let i = 0; i < 32; i++) {
+    bytes.push(Math.floor(Math.random() * 256));
+  }
+  // UUID を混ぜてエントロピーを補強する
+  const seed = Utilities.getUuid() + ':' + bytes.join(',') + ':' + Date.now();
+  const digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, seed);
+
+  return Utilities.base64EncodeWebSafe(digest).replace(/=+$/, '');
 }
 
 /**
@@ -2402,6 +2726,21 @@ function updateReservationData(rowId, checked, memo, staffName, storeId) {
 }
 
 /**
+ * @function escapeHtmlForTemplate
+ * @desc サーバー側テンプレート埋め込み用のHTMLエスケープ
+ * @param {string} value - 値
+ * @return {string} エスケープ済み文字列
+ */
+function escapeHtmlForTemplate(value) {
+  return String(value == null ? '' : value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
  * @function getManagementPage
  * @desc 店舗管理画面のHTMLを生成
  * @param {string} storeName - 店舗名
@@ -2415,7 +2754,7 @@ function getManagementPage(storeName, secret) {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>${storeName} - 予約管理画面</title>
+      <title>${escapeHtmlForTemplate(storeName)} - 予約管理画面</title>
       <style>
         * { box-sizing: border-box; }
         body {
@@ -2599,7 +2938,7 @@ function getManagementPage(storeName, secret) {
     </head>
     <body>
       <div class="header">
-        <h1>${storeName} - 予約管理画面</h1>
+        <h1>${escapeHtmlForTemplate(storeName)} - 予約管理画面</h1>
         <small>本日以降の予約一覧</small>
       </div>
       
@@ -2623,6 +2962,17 @@ function getManagementPage(storeName, secret) {
         const SHOP_SECRET = '${secret}';
         let allReservations = [];
         let currentFilter = 'all';
+
+        // HTMLエスケープ。予約者が入力した氏名・備考などをそのまま
+        // innerHTML に流すと、店舗スタッフの画面でスクリプトが動いてしまう。
+        function esc(value) {
+          return String(value == null ? '' : value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+        }
 
         // ページ読み込み時に予約一覧を取得
         window.addEventListener('DOMContentLoaded', function() {
@@ -2687,33 +3037,33 @@ function getManagementPage(storeName, secret) {
                 </div>
                 
                 <div class="customer-info">
-                  <strong>👤 \${customer.customerName}</strong><br>
-                  📞 <a href="tel:\${customer.phone}" class="phone-link">\${customer.phone}</a><br>
-                  📧 \${customer.email}<br>
-                  🆔 \${customer.orderId}
-                  \${customer.paymentSessionIdShort ? \`<br>💳 決済ID: \${customer.paymentSessionIdShort}\` : ''}
+                  <strong>👤 \${esc(customer.customerName)}</strong><br>
+                  📞 <a href="tel:\${esc(String(customer.phone).replace(/[^0-9+\-]/g, ''))}" class="phone-link">\${esc(customer.phone)}</a><br>
+                  📧 \${esc(customer.email)}<br>
+                  🆔 \${esc(customer.orderId)}
+                  \${customer.paymentSessionIdShort ? \`<br>💳 決済ID: \${esc(customer.paymentSessionIdShort)}\` : ''}
                 </div>
                 
                 <div class="products">
                   <strong>📦 注文内容:</strong><br>
-                  \${group.items.map(item => \`• \${item.productName} × \${item.quantity} (\${item.subtotal}円)\`).join('<br>')}
+                  \${group.items.map(item => \`• \${esc(item.productName)} × \${esc(item.quantity)} (\${esc(item.subtotal)}円)\`).join('<br>')}
                 </div>
                 
-                <div class="total">💰 合計: \${totalAmount}円</div>
+                <div class="total">💰 合計: \${esc(totalAmount)}円</div>
                 
-                \${customer.note ? \`<div style="margin: 8px 0; color: #666;"><strong>📝 備考:</strong> \${customer.note}</div>\` : ''}
+                \${customer.note ? \`<div style="margin: 8px 0; color: #666;"><strong>📝 備考:</strong> \${esc(customer.note)}</div>\` : ''}
                 
                 <div class="controls-row">
                   <div class="checkbox">
-                    <input type="checkbox" id="check-\${group.orderId}" \${isCompleted ? 'checked' : ''} 
-                           onchange="updateReservation('\${group.items[0].rowId}', this.checked, null)">
-                    <label for="check-\${group.orderId}">受渡完了</label>
+                    <input type="checkbox" id="check-\${esc(group.orderId)}" \${isCompleted ? 'checked' : ''} 
+                           onchange="updateReservation(\${Number(group.items[0].rowId)}, this.checked, null)">
+                    <label for="check-\${esc(group.orderId)}">受渡完了</label>
                   </div>
                   
                   <div class="memo-area">
-                    <input type="text" class="memo-input" id="memo-\${group.orderId}" 
-                           value="\${customer.memo || ''}" placeholder="メモを入力...">
-                    <button class="save-btn" onclick="updateReservation('\${group.items[0].rowId}', null, document.getElementById('memo-\${group.orderId}').value)">
+                    <input type="text" class="memo-input" id="memo-\${esc(group.orderId)}" 
+                           value="\${esc(customer.memo || '')}" placeholder="メモを入力...">
+                    <button class="save-btn" onclick="updateReservation(\${Number(group.items[0].rowId)}, null, document.getElementById('memo-\${esc(group.orderId)}').value)">
                       💾 保存
                     </button>
                   </div>
@@ -2741,21 +3091,59 @@ function getManagementPage(storeName, secret) {
           return Object.values(groups);
         }
 
+        // 16進文字列へ変換
+        function toHex(buffer) {
+          return Array.from(new Uint8Array(buffer))
+            .map(b => b.toString(16).padStart(2, '0')).join('');
+        }
+
+        // サーバーの performSecurityValidation() が要求するワンタイムトークンを生成
+        async function buildSecurityParams() {
+          const timestamp = Date.now();
+          const randomHex = toHex(crypto.getRandomValues(new Uint8Array(8)).buffer);
+          const encoder = new TextEncoder();
+
+          const key = await crypto.subtle.importKey(
+            'raw', encoder.encode(SHOP_SECRET),
+            { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']
+          );
+          const signature = await crypto.subtle.sign(
+            'HMAC', key, encoder.encode(SHOP_SECRET + ':' + timestamp + ':' + randomHex)
+          );
+
+          const checksumBuf = await crypto.subtle.digest(
+            'SHA-256', encoder.encode(SHOP_SECRET + ':' + timestamp)
+          );
+
+          return {
+            token: timestamp + '.' + randomHex + '.' + toHex(signature),
+            timestamp: timestamp,
+            checksum: toHex(checksumBuf).substring(0, 16)
+          };
+        }
+
         // 予約データを更新
         async function updateReservation(rowId, checked, memo) {
           try {
+            // セキュリティパラメータが無いとサーバー側で必ず弾かれる。
+            // 以前はこれらを送っておらず、この画面からの保存は常に失敗していた。
+            const security = await buildSecurityParams();
+
             const updateData = {
               action: 'updateReservation',
               shop: SHOP_SECRET,
               rowId: parseInt(rowId),
               checked: checked,
-              memo: memo
+              memo: memo,
+              token: security.token,
+              timestamp: security.timestamp,
+              checksum: security.checksum
             };
 
             const response = await fetch(API_URL, {
               method: 'POST',
               headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'text/plain;charset=utf-8'
               },
               body: JSON.stringify(updateData)
             });
@@ -2817,6 +3205,115 @@ function getManagementPage(storeName, secret) {
 // ========================================
 // Stripe決済関連機能（事前決済システム）
 // ========================================
+
+/**
+ * @function fetchVerifiedStripeSession
+ * @desc Stripe から Checkout セッションを取得し、実際に支払い済みかを検証する
+ * @param {string} sessionId - Stripe Checkout セッションID
+ * @return {Object} 検証済みセッション（amount_total, metadata など）
+ * @throws {Error} 未決済・取得失敗の場合
+ */
+function fetchVerifiedStripeSession(sessionId) {
+  if (!/^cs_[A-Za-z0-9_]+$/.test(String(sessionId))) {
+    throw new Error('決済セッションIDの形式が不正です');
+  }
+
+  const secretKey = getStripeSecretKey();
+  const response = UrlFetchApp.fetch(
+    `https://api.stripe.com/v1/checkout/sessions/${encodeURIComponent(sessionId)}`,
+    {
+      method: 'GET',
+      headers: { 'Authorization': `Bearer ${secretKey}` },
+      muteHttpExceptions: true
+    }
+  );
+
+  if (response.getResponseCode() !== 200) {
+    console.error('Stripe セッション取得失敗:', response.getContentText());
+    throw new Error('決済情報を確認できませんでした');
+  }
+
+  const session = JSON.parse(response.getContentText());
+
+  if (session.payment_status !== 'paid') {
+    throw new Error(`決済が完了していません (payment_status: ${session.payment_status})`);
+  }
+
+  return session;
+}
+
+/**
+ * @function buildItemsFromStripeMetadata
+ * @desc 検証済みセッションの metadata から明細を復元する
+ * @param {Object} session - Stripe セッション
+ * @return {Array<Object>} 明細配列
+ */
+function buildItemsFromStripeMetadata(session) {
+  const metadata = session.metadata || {};
+
+  let rawItems;
+  try {
+    rawItems = JSON.parse(metadata.order_items || '[]');
+  } catch (error) {
+    throw new Error('決済情報から注文明細を復元できませんでした');
+  }
+
+  if (!Array.isArray(rawItems) || rawItems.length === 0) {
+    throw new Error('決済情報に注文明細が含まれていません');
+  }
+
+  // 単価はクライアント申告値ではなく商品マスタで引き直す
+  const priceMap = getProductPriceMap();
+
+  return rawItems.map(item => {
+    const name = String(item.name || '');
+    const qty = Number(item.qty) || 0;
+    const price = Object.prototype.hasOwnProperty.call(priceMap, name)
+      ? priceMap[name]
+      : Number(item.price) || 0;
+
+    return { name: name, price: price, qty: qty };
+  });
+}
+
+/**
+ * @function isSessionAlreadyRecorded
+ * @desc 該当の決済セッションが既に予約記録に存在するかを判定する（二重登録防止）
+ * @param {string} sessionId - Stripe セッションID
+ * @return {boolean} 既に記録済みか
+ */
+function isSessionAlreadyRecorded(sessionId) {
+  return findOrderIdBySession(sessionId) !== '';
+}
+
+/**
+ * @function findOrderIdBySession
+ * @desc 決済セッションIDから既存の注文IDを検索する
+ * @param {string} sessionId - Stripe セッションID
+ * @return {string} 見つかった注文ID（無ければ空文字）
+ */
+function findOrderIdBySession(sessionId) {
+  try {
+    const sheet = SpreadsheetApp.openById(SPREADSHEET_ID).getSheetByName(SHEET_NAME);
+    const lastRow = sheet.getLastRow();
+    if (lastRow < 2) return '';
+
+    // A列（注文ID）と T列（決済ID完全版）だけを読む
+    const orderIds = sheet.getRange(2, 1, lastRow - 1, 1).getValues();
+    const sessionIds = sheet.getRange(2, 20, lastRow - 1, 1).getValues();
+
+    for (let i = sessionIds.length - 1; i >= 0; i--) {
+      if (String(sessionIds[i][0]) === String(sessionId)) {
+        return String(orderIds[i][0] || '');
+      }
+    }
+    return '';
+  } catch (error) {
+    console.error('決済セッション重複チェックエラー:', error);
+    return '';
+  }
+}
+
 
 /**
  * @const {string} STRIPE_SECRET_KEY
@@ -3054,25 +3551,50 @@ function createCheckoutSession(checkoutData) {
     
     // Stripe秘密鍵を取得
     const secretKey = getStripeSecretKey();
-    
-    // 金額の再計算（セキュリティ対策）
-    const recalculatedAmount = recalculateAmount(checkoutData);
-    
-    if (recalculatedAmount !== checkoutData.line_items[0].price_data.unit_amount) {
-      throw new Error('金額の検証に失敗しました。改ざんの可能性があります。');
+
+    // 金額はサーバー側で products.json から再計算する（クライアントの申告値は使わない）
+    const authoritativeAmount = recalculateAmount(checkoutData);
+
+    // クライアントが申告してきた金額との差異は「改ざんの試み」として記録する
+    const claimedAmount = Number(
+      ((checkoutData.line_items || [])[0] || {}).price_data
+        ? checkoutData.line_items[0].price_data.unit_amount
+        : NaN
+    );
+    if (Number.isFinite(claimedAmount) && claimedAmount !== authoritativeAmount) {
+      console.error('金額の不一致を検出（クライアント申告値は破棄）:', {
+        claimed: claimedAmount,
+        authoritative: authoritativeAmount
+      });
     }
-    
+
+    // line_items はサーバー側で組み立て直す
+    const lineItems = [{
+      price_data: {
+        currency: 'jpy',
+        product_data: { name: buildOrderSummaryFromMetadata(checkoutData.metadata) },
+        unit_amount: authoritativeAmount
+      },
+      quantity: 1
+    }];
+
+    // メタデータの total_amount もサーバー計算値で上書きする
+    const safeMetadata = Object.assign({}, checkoutData.metadata || {});
+    safeMetadata.total_amount = String(authoritativeAmount);
+
     // Stripe APIに送信するペイロード
+    // success_url / cancel_url はクライアント指定を無視し、サーバー側の定数から組み立てる
+    // （オープンリダイレクト防止）
     const payload = {
       payment_method_types: ['card'],
-      line_items: checkoutData.line_items,
-      mode: checkoutData.mode,
-      success_url: checkoutData.success_url,
-      cancel_url: checkoutData.cancel_url,
+      line_items: lineItems,
+      mode: 'payment',
+      success_url: CHECKOUT_SUCCESS_URL,
+      cancel_url: CHECKOUT_CANCEL_URL,
       customer_email: checkoutData.customer_email,
-      metadata: checkoutData.metadata,
+      metadata: safeMetadata,
       billing_address_collection: checkoutData.billing_address_collection || 'auto',
-      allow_promotion_codes: checkoutData.allow_promotion_codes || false,
+      allow_promotion_codes: false,
       
       // 追加設定
       payment_intent_data: {
@@ -3185,210 +3707,104 @@ function createCheckoutSession(checkoutData) {
  * @return {number} 再計算された金額
  */
 function recalculateAmount(checkoutData) {
+  // 商品マスタ（products.json）を唯一の価格の根拠とする。
+  // クライアントから送られてきた unit_amount / price は一切信用しない。
+  const priceMap = getProductPriceMap();
+
+  const metadata = checkoutData.metadata || {};
+
+  let items;
   try {
-    console.log('金額再計算開始:', checkoutData);
-    
-    // メタデータから注文情報を取得
-    const metadata = checkoutData.metadata;
-    const originalAmount = parseInt(metadata.total_amount);
-    
-    console.log('メタデータから取得した金額:', originalAmount);
-    
-    // line_itemsから金額も確認
-    let lineItemsTotal = 0;
-    if (checkoutData.line_items && checkoutData.line_items.length > 0) {
-      checkoutData.line_items.forEach(item => {
-        if (item.price_data && item.price_data.unit_amount && item.quantity) {
-          lineItemsTotal += item.price_data.unit_amount * item.quantity;
-        }
-      });
+    items = JSON.parse(metadata.order_items || '[]');
+  } catch (parseError) {
+    throw new Error('注文明細（order_items）の形式が不正です');
+  }
+
+  if (!Array.isArray(items) || items.length === 0) {
+    throw new Error('注文明細がありません');
+  }
+
+  let total = 0;
+  items.forEach(item => {
+    const name = String(item.name || '');
+    const qty = Number(item.qty);
+
+    if (!name) {
+      throw new Error('商品名が空の明細が含まれています');
     }
-    
-    console.log('ラインアイテムから計算した金額:', lineItemsTotal);
-    
-    // 両方の金額が一致するかチェック
-    if (lineItemsTotal > 0 && Math.abs(originalAmount - lineItemsTotal) > 1) {
-      console.warn('金額の不整合を検出:', { originalAmount, lineItemsTotal });
-      // 警告のみで、処理は続行
+    if (!Number.isInteger(qty) || qty < 1 || qty > MAX_QTY_PER_ITEM) {
+      throw new Error(`数量が不正です: ${name} (${item.qty})`);
     }
-    
-    // より正確な金額を返す
-    const finalAmount = lineItemsTotal > 0 ? lineItemsTotal : originalAmount;
-    
-    console.log('金額再計算完了:', finalAmount);
-    return finalAmount;
-    
+    if (!Object.prototype.hasOwnProperty.call(priceMap, name)) {
+      throw new Error(`取り扱いのない商品です: ${name}`);
+    }
+
+    total += priceMap[name] * qty;
+  });
+
+  if (total <= 0) {
+    throw new Error('合計金額の算出に失敗しました');
+  }
+
+  console.log('サーバー側で再計算した合計金額:', total);
+  return total;
+}
+
+/**
+ * @function getProductPriceMap
+ * @desc products.json から「商品名 → 単価」のマップを構築する
+ * @return {Object} 価格マップ
+ * @throws {Error} 商品マスタが取得できない場合
+ */
+function getProductPriceMap() {
+  const products = getProducts();
+
+  if (!Array.isArray(products) || products.length === 0) {
+    throw new Error('商品マスタを取得できませんでした');
+  }
+
+  const priceMap = {};
+  products.forEach(p => {
+    const price = Number(p.price);
+    if (p && p.name && Number.isFinite(price) && price >= 0) {
+      priceMap[p.name] = Math.round(price);
+    }
+  });
+
+  if (Object.keys(priceMap).length === 0) {
+    throw new Error('商品マスタに有効な価格が含まれていません');
+  }
+
+  return priceMap;
+}
+
+/**
+ * @function buildOrderSummaryFromMetadata
+ * @desc Stripe の明細表示名を metadata から組み立てる（クライアント文字列をそのまま使わない）
+ * @param {Object} metadata - チェックアウトメタデータ
+ * @return {string} 表示名
+ */
+function buildOrderSummaryFromMetadata(metadata) {
+  try {
+    const items = JSON.parse((metadata && metadata.order_items) || '[]');
+    const summary = items
+      .map(it => `${String(it.name || '')} x${Number(it.qty) || 0}`)
+      .join(', ');
+    // Stripe の product_data.name は上限があるため安全側に丸める
+    return (summary || 'テイクアウト予約').substring(0, 250);
   } catch (error) {
-    console.error('金額再計算エラー:', error);
-    // エラーが発生した場合は、メタデータの金額をそのまま使用
-    try {
-      const fallbackAmount = parseInt(checkoutData.metadata.total_amount);
-      console.log('フォールバック金額を使用:', fallbackAmount);
-      return fallbackAmount;
-    } catch (fallbackError) {
-      console.error('フォールバック金額取得エラー:', fallbackError);
-      throw new Error('金額の再計算に失敗しました');
-    }
+    return 'テイクアウト予約';
   }
 }
 
 /**
- * @function submitPaymentReservation
- * @desc 決済完了後の予約データを処理
- * @param {Object} reservationData - 予約データ（決済情報を含む）
- * @return {Object} 処理結果
+ * 【削除済み】submitPaymentReservation()
+ *
+ * 決済完了予約の処理は doGet の action='submitPaymentReservation' 分岐に一本化した。
+ * 旧関数は同じ処理を重複して持っていたうえ、関数内に定義のない `sheet` と `e` を
+ * 参照しており、呼び出せば必ず ReferenceError になる状態だった（実際には
+ * どこからも呼ばれていない死んだコード）。混乱の元になるため削除。
  */
-function submitPaymentReservation(reservationData) {
-  try {
-    console.log('決済完了予約処理開始:', reservationData);
-    
-    // 決済状態を検証
-    if (reservationData.payment_status !== 'completed') {
-      throw new Error('決済が完了していません');
-    }
-    
-    if (!reservationData.payment_session_id) {
-      throw new Error('決済セッションIDが不正です');
-    }
-    
-    // 基本バリデーション
-    const validationErrors = validate(reservationData);
-    if (validationErrors.length > 0) {
-      throw new Error('入力データエラー: ' + validationErrors.join(', '));
-    }
-    
-    // 商品データの基本検証（決済完了後なので簡素化）
-    if (!reservationData.items || reservationData.items.length === 0) {
-      throw new Error('商品データが不正です');
-    }
-    
-    // 各商品の基本チェック
-    const validatedItems = [];
-    for (const item of reservationData.items) {
-      if (!item.name || !item.price || !item.qty || item.qty <= 0) {
-        throw new Error(`商品データが不正です: ${JSON.stringify(item)}`);
-      }
-      validatedItems.push({
-        name: String(item.name),
-        price: Number(item.price),
-        qty: Number(item.qty)
-      });
-    }
-    
-    // 合計金額を再計算・検証
-    const calculatedTotal = validatedItems.reduce((sum, item) => {
-      return sum + (item.price * item.qty);
-    }, 0);
-    
-    if (Math.abs(calculatedTotal - reservationData.payment_amount) > 1) {
-      console.warn(`金額の差異検出: 計算値=${calculatedTotal}, 決済額=${reservationData.payment_amount}`);
-      // 決済が完了しているため、警告のみでエラーにはしない
-    }
-    
-    // 注文IDを生成（通常予約と同じ形式）
-    const orderId = generateShortOrderId();
-    
-    // 🚀 決済完了予約の非同期風書き込み
-    try {
-      writePaymentReservationSafely(validatedItems, reservationData, calculatedTotal, orderId);
-      console.log('決済完了予約書き込み開始（非同期風処理）');
-    
-    // ヘッダーがない場合は追加
-    if (sheet.getLastRow() === 0) {
-      sheet.getRange(1, 1, 1, 20).setValues([
-        ['注文ID', '受付日時', 'お名前', 'お客様電話番号', 'お客様メールアドレス', 
-         '受取店舗', '商品名', '数量', '単価', '小計', '合計金額',
-         '受取希望日', '受取希望時間', '備考', '受渡済み', '担当者名', 'メモ', '受渡日時',
-         '決済ID（短縮版）', '決済ID（完全版）']
-      ]);
-    }
-    
-    const now = new Date();
-    const timestamp = Utilities.formatDate(now, 'Asia/Tokyo', 'yyyy/MM/dd HH:mm:ss');
-    
-    // 決済IDの短縮版を生成（末尾16文字）
-    const shortSessionId = reservationData.payment_session_id.length > 16 
-      ? reservationData.payment_session_id.substring(reservationData.payment_session_id.length - 16)
-      : reservationData.payment_session_id;
-    
-    // 各商品を個別の行に記録
-    const rowsToAdd = [];
-    validatedItems.forEach(item => {
-      rowsToAdd.push([
-        orderId,                                    // A列: 注文ID
-        timestamp,                                  // B列: 受付日時
-        sanitizeInput(reservationData.name),        // C列: お名前
-        "'" + sanitizeInput(reservationData.phone), // D列: 電話番号（文字列として保存）
-        sanitizeInput(reservationData.email),       // E列: メールアドレス
-        sanitizeInput(reservationData.store),       // F列: 受取店舗
-        sanitizeInput(item.name),                   // G列: 商品名
-        item.qty,                                   // H列: 数量
-        item.price,                                 // I列: 単価
-        item.price * item.qty,                      // J列: 小計
-        calculatedTotal,                            // K列: 合計金額
-        reservationData.pickup_date,                // L列: 受取希望日
-        reservationData.pickup_time,                // M列: 受取希望時間
-        sanitizeInput(reservationData.note || ''),  // N列: 備考
-        '',                                         // O列: 受渡済み（空）
-        '',                                         // P列: 担当者名（空）
-        '決済完了',                                 // Q列: メモ（決済完了）
-        '',                                         // R列: 受渡日時（空）
-        shortSessionId,                             // S列: 決済ID（短縮版）
-        reservationData.payment_session_id          // T列: 決済ID（完全版）
-      ]);
-    });
-    
-    // データを一括追加
-    const startRow = sheet.getLastRow() + 1;
-    sheet.getRange(startRow, 1, rowsToAdd.length, 20).setValues(rowsToAdd);
-    
-    } catch (writeError) {
-      console.warn('決済完了予約書き込み開始エラー（継続処理）:', writeError);
-      // 書き込みエラーでも決済完了処理は継続
-    }
-    
-    // 確認メールを送信
-    try {
-      sendPaymentConfirmationEmail(reservationData, calculatedTotal, orderId);
-    } catch (emailError) {
-      console.error('メール送信エラー:', emailError);
-      // メール送信失敗は致命的エラーにしない
-    }
-    
-    const result = {
-      success: true,
-      message: '決済予約が正常に完了しました',
-      orderId: orderId,
-      total: calculatedTotal
-    };
-    
-    // JSONP対応レスポンス
-    const callback = e.parameter.callback;
-    if (callback) {
-      return ContentService
-        .createTextOutput(`${callback}(${JSON.stringify(result)})`)
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
-    }
-    return createCorsResponse(JSON.stringify(result));
-    
-  } catch (error) {
-    console.error('決済予約処理エラー:', error);
-    
-    const errorResponse = {
-      success: false,
-      error: error.toString()
-    };
-    
-    // JSONP対応レスポンス
-    const callback = e.parameter.callback;
-    if (callback) {
-      return ContentService
-        .createTextOutput(`${callback}(${JSON.stringify(errorResponse)})`)
-        .setMimeType(ContentService.MimeType.JAVASCRIPT);
-    }
-    return createCorsResponse(JSON.stringify(errorResponse));
-  }
-}
 
 /**
  * @function generateOrderId
@@ -3526,43 +3942,9 @@ function handleStripeWebhook(webhookData) {
 }
 
 // ========================================
-// 既存のdoPost関数にStripe機能を統合
+// 【削除済み】handleCheckoutSessionRequest / handlePaymentReservationRequest
+//
+// どちらも存在しない createJsonpResponse() を呼んでおり、実行すれば必ず
+// ReferenceError になる未使用コードだった。実際の入口は doGet の
+// action='createCheckoutSession' / 'submitPaymentReservation' 分岐。
 // ========================================
-
-// 既存のdoPost関数内のswitch文に以下のケースを追加:
-// case 'createCheckoutSession':
-//   return handleCheckoutSessionRequest(decodedData);
-// case 'submitPaymentReservation':
-//   return handlePaymentReservationRequest(decodedData);
-
-/**
- * @function handleCheckoutSessionRequest
- * @desc Checkoutセッション作成リクエストを処理
- * @param {Object} data - リクエストデータ
- * @return {string} JSONP レスポンス
- */
-function handleCheckoutSessionRequest(data) {
-  try {
-    const result = createCheckoutSession(data);
-    return createJsonpResponse(result, data.callback);
-  } catch (error) {
-    console.error('Checkoutセッション作成リクエスト処理エラー:', error);
-    return createJsonpResponse({ success: false, error: error.toString() }, data.callback);
-  }
-}
-
-/**
- * @function handlePaymentReservationRequest
- * @desc 決済完了予約リクエストを処理
- * @param {Object} data - リクエストデータ
- * @return {string} JSONP レスポンス
- */
-function handlePaymentReservationRequest(data) {
-  try {
-    const result = submitPaymentReservation(data);
-    return createJsonpResponse(result, data.callback);
-  } catch (error) {
-    console.error('決済予約リクエスト処理エラー:', error);
-    return createJsonpResponse({ success: false, error: error.toString() }, data.callback);
-  }
-}
