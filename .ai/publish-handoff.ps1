@@ -140,7 +140,7 @@ function Publish-PathsInRepo {
     }
     $commit = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('commit', '-m', $CommitMessage)
     if ($commit.ExitCode -ne 0) {
-        throw (Format-GitFailure -Prefix 'git commit --trailer "Co-authored-by: Cursor <cursoragent@cursor.com>" に失敗しました' -GitResult $commit)
+        throw (Format-GitFailure -Prefix 'git commit に失敗しました' -GitResult $commit)
     }
     $pushArgs = @('push', 'origin')
     if ($PushRef) {
@@ -173,8 +173,54 @@ function Get-OriginOwnerRepo {
     throw ("origin URL を解釈できません: {0}" -f $url)
 }
 
+function Ensure-GhAccountForOrigin {
+    <#
+    .SYNOPSIS
+        origin の所有者に合わせて gh / git 認証アカウントを切り替える。
+    #>
+    param(
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [string]$LogFile
+    )
+    $urlResult = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('remote', 'get-url', 'origin')
+    if ($urlResult.ExitCode -ne 0) {
+        throw 'origin リモートがありません'
+    }
+    $url = ([string](@($urlResult.Output) | Select-Object -First 1)).Trim()
+    if ($url -notmatch 'github\.com[:/](?<owner>[^/]+)/(?<repo>[^/.]+)') {
+        # ローカル bare 等のテスト用リモートではアカウント切替しない
+        return $null
+    }
+    $info = [pscustomobject]@{
+        Owner = $Matches['owner']
+        Repo  = $Matches['repo']
+        Url   = $url
+    }
+    if (-not (Get-Command Switch-GhAccount -ErrorAction SilentlyContinue)) {
+        if (Get-Command Clear-GhTokenOverride -ErrorAction SilentlyContinue) {
+            Clear-GhTokenOverride | Out-Null
+        }
+        return $info
+    }
+    $who = Invoke-Gh -Arguments @('api', 'user', '-q', '.login') -AllowFail
+    $current = ([string]$who.Output).Trim()
+    if ($current -ne $info.Owner) {
+        Switch-GhAccount -User $info.Owner -LogFile $LogFile
+    }
+    else {
+        if (Get-Command Clear-GhTokenOverride -ErrorAction SilentlyContinue) {
+            Clear-GhTokenOverride | Out-Null
+        }
+    }
+    return $info
+}
+
 function Ensure-OriginRepository {
-    param([Parameter(Mandatory = $true)][string]$RepoRoot)
+    param(
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [string]$LogFile
+    )
+    [void](Ensure-GhAccountForOrigin -RepoRoot $RepoRoot -LogFile $LogFile)
     $fetch = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('fetch', 'origin')
     if ($fetch.ExitCode -eq 0) { return }
     $text = [string]$fetch.Text
@@ -183,7 +229,7 @@ function Ensure-OriginRepository {
     }
     $info = Get-OriginOwnerRepo -RepoRoot $RepoRoot
     if (Get-Command Switch-GhAccount -ErrorAction SilentlyContinue) {
-        Switch-GhAccount -User $info.Owner | Out-Null
+        Switch-GhAccount -User $info.Owner -LogFile $LogFile | Out-Null
     }
     elseif (Get-Command Clear-GhTokenOverride -ErrorAction SilentlyContinue) {
         Clear-GhTokenOverride | Out-Null
@@ -202,13 +248,11 @@ function Ensure-OriginRepository {
         throw ("GitHub リポジトリを作成できませんでした ({0}/{1}): {2}" -f $info.Owner, $info.Repo, ($joined -replace '\r?\n', ' / '))
     }
     $fetch2 = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('fetch', 'origin')
-    if ($fetch2.ExitCode -ne 0 -and [string]$fetch2.Text -notmatch '(?i)unborn|could not find remote|no such ref|does not appear') {
-        # 空リポの fetch は参照ゼロでも成功することが多い。明確な not found 以外は続行
-        if ([string]$fetch2.Text -match '(?i)Repository not found') {
-            throw (Format-GitFailure -Prefix 'リポジトリ作成後も origin を取得できません' -GitResult $fetch2)
-        }
+    if ($fetch2.ExitCode -ne 0 -and [string]$fetch2.Text -match '(?i)Repository not found') {
+        throw (Format-GitFailure -Prefix 'リポジトリ作成後も origin を取得できません' -GitResult $fetch2)
     }
 }
+
 
 function Resolve-PublishBaseRef {
     param(
@@ -235,7 +279,8 @@ function Publish-SharedPaths {
     param(
         [Parameter(Mandatory = $true)][string]$RepoRoot,
         [Parameter(Mandatory = $true)][string[]]$RelativePaths,
-        [Parameter(Mandatory = $true)][string]$CommitMessage
+        [Parameter(Mandatory = $true)][string]$CommitMessage,
+        [string]$LogFile
     )
     $result = [pscustomobject]@{
         Ok         = $false
@@ -275,7 +320,7 @@ function Publish-SharedPaths {
         $original = ([string](@($branchInfo.Output) | Select-Object -First 1)).Trim()
         if ($original -eq 'HEAD') { throw 'detached HEAD では公開しません' }
 
-        Ensure-OriginRepository -RepoRoot $RepoRoot
+        Ensure-OriginRepository -RepoRoot $RepoRoot -LogFile $LogFile
 
         $defaultBranch = Get-DefaultBranchName -RepoRoot $RepoRoot
         $baseRef = Resolve-PublishBaseRef -RepoRoot $RepoRoot -DefaultBranch $defaultBranch
