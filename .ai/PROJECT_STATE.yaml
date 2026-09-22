@@ -1,0 +1,12 @@
+﻿# 現在地のみ。履歴は溜めない。詳細は .agent-log/ へ。
+goal: []
+current: []
+done: []
+next: []
+locked_decisions: []
+risks: []
+unverified: []
+work_context:
+  branch: ""
+  head: ""
+  dirty: false
