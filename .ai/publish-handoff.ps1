@@ -156,6 +156,81 @@ function Publish-PathsInRepo {
     return [pscustomobject]@{ Changed = $true; Pushed = $true }
 }
 
+function Get-OriginOwnerRepo {
+    param([Parameter(Mandatory = $true)][string]$RepoRoot)
+    $urlResult = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('remote', 'get-url', 'origin')
+    if ($urlResult.ExitCode -ne 0) {
+        throw 'origin リモートがありません'
+    }
+    $url = ([string](@($urlResult.Output) | Select-Object -First 1)).Trim()
+    if ($url -match 'github\.com[:/](?<owner>[^/]+)/(?<repo>[^/.]+)') {
+        return [pscustomobject]@{
+            Owner = $Matches['owner']
+            Repo  = $Matches['repo']
+            Url   = $url
+        }
+    }
+    throw ("origin URL を解釈できません: {0}" -f $url)
+}
+
+function Ensure-OriginRepository {
+    param([Parameter(Mandatory = $true)][string]$RepoRoot)
+    $fetch = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('fetch', 'origin')
+    if ($fetch.ExitCode -eq 0) { return }
+    $text = [string]$fetch.Text
+    if ($text -notmatch '(?i)Repository not found|not found') {
+        throw (Format-GitFailure -Prefix 'origin の取得に失敗しました' -GitResult $fetch)
+    }
+    $info = Get-OriginOwnerRepo -RepoRoot $RepoRoot
+    if (Get-Command Switch-GhAccount -ErrorAction SilentlyContinue) {
+        Switch-GhAccount -User $info.Owner | Out-Null
+    }
+    elseif (Get-Command Clear-GhTokenOverride -ErrorAction SilentlyContinue) {
+        Clear-GhTokenOverride | Out-Null
+    }
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try {
+        $out = & gh repo create ("{0}/{1}" -f $info.Owner, $info.Repo) --private 2>&1
+        $code = $LASTEXITCODE
+    }
+    finally {
+        $ErrorActionPreference = $prev
+    }
+    $joined = (@($out) | ForEach-Object { [string]$_ }) -join "`n"
+    if ($code -ne 0 -and $joined -notmatch '(?i)already exists|Name already exists') {
+        throw ("GitHub リポジトリを作成できませんでした ({0}/{1}): {2}" -f $info.Owner, $info.Repo, ($joined -replace '\r?\n', ' / '))
+    }
+    $fetch2 = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('fetch', 'origin')
+    if ($fetch2.ExitCode -ne 0 -and [string]$fetch2.Text -notmatch '(?i)unborn|could not find remote|no such ref|does not appear') {
+        # 空リポの fetch は参照ゼロでも成功することが多い。明確な not found 以外は続行
+        if ([string]$fetch2.Text -match '(?i)Repository not found') {
+            throw (Format-GitFailure -Prefix 'リポジトリ作成後も origin を取得できません' -GitResult $fetch2)
+        }
+    }
+}
+
+function Resolve-PublishBaseRef {
+    param(
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [Parameter(Mandatory = $true)][string]$DefaultBranch
+    )
+    $originRef = "origin/$DefaultBranch"
+    $rev = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('rev-parse', '--verify', $originRef)
+    if ($rev.ExitCode -eq 0) {
+        return $originRef
+    }
+    $local = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('rev-parse', '--verify', $DefaultBranch)
+    if ($local.ExitCode -eq 0) {
+        return $DefaultBranch
+    }
+    $head = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('rev-parse', '--verify', 'HEAD')
+    if ($head.ExitCode -eq 0) {
+        return 'HEAD'
+    }
+    throw '公開の基点コミットを特定できません'
+}
+
 function Publish-SharedPaths {
     param(
         [Parameter(Mandatory = $true)][string]$RepoRoot,
@@ -165,6 +240,7 @@ function Publish-SharedPaths {
     $result = [pscustomobject]@{
         Ok         = $false
         Error      = $null
+        Warning    = $null
         PushedMain = $false
         PushedWork = $false
         Skipped    = $false
@@ -199,19 +275,12 @@ function Publish-SharedPaths {
         $original = ([string](@($branchInfo.Output) | Select-Object -First 1)).Trim()
         if ($original -eq 'HEAD') { throw 'detached HEAD では公開しません' }
 
-        $fetch = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('fetch', 'origin')
-        if ($fetch.ExitCode -ne 0) {
-            throw (Format-GitFailure -Prefix 'origin の取得に失敗しました' -GitResult $fetch)
-        }
+        Ensure-OriginRepository -RepoRoot $RepoRoot
 
         $defaultBranch = Get-DefaultBranchName -RepoRoot $RepoRoot
-        $originRef = "origin/$defaultBranch"
-        $rev = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('rev-parse', '--verify', $originRef)
-        if ($rev.ExitCode -ne 0) {
-            throw ("本線の参照がありません: {0}" -f $originRef)
-        }
+        $baseRef = Resolve-PublishBaseRef -RepoRoot $RepoRoot -DefaultBranch $defaultBranch
 
-        $wtAdd = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('worktree', 'add', '--detach', $worktreePath, $originRef)
+        $wtAdd = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('worktree', 'add', '--detach', $worktreePath, $baseRef)
         if ($wtAdd.ExitCode -ne 0) {
             throw (Format-GitFailure -Prefix '一時 worktree を作れませんでした' -GitResult $wtAdd)
         }
@@ -219,7 +288,6 @@ function Publish-SharedPaths {
         foreach ($rel in $RelativePaths) {
             Copy-RepoRelative -RepoRoot $contentTemp -RelativePath $rel -DestinationRoot $worktreePath
         }
-        # worktree 側にも作者情報がない場合があるのでローカル設定を借用
         $email = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('config', 'user.email')
         $name = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('config', 'user.name')
         if ($email.ExitCode -eq 0 -and $email.Text) {
@@ -237,26 +305,37 @@ function Publish-SharedPaths {
         }
 
         if ($original -eq $defaultBranch) {
-            $pull = Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('pull', '--ff-only', 'origin', $defaultBranch)
-            if ($pull.ExitCode -ne 0) {
-                # 本線は worktree で上げ済み。ローカル追従だけ失敗しても公開自体は成功扱い
-                $result.Ok = $true
-            }
-            else {
-                $result.Ok = $true
-            }
+            [void](Invoke-GitLocal -WorkingDirectory $RepoRoot -GitArgs @('pull', '--ff-only', 'origin', $defaultBranch))
             if (-not $mainPub.Changed) { $result.Skipped = $true }
+            $result.Ok = $true
         }
         else {
-            $workPub = Publish-PathsInRepo -RepoRoot $RepoRoot -RelativePaths $RelativePaths -CommitMessage $CommitMessage -PushRef $null
-            if ($workPub.Pushed) { $result.PushedWork = $true }
-            if (-not $mainPub.Changed -and -not $workPub.Changed) { $result.Skipped = $true }
-            $result.Ok = $true
+            try {
+                $workPub = Publish-PathsInRepo -RepoRoot $RepoRoot -RelativePaths $RelativePaths -CommitMessage $CommitMessage -PushRef $null
+                if ($workPub.Pushed) { $result.PushedWork = $true }
+                if (-not $mainPub.Changed -and -not $workPub.Changed) { $result.Skipped = $true }
+                $result.Ok = $true
+            }
+            catch {
+                if ($result.PushedMain) {
+                    $result.Ok = $true
+                    $result.Warning = ("本線は公開済み。作業ブランチへの反映は保留: {0}" -f $_.Exception.Message)
+                }
+                else {
+                    throw
+                }
+            }
         }
     }
     catch {
-        $result.Ok = $false
-        $result.Error = $_.Exception.Message
+        if ($result.PushedMain) {
+            $result.Ok = $true
+            $result.Warning = $_.Exception.Message
+        }
+        else {
+            $result.Ok = $false
+            $result.Error = $_.Exception.Message
+        }
     }
     finally {
         if (Test-Path -LiteralPath $worktreePath) {
@@ -271,6 +350,7 @@ function Publish-SharedPaths {
     }
     return $result
 }
+
 
 if ($MyInvocation.InvocationName -ne '.') {
     $repoRoot = $PSScriptRoot
