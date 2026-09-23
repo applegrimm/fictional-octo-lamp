@@ -1,48 +1,68 @@
-﻿<!-- BEGIN SHARED AGENT LOG RULES -->
+<!-- BEGIN AGENT-RULES-TOOLS SHARED RULES -->
+<!-- 自動生成。編集は agent-rules-tools の rules/common.md で行い、distribute.bat で配る -->
 
-<!-- AUTO-GENERATED FILE -->
-<!-- Source: agent-rules/source/agent-log.md -->
-<!-- Do not edit directly. -->
+# 共通作業ルール
 
-# Agent Log 運用ルール
+どのエージェント（Cursor / Codex / Claude Code など）でも、ローカルでもクラウドでも、このルールに従う。
+このリポジトリの作業状況は、次の2つだけで引き継ぐ。
 
-共通 AI エージェント向けの作業ログ運用ルール。正本は `agent-rules/source/agent-log.md`。
+- `.ai/HANDOFF.md` … 本筋の現在地。全エージェントで1つ。毎回上書きする
+- `.agent-log/` … エージェントごとの作業ログ。1回の作業で1ファイル追加する。過去のファイルは消さない
 
 ## 作業開始時
 
-- プロジェクトルートの `.agent-log/` が存在する場合、最近のログを確認する
-- 過去の設計判断・変更理由を尊重する
-- AI エージェントが変わっても `.agent-log` を引き継ぐ
+1. `.ai/HANDOFF.md` を読む。現在地・次にやること・決まったことはここに書いてある
+2. `.agent-log/` の新しいものから2〜3件を読む
+3. 最新の main を取り込む（`git pull`）。クラウドで新しく clone した場合は不要
+4. main にまだ入っていない作業ブランチがあれば確認する（`git fetch origin` のあと `git branch -r --no-merged origin/main`）。見つかったら、そのブランチの `.ai/HANDOFF.md` も読む（`git show origin/<ブランチ>:.ai/HANDOFF.md`）
+5. HANDOFF に「済み」「判明した」と書いてあることは調べ直さない。ただし、HANDOFF と実際のコードが違うときはコードを正しいものとして扱い、HANDOFF を直す
 
-## 作業終了時（実変更がある場合）
+`.ai/HANDOFF.md` が無いときは、作業の現在地がまだ記録されていないということ。作業終了時に作る。
 
-- `.agent-log/` が無ければ作成する
-- ログファイル名: `YYYYMMDD-HHMM-<agent>.md`
-- 以下を必ず記録する
-  - Agent
-  - Date
-  - Task
-  - Reason（なぜその変更を行ったか）
-  - Changes
-  - Files Changed
-  - Verification
-  - Remaining Issues
-- 「何を変更したか」だけでなく「なぜ変更したか」を必ず書く
-- 未検証事項・残課題を明記する
+## 作業終了時（ファイルを変更した場合）
 
-## 禁止・注意
+1. `.ai/HANDOFF.md` を今の状態に書き換える。履歴は書かない（履歴は作業ログへ）
+   - 次のエージェントが同じ調査をしなくて済むように、調べて分かったこと（原因・構造・ハマりどころ）も「分かっていること」に書く
+   - 秘密情報（キー、パスワード、トークン）は書かない
+2. `.agent-log/YYYYMMDD-HHMM-<エージェント名>.md` を新しく作る（書き方は下の「作業ログの書式」）
+3. 作業の変更と HANDOFF と作業ログを同じコミットに入れる
+4. main にマージして push するまでを作業完了とする
+   - main に直接 push できない環境（クラウドなど）では、作業ブランチへ push してプルリクエストを作る。HANDOFF の「main 未反映の作業」にブランチ名を書く
 
-- 調査・質問回答・コード変更を伴わない作業ではログ不要
-- 不要なブランチ作成を避ける
-- 既存履歴の破壊（force push / hard reset 等）を避ける
-- 通常の個人開発では main への直接変更を許可する
-- ブランチを作った場合、特別な理由がなければ作業終了時に main へ反映する
-- 未マージ状態を作業完了として扱わない
+調査・質問への回答だけでファイルを変更しない場合は、作業ログはいらない。
+ただし、次の人が同じ調査をせずに済む結論が出たときは、HANDOFF の「分かっていること」に書いてコミットする。
 
-## 正本について
+## Git
 
-- ルール変更時は原則 `agent-rules/source/agent-log.md` のみを編集する
-- 各プロジェクトへ配布された生成ファイルを直接編集しない
+- コミットメッセージは日本語で書く
+- 作業完了とは、main にマージして push した状態を指す。マージしていないものは完了として扱わない
+- 個人開発では main への直接コミットを認める。不要なブランチは作らない
+- ブランチを作ったときは、特別な理由がなければ作業終了時に main へマージする
+- force push、`reset --hard`、rebase など、共有された履歴を書き換える操作はしない
+- HANDOFF がコンフリクトしたら、両方の内容を読んで今の状態に合わせて書き直す。片方を捨てない
 
-<!-- END SHARED AGENT LOG RULES -->
+## 作業ログの書式
 
+ファイル名は `.agent-log/YYYYMMDD-HHMM-<エージェント名>.md`（例: `20260923-1530-claude-code.md`）。
+
+```markdown
+# 作業ログ
+
+- Agent: エージェント名とモデル名
+- Date: YYYY-MM-DD HH:MM
+- Task: 何を頼まれたか
+- Reason: なぜその変更をしたか
+- Changes: 何を変えたか
+- Files Changed: 変更したファイル
+- Verification: 何で確かめたか（実行したコマンドと結果）
+- Remaining Issues: 確かめていないこと・残っている課題
+```
+
+「何を変えたか」だけでなく「なぜ変えたか」を必ず書く。確かめていないことは、確かめていないと書く。
+
+## このルールについて
+
+- この区間は agent-rules-tools の `rules/common.md` から自動で生成している。ここを直接編集しない
+- このリポジトリ固有のルールは、この区間の外に書く
+
+<!-- END AGENT-RULES-TOOLS SHARED RULES -->
